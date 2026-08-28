@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './stores/auth.store'
 
 // Imports estáticos — sin lazy loading para compatibilidad con Electron file://
@@ -41,7 +41,7 @@ export default function App() {
 
   return (
     <ToastProvider>
-    <BrowserRouter>
+    <HashRouter>
       {mustChangePassword && <ForcePasswordChange />}
       <Suspense fallback={<PageLoader />}>
       <Routes>
@@ -71,7 +71,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Suspense>
-    </BrowserRouter>
+    </HashRouter>
     </ToastProvider>
   )
 }
