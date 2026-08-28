@@ -3,25 +3,26 @@
 ## Visión General
 
 ```
-┌─────────────────────────────────────────────────┐
-│                 ELECTRON APP                     │
-│                                                  │
-│  ┌──────────────┐       ┌─────────────────────┐ │
-│  │  MAIN PROCESS │◄─────►│  RENDERER PROCESS   │ │
-│  │  (Node.js)    │ IPC   │  (React + Vite)     │ │
-│  │               │       │                     │ │
-│  │  • SQLite DB  │       │  • UI / Dashboard   │ │
-│  │  • File I/O   │       │  • Punto de Venta   │ │
-│  │  • Print      │       │  • Inventario       │ │
-│  │  • Backup     │       │  • Reportes         │ │
-│  │  • System     │       │  • Configuración    │ │
-│  └──────────────┘       └─────────────────────┘ │
-│                                                  │
-│  ┌─────────────────────────────────────────────┐ │
-│  │              SQLite Database                 │ │
-│  │         (archivo local: data.db)            │ │
-│  └─────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                      ELECTRON APP                           │
+│                                                              │
+│  ┌──────────────┐         ┌─────────────────────────────┐   │
+│  │  MAIN PROCESS │◄───────►│      RENDERER PROCESS       │   │
+│  │  (Node.js)    │  IPC    │      (React + Vite)         │   │
+│  │               │         │                             │   │
+│  │  • SQLite DB  │         │  • UI / Dashboard           │   │
+│  │  • File I/O   │         │  • Punto de Venta           │   │
+│  │  • Print      │         │  • Inventario               │   │
+│  │  • Backup     │         │  • Reportes                 │   │
+│  │  • VP800      │         │  • Configuración            │   │
+│  │  • License    │         │  • Centro de Ayuda          │   │
+│  └──────────────┘         └─────────────────────────────┘   │
+│                                                              │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │              SQLite Database                         │    │
+│  │         (tog-admin.db — archivo local)               │    │
+│  └─────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -33,38 +34,39 @@
 
 | Módulo | Función |
 |--------|---------|
-| `database.ts` | Conexión SQLite, migraciones, queries preparados |
-| `ipc-handlers.ts` | Registrar todos los canales IPC ( productos.create, ventas.create, etc. ) |
-| `backup.ts` | Copias de seguridad automáticas a carpeta elegida |
-| `print.ts` | Generar tickets PDF, enviar a impresora térmica |
-| `tray.ts` | Icono en system tray (minimizar a bandeja) |
-| `window.ts` | Crear y gestionar la ventana principal |
+| `index.ts` | Entry point, ventana principal, DevTools |
+| `preload.ts` | API segura IPC (contextBridge) |
+| `ipc-handlers.ts` | 30+ canales IPC registrados |
+| `db/database.ts` | SQLite + 13 migraciones + seeds |
+| `services/valorTerminal.ts` | Comunicación serial VP800 (USB/COM) |
+| `services/license.ts` | Validación licencias RSA-2048 |
 
 ### 2. Process de Renderizado (Renderer Process)
 **Responsabilidad:** UI completamente en React.
 
 ```
-Renderer
-├── Router (React Router)
-│   ├── /                    → Login
-│   ├── /dashboard           → Panel principal
-│   ├── /pos                 → Punto de venta (pantalla principal de caja)
-│   ├── /inventario          → Gestión de productos
-│   ├── /ventas              → Historial de ventas
-│   ├── /compras             → Registro de compras a proveedores
-│   ├── /proveedores         → Gestión de proveedores
-│   ├── /reportes            → Reportes y gráficas
-│   ├── /cierre-caja         → Cierre del día
-│   └── /configuracion       → Ajustes del sistema
+Router (HashRouter)
+├── /login              → LoginPage (con botones legales)
+├── /                   → DashboardPage
+├── /pos                → POSPage (con validación caja)
+├── /inventario         → InventarioPage (con ajuste)
+├── /ventas             → VentasPage
+├── /caja               → CajaPage (con impresión cierre)
+├── /compras            → ComprasPage
+├── /proveedores        → ProveedoresPage
+├── /reportes           → ReportesPage
+├── /cotizaciones       → QuotesPage
+├── /configuracion      → ConfigPage (Terminal + Licencia + Tutorial)
+└── /ayuda              → HelpPage (12 secciones)
 ```
 
 ### 3. Capa de Datos (SQLite)
 **Responsabilidad:** Persistencia, integridad, respaldo.
 
-- **Un solo archivo:** `data.db` en la carpeta del usuario (`%APPDATA%/papeleria-pos/`)
+- **Un solo archivo:** `tog-admin.db` en `%APPDATA%/tog-admin/`
 - **Sin servidor:** No necesita MySQL ni nada externo
 - **Respaldo:** Copiar el archivo `.db` = respaldo completo
-- **Migraciones:** Sistema de versionado de esquema
+- **Migraciones:** Sistema de versionado de esquema (13 migraciones)
 
 ### 4. Comunicación IPC
 **Responsabilidad:** Puente seguro entre Main y Renderer.
@@ -72,10 +74,10 @@ Renderer
 ```
 Renderer (React)                    Main (Node.js)
      │                                    │
-     │  ipcRenderer.invoke('ventas.create', data)
+     │  window.api.ventas.create(data)    │
      │ ──────────────────────────────────► │
      │                                    │
-     │  ipcMain.handle('ventas.create', handler)
+     │  ipcMain.handle('ventas:create')   │
      │                                    │ Validar → Insertar DB → Responder
      │                                    │
      │  ◄────────────────────────────────── │
@@ -83,14 +85,54 @@ Renderer (React)                    Main (Node.js)
 ```
 
 **Canales IPC principales:**
-- `productos:list`, `productos:create`, `productos:update`, `productos:delete`
-- `ventas:create`, `ventas:list`, `ventas:getById`
-- `compras:create`, `compras:list`
-- `proveedores:list`, `proveedores:create`, `proveedores:update`
-- `caja:abrir`, `caja:cerrar`, `caja:status`
-- `reportes:ventas-dia`, `reportes:ventas-periodo`, `reportes:productos-mas-vendidos`
-- `backup:create`, `backup:restore`
-- `config:get`, `config:set`
+
+| Categoría | Canales |
+|-----------|---------|
+| Auth | `auth:login` |
+| Usuarios | `usuarios:list`, `create`, `update`, `delete`, `change-password` |
+| Productos | `productos:list`, `create`, `update`, `delete`, `low-stock`, `ajustar`, `ajustes-historial` |
+| Categorías | `categorias:list`, `create`, `update`, `delete` |
+| Unidades | `unidades:list`, `create`, `update`, `delete` |
+| Proveedores | `proveedores:list`, `create`, `update`, `delete` |
+| Ventas | `ventas:list`, `getById`, `create`, `anular`, `resumen-dia` |
+| Compras | `compras:list`, `create` |
+| Caja | `caja:status`, `abrir`, `cerrar`, `movimiento`, `historial` |
+| Quotes | `quotes:list`, `getById`, `create`, `update`, `delete` |
+| Reportes | `reportes:ventas-periodo`, `productos-mas-vendidos`, `ultimas-ventas` |
+| Config | `config:get`, `config:set` |
+| Backup | `backup:create`, `backup:restore` |
+| Terminal | `terminal:conectar`, `desconectar`, `estado`, `procesar-pago` |
+| Licencia | `license:status`, `validate`, `import` |
+
+---
+
+## Componentes Clave del Renderer
+
+| Componente | Archivo | Función |
+|------------|---------|---------|
+| `LicenseGate` | `LicenseGate.tsx` | Bloquea la app si no hay licencia válida |
+| `ErrorBoundary` | `ErrorBoundary.tsx` | Captura errores React con UI amigable |
+| `Tutorial` | `Tutorial.tsx` | Onboarding de 5 pasos para nuevos usuarios |
+| `ForcePasswordChange` | `ForcePasswordChange.tsx` | Obliga cambio de contraseña en primer login |
+| `Toast` | `ui/Toast.tsx` | Sistema de notificaciones |
+| `Layout` | `layout/Layout.tsx` | Sidebar + Header + Outlet |
+| `Header` | `layout/Header.tsx` | Campana de notificaciones (stock bajo + caja) |
+| `Sidebar` | `layout/Sidebar.tsx` | Navegación principal |
+
+---
+
+## Seguridad
+
+| Medida | Implementación |
+|--------|---------------|
+| Autenticación | Login con usuario + contraseña (bcrypt hash, 10 salt rounds) |
+| Rate limiting | 5 intentos fallidos → lockout 15 min |
+| Session timeout | 30 min de inactividad → auto-logout |
+| Context isolation | `contextIsolation: true`, `nodeIntegration: false` |
+| contextBridge | API expuesta de forma controlada y tipada |
+| Validación IPC | 19 schemas Zod en handlers críticos |
+| Licencias | RSA-2048 con validación offline |
+| Error handling | ErrorBoundary global + logging diagnóstico |
 
 ---
 
@@ -115,22 +157,10 @@ Renderer (React)                    Main (Node.js)
 2. **Escanear/buscar producto** → Se agrega al carrito
 3. **Cantidad / Precio** → Se calcula subtotal
 4. **Confirmar venta** → Se inserta en tabla `ventas` + `venta_detalles`
-5. **Pago** → Efectivo, transferencia, mixto
+5. **Pago** → Efectivo, transferencia, pago móvil, tarjeta (VP800), mixto
 6. **Descuento de stock** → Se actualiza `productos.stock`
 7. **Imprimir ticket** → Se genera y envía a impresora
 8. **Cierre de caja** → Se totaliza el día
-
----
-
-## Seguridad
-
-| Medida | Implementación |
-|--------|---------------|
-| Autenticación | Login con usuario + contraseña (bcrypt hash) |
-| Sesión | Token JWT local con expiración |
-| Datos | SQLite encriptado (opcional: SQLCipher) |
-| Backup | Automático al cerrar caja + manual |
-| Auditoría | Log de acciones críticas (quién, qué, cuándo) |
 
 ---
 
@@ -141,7 +171,12 @@ Desarrollo:
   npm run dev  →  Vite (renderer) + Electron (main)
 
 Producción:
-  npm run build  →  electron-builder  →  papeleria-pos-Setup-1.0.0.exe
-```
+  npm run build:renderer  →  Vite build + inline CSS
+  npm run build:main      →  tsc (TypeScript → JavaScript)
+  npx electron-builder    →  TOG Admin.exe (portable)
 
-El cliente solo ejecuta el `.exe` y se instala como cualquier programa de Windows.
+Instalación en cliente:
+  Copiar carpeta release/win-unpacked/ a la PC del cliente
+  Colocar license.key junto al .exe
+  Ejecutar TOG Admin.exe
+```

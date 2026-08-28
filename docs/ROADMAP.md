@@ -11,10 +11,15 @@ CRÍTICOS           CORE               SEGURIDAD/UX       PREMIUM
 ✅ Backup/Restore  ✅ Descuentos POS  ✅ Rate limiting    🟡 Crédito/Fiado
 ✅ Password change ✅ Subcomponentes  ✅ Lazy loading     🟡 Import/Export
 ✅ Toast system    ✅ Dashboard+      ✅ VP800 terminal   🟡 Labels print
-                   ✅ Ajuste invent.  ✅ Cierre print
+                   ✅ Ajuste invent.  ✅ Cierre print     🟡 Reportes PDF
+                                       ✅ License RSA     🟡 Quotes→Venta
+                                       ✅ Help Center
+                                       ✅ Tutorial
+                                       ✅ Notifications
+                                       ✅ Terminal Config UI
 ```
 
-**Estado actual del proyecto:** ~85% completo (Fase 0, 1 y 2 completadas)
+**Estado actual del proyecto:** ~92% completo (Fase 0, 1 y 2 completadas + extras)
 **Estimación restante:** 3-4 días (Fase 3: Premium)
 
 ---
@@ -48,9 +53,15 @@ CRÍTICOS           CORE               SEGURIDAD/UX       PREMIUM
 |---|-------|--------|----------|
 | 2.1 | Session timeout por inactividad | ✅ | `auth.store.ts` (30 min auto-logout) |
 | 2.2 | Rate limiting en login | ✅ | `ipc-handlers.ts` (5 intentos / 15 min) |
-| 2.3 | Lazy loading de rutas | ✅ | `App.tsx` (React.lazy + Suspense) |
+| 2.3 | Lazy loading de rutas | ✅ | `App.tsx` (imports estáticos para compat Electron) |
 | 2.4 | Integración Terminal VP800 | ✅ | `services/valorTerminal.ts`, `ipc-handlers.ts`, `preload.ts` |
 | 2.5 | Impresión de cierre de caja | ✅ | `CajaPage.tsx` |
+| 2.6 | Sistema de licencias RSA-2048 | ✅ | `services/license.ts`, `LicenseGate.tsx`, `ipc-handlers.ts`, `scripts/generate-keys.js`, `scripts/generate-license.js` |
+| 2.7 | Centro de Ayuda detallado | ✅ | `HelpPage.tsx` (12 secciones con búsqueda) |
+| 2.8 | Tutorial de onboarding | ✅ | `Tutorial.tsx`, `App.tsx`, `ConfigPage.tsx` |
+| 2.9 | Campana de notificaciones real | ✅ | `Header.tsx` (stock bajo + caja cerrada) |
+| 2.10 | Configuración del terminal VP800 | ✅ | `ConfigPage.tsx` (pestaña Terminal: puerto COM, baud rate, conectar/desconectar) |
+| 2.11 | POS bloqueado sin caja abierta | ✅ | `POSPage.tsx` |
 
 ---
 
@@ -91,6 +102,12 @@ CRÍTICOS           CORE               SEGURIDAD/UX       PREMIUM
 - [ ] Exportar reportes a PDF/CSV
 - **Archivos:** `src/renderer/pages/ReportesPage.tsx`, `src/main/ipc-handlers.ts`
 
+### Tarea 3.7: WiFi para VP800 🟡
+- [ ] Conexión via HTTP API (Valor Connect)
+- [ ] Configuración de IP/puerto del terminal
+- [ ] Fallback automático USB → WiFi
+- **Archivos:** `src/main/services/valorTerminal.ts`
+
 ---
 
 ## Hitos de Decisión
@@ -101,6 +118,9 @@ CRÍTICOS           CORE               SEGURIDAD/UX       PREMIUM
 | ✅ Core features | Semana 8 | Completado |
 | ✅ Seguridad cerrada | Fase 0 | Completado |
 | ✅ Integración VP800 | Fase 2 | Completado |
+| ✅ Sistema de licencias | Fase 2 | Completado |
+| ✅ Help + Tutorial | Fase 2 | Completado |
+| ✅ Terminal Config UI | Fase 2 | Completado |
 | 🟡 Beta producción | Fase 3 | Pendiente |
 
 ---
@@ -114,6 +134,8 @@ CRÍTICOS           CORE               SEGURIDAD/UX       PREMIUM
 | Acceso no autorizado | 🟡 Medio | ✅ Resuelto (Fase 2) |
 | VP800 incompatible | 🟡 Medio | ✅ Implementado (Fase 2) |
 | Componentes muy grandes | 🟡 Medio | ✅ Parcialmente resuelto (Fase 1) |
+| Licencias falsificadas | 🟡 Medio | ✅ RSA-2048 (Fase 2) |
+| Pantalla blanca producción | 🔴 Alto | ✅ Resuelto (HashRouter + DOMContentLoaded) |
 
 ---
 
@@ -124,16 +146,17 @@ src/
 ├── main/
 │   ├── index.ts              # Entry point Electron
 │   ├── preload.ts            # API segura IPC (contextBridge)
-│   ├── ipc-handlers.ts       # ✅ Todos los handlers IPC
+│   ├── ipc-handlers.ts       # ✅ Todos los handlers IPC (30+ canales)
 │   ├── db/
-│   │   ├── database.ts       # SQLite + 12 migraciones + seeds
+│   │   ├── database.ts       # SQLite + 13 migraciones + seeds
 │   │   └── migrate.ts        # Script standalone de migración
 │   └── services/
-│       └── valorTerminal.ts  # ✅ Servicio VP800
+│       ├── valorTerminal.ts  # ✅ Servicio VP800 (USB serial)
+│       └── license.ts        # ✅ Validación licencias RSA-2048
 ├── renderer/
-│   ├── App.tsx               # ✅ Router + lazy loading + toast
+│   ├── App.tsx               # ✅ Router HashRouter + LicenseGate
 │   ├── pages/
-│   │   ├── POSPage.tsx       # ✅ Con descuentos por item/global
+│   │   ├── POSPage.tsx       # ✅ Con descuentos + validación caja
 │   │   ├── InventarioPage.tsx # ✅ Con ajuste de inventario
 │   │   ├── DashboardPage.tsx  # ✅ Con últimas ventas
 │   │   ├── VentasPage.tsx
@@ -142,17 +165,43 @@ src/
 │   │   ├── ProveedoresPage.tsx
 │   │   ├── ReportesPage.tsx
 │   │   ├── QuotesPage.tsx
-│   │   ├── ConfigPage.tsx    # ✅ Con backup/restore
-│   │   └── LoginPage.tsx
+│   │   ├── ConfigPage.tsx    # ✅ Backup + Terminal + Licencia + Tutorial
+│   │   ├── HelpPage.tsx      # ✅ Centro de ayuda (12 secciones)
+│   │   └── LoginPage.tsx     # ✅ Con botones legales
 │   ├── components/
 │   │   ├── layout/
+│   │   │   ├── Layout.tsx
+│   │   │   ├── Header.tsx    # ✅ Campana notificaciones real
+│   │   │   └── Sidebar.tsx
 │   │   ├── ui/               # Modal, ConfirmDialog, Toast
-│   │   └── pos/              # ✅ CartItem (extraído)
+│   │   ├── pos/              # ✅ CartItem (extraído)
+│   │   ├── ErrorBoundary.tsx # ✅ Captura errores React
+│   │   ├── LicenseGate.tsx   # ✅ Bloqueo por licencia
+│   │   ├── Tutorial.tsx      # ✅ Onboarding 5 pasos
+│   │   └── ForcePasswordChange.tsx
 │   ├── stores/
 │   │   └── auth.store.ts     # ✅ Con session timeout
 │   └── lib/
 │       └── utils.ts
 ├── shared/
 │   ├── types.ts              # ✅ Tipos completos
-│   └── validations.ts        # ✅ Schemas Zod
+│   └── validations.ts        # ✅ 19 schemas Zod
+├── scripts/
+│   ├── generate-keys.js      # ✅ Generador claves RSA
+│   ├── generate-license.js   # ✅ Generador licencias
+│   └── inline-css.js         # Build: inline CSS para Electron
+├── keys/
+│   ├── private.key           # 🔴 SECRETA — Solo desarrollador
+│   └── public.key            # 🟢 Embebida en el .exe
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── FEATURES.md
+│   ├── KNOWLEDGE.md
+│   ├── LICENCIAMIENTO.md     # ✅ Guía completa de licencias
+│   ├── PRODUCTION_BUILD_REPORT.md
+│   ├── ROADMAP.md
+│   ├── TECH_STACK.md
+│   └── DATA_MODEL.md
+└── packaging/
+    └── installer.iss         # Script Inno Setup
 ```

@@ -30,7 +30,7 @@
 | P3 | Precio unitario editable | 🔴 | ⏳ | Permite cambiar precio en venta (con permiso) |
 | P4 | Descuento por item | 🔴 | ✅ | Descuento individual por línea (%) |
 | P5 | Descuento global | 🔴 | ✅ | Descuento sobre subtotal (%) |
-| P6 | Múltiples métodos de pago | 🔴 | ✅ | Efectivo, transferencia, pago móvil, mixto |
+| P6 | Múltiples métodos de pago | 🔴 | ✅ | Efectivo, transferencia, pago móvil, mixto, tarjeta |
 | P7 | Cálculo de cambio | 🔴 | ✅ | Auto-calcula vuelto en efectivo |
 | P8 | Ticket impreso | 🔴 | ✅ | Preview del ticket + impresión |
 | P9 | Ticket sin imprimir | 🔴 | ✅ | Cerrar modal sin imprimir |
@@ -40,6 +40,7 @@
 | P13 | Venta a crédito/fiado | 🟡 | ⏳ | Registrar venta sin cobro inmediato |
 | P14 | Tarjeta (VP800) | 🟡 | ✅ | Integración con terminal Valor VP800 |
 | P15 | Componente CartItem | 🟢 | ✅ | Subcomponente extraído para reutilización |
+| P16 | POS bloqueado sin caja | 🔴 | ✅ | No funciona si no hay caja abierta |
 
 ---
 
@@ -147,6 +148,10 @@
 | CF7 | Backup automático | 🟡 | ⏳ | Al cerrar caja o programado |
 | CF8 | Restaurar backup | 🔴 | ✅ | Cargar archivo .db de respaldo |
 | CF9 | Configurar impresora | 🟡 | ⏳ | Seleccionar impresora térmica |
+| CF10 | Configurar terminal VP800 | 🔴 | ✅ | Puerto COM, baud rate, conectar/desconectar |
+| CF11 | Reiniciar tutorial | 🟡 | ✅ | Botón para mostrar onboarding a nuevos usuarios |
+
+---
 
 ## Módulo: Quotes / Presupuestos 🔴
 
@@ -180,11 +185,25 @@
 
 | # | Feature | Prioridad | Estado | Descripción |
 |---|---------|-----------|--------|-------------|
-| S1 | Validación Zod en IPC | 🔴 | ✅ | Schemas de validación en handlers críticos |
+| S1 | Validación Zod en IPC | 🔴 | ✅ | 19 schemas de validación en handlers críticos |
 | S2 | Validación de stock | 🔴 | ✅ | Prevenir stock negativo en ventas |
 | S3 | Notificaciones toast | 🔴 | ✅ | Sistema de feedback al usuario |
 | S4 | Context isolation | 🔴 | ✅ | Electron IPC seguro |
 | S5 | Bcrypt hashing | 🔴 | ✅ | Contraseñas hasheadas con salt |
+| S6 | Sistema de licencias | 🔴 | ✅ | RSA-2048 con validación offline |
+| S7 | ErrorBoundary global | 🔴 | ✅ | Captura errores React con UI amigable |
+
+---
+
+## Módulo: Ayuda / Onboarding 🟡
+
+| # | Feature | Prioridad | Estado | Descripción |
+|---|---------|-----------|--------|-------------|
+| H1 | Centro de Ayuda | 🟡 | ✅ | 12 secciones detalladas con búsqueda |
+| H2 | Tutorial de onboarding | 🟡 | ✅ | 5 pasos interactivos para nuevos usuarios |
+| H3 | Notificaciones | 🟡 | ✅ | Campana con alertas de stock bajo y caja |
+| H4 | Copyright / Licencias | 🟡 | ✅ | Botones legales en pantalla de login |
+| H5 | Privacidad / Términos | 🟡 | ✅ | Políticas en modales del login |
 
 ---
 
@@ -192,7 +211,7 @@
 
 | Prioridad | Implementadas | Pendientes |
 |-----------|---------------|------------|
-| 🔴 P0 (MVP) | ~35 | ~5 |
-| 🟡 P1 | ~15 | ~10 |
+| 🔴 P0 (MVP) | ~40 | ~3 |
+| 🟡 P1 | ~20 | ~8 |
 | 🟢 P2 | ~3 | ~2 |
-| **Total** | **~53** | **~17** |
+| **Total** | **~63** | **~13** |

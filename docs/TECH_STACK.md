@@ -19,6 +19,8 @@ Una PC, una caja, un usuario.
 | **Gráficos** | Recharts | Reportes y gráficas de ventas. |
 | **Formularios** | React Hook Form + Zod | Validación robusta de formularios. |
 | **Impresión** | Electron print + thermal printer support | Tickets térmicos + reportes a PDF. |
+| **Terminal Pago** | serialport (USB) | Comunicación serial con VP800 via puerto COM. |
+| **Licencias** | crypto (Node.js nativo) | RSA-2048 para firmar y validar licencias offline. |
 | **Empaquetado** | electron-builder | Generar instalador .exe para Windows. |
 | **Node** | Node.js 20 LTS | Runtime estable para Electron. |
 
@@ -37,56 +39,6 @@ Una PC, una caja, un usuario.
 
 ---
 
-## Estructura de Archivos del Proyecto
-
-```
-papeleria-pos/
-├── docs/                    # Documentación
-│   ├── ARCHITECTURE.md
-│   ├── ROADMAP.md
-│   ├── KNOWLEDGE.md
-│   ├── DATA_MODEL.md
-│   ├── FEATURES.md
-│   └── TECH_STACK.md        # Este archivo
-├── src/
-│   ├── main/                # Process principal de Electron
-│   │   ├── index.ts
-│   │   ├── database.ts      # Conexión SQLite + migraciones
-│   │   ├── ipc-handlers.ts  # Comunicación main <-> renderer
-│   │   └── tray.ts          # System tray
-│   ├── renderer/            # Frontend React
-│   │   ├── App.tsx
-│   │   ├── main.tsx
-│   │   ├── components/      # Componentes reutilizables
-│   │   │   ├── ui/          # shadcn/ui primitives
-│   │   │   ├── layout/      # Sidebar, Header, etc.
-│   │   │   └── POS/         # Componentes específicos del POS
-│   │   ├── pages/           # Vistas principales
-│   │   │   ├── Dashboard.tsx
-│   │   │   ├── PuntoDeVenta.tsx
-│   │   │   ├── Inventario.tsx
-│   │   │   ├── Ventas.tsx
-│   │   │   ├── Compras.tsx
-│   │   │   ├── Proveedores.tsx
-│   │   │   ├── Reportes.tsx
-│   │   │   ├── Configuracion.tsx
-│   │   │   └── CierreDeCaja.tsx
-│   │   ├── stores/          # Zustand stores
-│   │   ├── hooks/           # Custom hooks
-│   │   ├── lib/             # Utilidades
-│   │   └── types/           # Tipos TypeScript
-│   └── shared/              # Tipos compartidos main/renderer
-│       └── types.ts
-├── resources/               # Iconos, fuentes, assets
-├── electron-builder.yml     # Config de empaquetado
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-└── tailwind.config.ts
-```
-
----
-
 ## Dependencias Principales
 
 ### Runtime
@@ -96,28 +48,110 @@ papeleria-pos/
   "better-sqlite3": "^11.0.0",
   "react": "^18.3.0",
   "react-dom": "^18.3.0",
-  "zustand": "^4.5.0",
   "react-router-dom": "^6.23.0",
+  "zustand": "^4.5.0",
   "react-hook-form": "^7.51.0",
   "zod": "^3.23.0",
   "@hookform/resolvers": "^3.6.0",
-  "recharts": "^2.12.0",
+  "recharts": "^3.10.1",
   "date-fns": "^3.6.0",
   "lucide-react": "^0.378.0",
   "clsx": "^2.1.0",
-  "tailwind-merge": "^2.3.0"
+  "tailwind-merge": "^2.3.0",
+  "bcryptjs": "^2.4.3"
 }
 ```
 
 ### Desarrollo
 ```json
 {
-  "typescript": "^5.4.0",
+  "typescript": "5.4",
   "vite": "^5.2.0",
   "@vitejs/plugin-react": "^4.3.0",
   "tailwindcss": "^3.4.0",
   "electron-builder": "^24.13.0",
   "concurrently": "^8.2.0",
-  "electron-devtools-installer": "^3.2.0"
+  "@electron/rebuild": "^4.2.0"
 }
+```
+
+### Módulos Nativos
+```json
+{
+  "serialport": "latest",
+  "@electron/rebuild": "^4.2.0"
+}
+```
+
+---
+
+## Estructura de Archivos del Proyecto
+
+```
+D-E/
+├── docs/                    # Documentación
+│   ├── ARCHITECTURE.md
+│   ├── DATA_MODEL.md
+│   ├── FEATURES.md
+│   ├── KNOWLEDGE.md
+│   ├── LICENCIAMIENTO.md    # ✅ Guía de licencias
+│   ├── PRODUCTION_BUILD_REPORT.md
+│   ├── ROADMAP.md
+│   └── TECH_STACK.md        # Este archivo
+├── keys/                    # ✅ Claves RSA (private.key secreta)
+│   ├── private.key
+│   └── public.key
+├── licenses/                # ✅ Licencias generadas para clientes
+├── scripts/
+│   ├── generate-keys.js     # ✅ Generador de claves RSA
+│   ├── generate-license.js  # ✅ Generador de licencias
+│   └── inline-css.js        # Build: inline CSS para Electron
+├── packaging/
+│   └── installer.iss        # Script Inno Setup
+├── src/
+│   ├── main/                # Process principal de Electron
+│   │   ├── index.ts
+│   │   ├── preload.ts
+│   │   ├── ipc-handlers.ts  # 30+ canales IPC
+│   │   ├── db/
+│   │   │   ├── database.ts
+│   │   │   └── migrate.ts
+│   │   └── services/
+│   │       ├── valorTerminal.ts  # ✅ VP800 USB serial
+│   │       └── license.ts        # ✅ RSA-2048 validation
+│   ├── renderer/            # Frontend React
+│   │   ├── App.tsx
+│   │   ├── main.tsx
+│   │   ├── components/
+│   │   │   ├── layout/      # Sidebar, Header (notificaciones)
+│   │   │   ├── ui/          # Modal, ConfirmDialog, Toast
+│   │   │   ├── pos/         # CartItem
+│   │   │   ├── ErrorBoundary.tsx
+│   │   │   ├── LicenseGate.tsx
+│   │   │   ├── Tutorial.tsx
+│   │   │   └── ForcePasswordChange.tsx
+│   │   ├── pages/
+│   │   │   ├── DashboardPage.tsx
+│   │   │   ├── POSPage.tsx
+│   │   │   ├── InventarioPage.tsx
+│   │   │   ├── VentasPage.tsx
+│   │   │   ├── CajaPage.tsx
+│   │   │   ├── ComprasPage.tsx
+│   │   │   ├── ProveedoresPage.tsx
+│   │   │   ├── ReportesPage.tsx
+│   │   │   ├── QuotesPage.tsx
+│   │   │   ├── ConfigPage.tsx  # Backup + Terminal + Licencia
+│   │   │   ├── HelpPage.tsx
+│   │   │   └── LoginPage.tsx
+│   │   ├── stores/
+│   │   │   └── auth.store.ts
+│   │   └── lib/
+│   │       └── utils.ts
+│   └── shared/
+│       ├── types.ts
+│       └── validations.ts   # 19 schemas Zod
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+└── tailwind.config.ts
 ```
