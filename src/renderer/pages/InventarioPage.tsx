@@ -676,7 +676,7 @@ export default function InventarioPage() {
             <button onClick={() => setAjusteOpen(false)}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
             <button onClick={ajustarStock}
-              disabled={!ajusteJustificacion.trim() || ajustando || ajusteStock === ''}
+              disabled={!ajusteJustificacion.trim() || ajustando || ajusteStock === '' || Number(ajusteStock) < 0}
               className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 flex items-center gap-2">
               {ajustando ? 'Ajustando...' : 'Ajustar Stock'}
             </button>
