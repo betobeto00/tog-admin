@@ -777,7 +777,7 @@ export default function HelpPage() {
 
               {isOpen && (
                 <div className="px-6 pb-6 space-y-6 border-t border-gray-100">
-                  {section.content.map((item, i) => (
+                  {(section.content || []).map((item, i) => (
                     <div key={i} className="pt-4">
                       <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
                         <Star className="w-4 h-4 text-yellow-500" />
@@ -787,7 +787,7 @@ export default function HelpPage() {
 
                       {/* Features */}
                       <div className="space-y-1.5">
-                        {item.features.map((f, j) => (
+                        {(item.features || []).map((f, j) => (
                           <div key={j} className="flex items-start gap-2 text-sm text-gray-700">
                             <Zap className="w-3.5 h-3.5 text-blue-500 mt-0.5 flex-shrink-0" />
                             <span>{f}</span>
@@ -796,20 +796,20 @@ export default function HelpPage() {
                       </div>
 
                       {/* Tips */}
-                      {item.tips && item.tips.length > 0 && (
+                      {(item.tips || []).length > 0 && (
                         <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
                           <p className="text-xs font-semibold text-blue-700 mb-1.5">💡 Tips</p>
-                          {item.tips.map((tip, j) => (
+                          {(item.tips || []).map((tip, j) => (
                             <p key={j} className="text-xs text-blue-600">• {tip}</p>
                           ))}
                         </div>
                       )}
 
                       {/* Shortcuts */}
-                      {item.shortcuts && item.shortcuts.length > 0 && (
+                      {(item.shortcuts || []).length > 0 && (
                         <div className="mt-3 bg-gray-100 rounded-lg p-3">
                           <p className="text-xs font-semibold text-gray-700 mb-1.5">⌨️ Atajos</p>
-                          {item.shortcuts.map((s, j) => (
+                          {(item.shortcuts || []).map((s, j) => (
                             <p key={j} className="text-xs text-gray-600 font-mono">• {s}</p>
                           ))}
                         </div>
