@@ -911,6 +911,24 @@ function registerReportesHandlers(): void {
       LIMIT ?
     `).all(limite)
   })
+
+  ipcMain.handle('reportes:ventas-por-categoria', async (_event, data: any) => {
+    const db = getDatabase()
+    return db.prepare(`
+      SELECT
+        COALESCE(c.nombre, 'Sin categoría') as categoria,
+        COUNT(DISTINCT v.id) as total_ventas,
+        SUM(vd.cantidad) as total_unidades,
+        SUM(vd.subtotal) as total_ingreso
+      FROM venta_detalles vd
+      JOIN productos p ON vd.producto_id = p.id
+      LEFT JOIN categorias c ON p.categoria_id = c.id
+      JOIN ventas v ON vd.venta_id = v.id
+      WHERE DATE(v.fecha) BETWEEN ? AND ? AND v.estado = 'completada'
+      GROUP BY c.id
+      ORDER BY total_ingreso DESC
+    `).all(data.fecha_inicio, data.fecha_fin)
+  })
 }
 
 // ============================================

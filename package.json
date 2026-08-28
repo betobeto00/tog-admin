@@ -56,7 +56,6 @@
   "build": {
     "appId": "com.tog.admin",
     "productName": "TOG Admin",
-    "author": "Bet00 Nardieu",
     "directories": {
       "output": "release"
     },
@@ -65,20 +64,7 @@
       "dist/**/*"
     ],
     "win": {
-      "target": "nsis",
-      "icon": "resources/icon.ico"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "installerIcon": "resources/icon.ico",
-      "uninstallerIcon": "resources/icon.ico",
-      "installerHeaderIcon": "resources/icon.ico",
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "TOG Admin",
-      "installerLanguages": ["spanish", "english"],
-      "language": "2058"
+      "target": "dir"
     }
   }
 }
