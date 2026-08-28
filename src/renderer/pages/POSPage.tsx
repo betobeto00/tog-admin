@@ -143,11 +143,39 @@ export default function POSPage() {
     ))
   }
 
+  const updateItemPrice = (productoId: number, price: number) => {
+    setCart((prev) => prev.map((i) =>
+      i.producto_id === productoId ? { ...i, precio_unitario: price } : i
+    ))
+  }
+
   const removeFromCart = (productoId: number) => {
     setCart((prev) => prev.filter((i) => i.producto_id !== productoId))
   }
 
   const clearCart = () => setCart([])
+
+  // Venta rápida sin producto (servicio por cobrar)
+  const [quickSaleOpen, setQuickSaleOpen] = useState(false)
+  const [quickSaleDesc, setQuickSaleDesc] = useState('')
+  const [quickSaleMonto, setQuickSaleMonto] = useState('')
+
+  const addQuickSale = () => {
+    if (!quickSaleDesc.trim() || !quickSaleMonto || parseFloat(quickSaleMonto) <= 0) return
+    const id = Date.now() // ID temporal para servicio
+    setCart((prev) => [...prev, {
+      producto_id: id,
+      nombre: quickSaleDesc,
+      precio_unitario: parseFloat(quickSaleMonto),
+      cantidad: 1,
+      stock: 9999,
+      unidad: 'servicio',
+      descuento: 0,
+    }])
+    setQuickSaleOpen(false)
+    setQuickSaleDesc('')
+    setQuickSaleMonto('')
+  }
 
   // ======== COBRO ========
 
@@ -340,6 +368,7 @@ export default function POSPage() {
                 item={item}
                 onUpdateQuantity={updateQuantity}
                 onUpdateDiscount={updateItemDiscount}
+                onUpdatePrice={updateItemPrice}
                 onRemove={removeFromCart}
               />
             ))
@@ -391,6 +420,12 @@ export default function POSPage() {
             </div>
           </div>
 
+          <button
+            onClick={() => setQuickSaleOpen(true)}
+            className="w-full py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors flex items-center justify-center gap-2 border border-blue-200"
+          >
+            <Plus className="w-4 h-4" /> Venta Rápida (Servicio)
+          </button>
           <button
             onClick={openCobro}
             disabled={cart.length === 0}
@@ -553,6 +588,40 @@ export default function POSPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* ======== MODAL VENTA RÁPIDA ======== */}
+      <Modal open={quickSaleOpen} onClose={() => setQuickSaleOpen(false)} title="Venta Rápida (Servicio)">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500">
+            Agrega un servicio o cobro manual al carrito sin necesidad de crear un producto.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Descripción *</label>
+            <input type="text" value={quickSaleDesc}
+              onChange={(e) => setQuickSaleDesc(e.target.value)}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
+              placeholder="Ej: Copia color x10, Encuadernación, etc." autoFocus />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Monto *</label>
+            <input type="number" step="0.01" min="0.01" value={quickSaleMonto}
+              onChange={(e) => setQuickSaleMonto(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl text-2xl font-bold text-center focus:ring-2 focus:ring-blue-500"
+              placeholder="0.00" />
+          </div>
+          <div className="flex gap-3 pt-2 border-t border-gray-100">
+            <button onClick={() => setQuickSaleOpen(false)}
+              className="flex-1 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200">
+              Cancelar
+            </button>
+            <button onClick={addQuickSale}
+              disabled={!quickSaleDesc.trim() || !quickSaleMonto || parseFloat(quickSaleMonto) <= 0}
+              className="flex-1 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 disabled:bg-blue-300">
+              Agregar al Carrito
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   )

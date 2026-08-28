@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
+import { useAuthStore } from '../stores/auth.store'
 import {
   Plus, Search, Edit2, Trash2, Package, Tag,
-  ChevronDown, AlertTriangle, Filter
+  ChevronDown, AlertTriangle, Filter, Download, Upload, History, EyeOff
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
@@ -24,6 +25,7 @@ const emptyProduct = {
 }
 
 export default function InventarioPage() {
+  const usuario = useAuthStore((s) => s.usuario)
   const [productos, setProductos] = useState<Producto[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [unidades, setUnidades] = useState<UnidadMedida[]>([])
@@ -62,6 +64,16 @@ export default function InventarioPage() {
   // Confirm delete
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'producto' | 'categoria' | 'unidad'; id: number } | null>(null)
 
+  // Import/Export CSV
+  const [importing, setImporting] = useState(false)
+
+  // Filtro sin stock
+  const [filterSinStock, setFilterSinStock] = useState(false)
+
+  // Historial de ajustes
+  const [showAjustes, setShowAjustes] = useState(false)
+  const [ajustesHistorial, setAjustesHistorial] = useState<any[]>([])
+
   useEffect(() => { loadData() }, [])
 
   const loadData = async () => {
@@ -82,8 +94,47 @@ export default function InventarioPage() {
       p.codigo_barras?.toLowerCase().includes(search.toLowerCase()) ||
       p.sku?.toLowerCase().includes(search.toLowerCase())
     const matchCat = !filterCat || p.categoria_id === filterCat
-    return matchSearch && matchCat
+    const matchStock = !filterSinStock || (p.stock <= p.stock_minimo)
+    return matchSearch && matchCat && matchStock
   })
+
+  // ======== IMPORT/EXPORT CSV ========
+  const exportCsv = async () => {
+    const result = await window.api.productos.exportCsv()
+    if (result?.success) {
+      alert(`Exportados ${result.count} productos a:\n${result.path}`)
+    } else if (result?.error !== 'Cancelado') {
+      alert('Error: ' + result?.error)
+    }
+  }
+
+  const importCsv = async () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.csv'
+    input.onchange = async (e: any) => {
+      const file = e.target.files[0]
+      if (!file) return
+      setImporting(true)
+      try {
+        const result = await window.api.productos.importCsv(file.path)
+        if (result?.success) {
+          alert(`Importados: ${result.imported}, Omitidos: ${result.skipped} de ${result.total} filas`)
+          await loadData()
+        } else {
+          alert('Error: ' + result?.error)
+        }
+      } finally { setImporting(false) }
+    }
+    input.click()
+  }
+
+  // ======== HISTORIAL DE AJUSTES ========
+  const loadAjustes = async () => {
+    const hist = await window.api.productos.ajustesHistorial({ limite: 50 })
+    setAjustesHistorial(hist)
+    setShowAjustes(true)
+  }
 
   // ======== PRODUCTOS ========
 
@@ -155,7 +206,7 @@ export default function InventarioPage() {
         producto_id: ajusteTarget.id,
         stock_nuevo: Number(ajusteStock),
         justificacion: ajusteJustificacion,
-        usuario_id: 1, // TODO: get from auth store
+        usuario_id: usuario?.id || 1,
       })
       if (result?.success) {
         setAjusteOpen(false)
@@ -261,6 +312,18 @@ export default function InventarioPage() {
             }`}>
             <Package className="w-4 h-4" /> Units
           </button>
+          <button onClick={loadAjustes}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
+            <History className="w-4 h-4" /> Ajustes
+          </button>
+          <button onClick={exportCsv}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
+            <Download className="w-4 h-4" /> Exportar
+          </button>
+          <button onClick={importCsv} disabled={importing}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+            <Upload className="w-4 h-4" /> {importing ? 'Importando...' : 'Importar'}
+          </button>
           <button
             onClick={openCreate}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
@@ -349,6 +412,14 @@ export default function InventarioPage() {
             <option key={c.id} value={c.id}>{c.nombre}</option>
           ))}
         </select>
+        <button
+          onClick={() => setFilterSinStock(!filterSinStock)}
+          className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+            filterSinStock ? 'bg-orange-50 border-orange-300 text-orange-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          <EyeOff className="w-4 h-4" /> Stock Bajo
+        </button>
       </div>
 
       {/* Tabla de productos */}
@@ -610,6 +681,31 @@ export default function InventarioPage() {
               {ajustando ? 'Ajustando...' : 'Ajustar Stock'}
             </button>
           </div>
+        </div>
+      </Modal>
+
+      {/* ======== HISTORIAL DE AJUSTES ======== */}
+      <Modal open={showAjustes} onClose={() => setShowAjustes(false)} title="Historial de Ajustes de Inventario">
+        <div className="space-y-3 max-h-96 overflow-y-auto">
+          {ajustesHistorial.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">No hay ajustes registrados</p>
+          ) : (
+            ajustesHistorial.map((a: any) => (
+              <div key={a.id} className="bg-gray-50 rounded-lg p-3 text-sm">
+                <div className="flex justify-between items-start mb-1">
+                  <span className="font-medium text-gray-900">{a.producto_nombre}</span>
+                  <span className={`font-bold ${a.diferencia > 0 ? 'text-green-600' : a.diferencia < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                    {a.diferencia > 0 ? '+' : ''}{a.diferencia}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500">{a.justificacion}</p>
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>Stock: {a.stock_anterior} → {a.stock_nuevo}</span>
+                  <span>{a.usuario_nombre} • {new Date(a.fecha).toLocaleString()}</span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </Modal>
 

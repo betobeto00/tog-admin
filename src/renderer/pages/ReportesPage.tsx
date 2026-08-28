@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Legend
 } from 'recharts'
-import { BarChart3, TrendingUp, Package, Calendar } from 'lucide-react'
+import { BarChart3, TrendingUp, Package, Calendar, Download, FileText } from 'lucide-react'
 import { formatCurrency, formatDateTime } from '../lib/utils'
 
 interface VentaDiaria { fecha: string; total_ventas: number; monto_total: number }
@@ -88,6 +88,58 @@ export default function ReportesPage() {
         <button onClick={() => { const d = new Date(); d.setDate(d.getDate() - 30); setFechaInicio(d.toISOString().split('T')[0]); setFechaFin(new Date().toISOString().split('T')[0]) }}
           className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
           Últimos 30 días
+        </button>
+        <div className="flex-1" />
+        <button onClick={() => {
+          const rows = [['Fecha', 'Ventas', 'Monto']]
+          ventasDiarias.forEach(v => rows.push([v.fecha, String(v.total_ventas), String(v.monto_total)]))
+          rows.push([])
+          rows.push(['Producto', 'Vendidos', 'Ingreso'])
+          topProductos.forEach(p => rows.push([p.nombre, String(p.total_vendido), String(p.total_ingreso)]))
+          const csv = rows.map(r => r.join(',')).join('\n')
+          const blob = new Blob([csv], { type: 'text/csv' })
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a'); a.href = url; a.download = `reporte-${fechaInicio}-${fechaFin}.csv`; a.click()
+          URL.revokeObjectURL(url)
+        }} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
+          <Download className="w-4 h-4" /> Exportar CSV
+        </button>
+        <button onClick={() => {
+          const win = window.open('', '_blank', 'width=800,height=600')
+          if (!win) return
+          win.document.write(`<html><head><title>Reporte TOG Admin</title><style>
+            body{font-family:Arial,sans-serif;padding:20px;color:#333}
+            h1{font-size:20px;border-bottom:2px solid #3b82f6;padding-bottom:8px}
+            h2{font-size:16px;margin-top:20px;color:#1e40af}
+            table{width:100%;border-collapse:collapse;margin:10px 0}
+            th,td{padding:8px 12px;border:1px solid #e5e7eb;text-align:left;font-size:13px}
+            th{background:#f3f4f6;font-weight:600}
+            .total{font-weight:bold;font-size:15px}
+            .summary{display:flex;gap:20px;margin:15px 0}
+            .card{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;flex:1}
+            .card p{font-size:12px;color:#6b7280}
+            .card span{font-size:18px;font-weight:bold}
+          </style></head><body>
+            <h1>TOG Admin — Reporte de Ventas</h1>
+            <p>Período: ${fechaInicio} al ${fechaFin} | Generado: ${new Date().toLocaleString()}</p>
+            <div class="summary">
+              <div class="card"><p>Total Período</p><span>$${totalPeriodo.toFixed(2)}</span></div>
+              <div class="card"><p>Total Tickets</p><span>${totalVentasPeriodo}</span></div>
+              <div class="card"><p>Promedio Diario</p><span>$${promedioDiario.toFixed(2)}</span></div>
+            </div>
+            <h2>Ventas por Día</h2>
+            <table><thead><tr><th>Fecha</th><th>Ventas</th><th>Monto</th></tr></thead><tbody>
+              ${ventasDiarias.map(v => `<tr><td>${v.fecha}</td><td>${v.total_ventas}</td><td>$${v.monto_total.toFixed(2)}</td></tr>`).join('')}
+            </tbody></table>
+            <h2>Top Productos</h2>
+            <table><thead><tr><th>Producto</th><th>Vendidos</th><th>Ingreso</th></tr></thead><tbody>
+              ${topProductos.map(p => `<tr><td>${p.nombre}</td><td>${p.total_vendido}</td><td>$${p.total_ingreso.toFixed(2)}</td></tr>`).join('')}
+            </tbody></table>
+            <script>window.onload=()=>{window.print()}</script>
+          </body></html>`)
+          win.document.close()
+        }} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+          <FileText className="w-4 h-4" /> Imprimir PDF
         </button>
       </div>
 

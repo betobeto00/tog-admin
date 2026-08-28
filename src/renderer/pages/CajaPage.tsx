@@ -31,6 +31,14 @@ export default function CajaPage() {
   // Apertura
   const [aperturaOpen, setAperturaOpen] = useState(false)
   const [fondoInicial, setFondoInicial] = useState('')
+  const [fondoDefault, setFondoDefault] = useState('')
+
+  useEffect(() => {
+    window.api.config.get().then((cfg: any[]) => {
+      const fd = cfg.find((c: any) => c.clave === 'fondo_inicial_default')
+      if (fd?.valor) setFondoDefault(fd.valor)
+    })
+  }, [])
 
   // Movimiento
   const [movOpen, setMovOpen] = useState(false)
@@ -86,6 +94,8 @@ export default function CajaPage() {
   const cerrarCaja = async () => {
     const real = parseFloat(totalReal)
     if (isNaN(real) || !caja) return
+    // Backup automático antes de cerrar
+    try { await window.api.caja.backupAuto() } catch {}
     await window.api.caja.cerrar({
       caja_id: caja.id,
       total_real: real,
@@ -95,6 +105,20 @@ export default function CajaPage() {
     setTotalReal('')
     setCierreNotas('')
     await loadCaja()
+  }
+
+  // Reporte X (parcial)
+  const [reporteXOpen, setReporteXOpen] = useState(false)
+  const [reporteX, setReporteX] = useState<any>(null)
+
+  const verReporteX = async () => {
+    const result = await window.api.caja.reporteX()
+    if (result?.success) {
+      setReporteX(result)
+      setReporteXOpen(true)
+    } else {
+      alert(result?.error || 'Error al generar reporte')
+    }
   }
 
   const imprimirCierre = () => {
@@ -179,7 +203,7 @@ export default function CajaPage() {
             <Lock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-700 mb-2">No hay caja abierta</h2>
             <p className="text-gray-500 mb-6">Abre la caja para comenzar a registrar ventas del día</p>
-            <button onClick={() => setAperturaOpen(true)}
+            <button onClick={() => { setFondoInicial(fondoDefault || ''); setAperturaOpen(true) }}
               className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors inline-flex items-center gap-2">
               <Unlock className="w-5 h-5" /> Abrir Caja
             </button>
@@ -213,6 +237,10 @@ export default function CajaPage() {
               <button onClick={() => { setMovTipo('salida'); setMovOpen(true) }}
                 className="flex-1 py-3 bg-red-50 hover:bg-red-100 text-red-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2 border border-red-200">
                 <ArrowDownCircle className="w-5 h-5" /> Registrar Salida
+              </button>
+              <button onClick={verReporteX}
+                className="flex-1 py-3 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2 border border-yellow-200">
+                <Calculator className="w-5 h-5" /> Reporte X
               </button>
               <button onClick={() => setTotalReal(String(Math.round(totalEsperado)))}
                 className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
@@ -423,6 +451,59 @@ export default function CajaPage() {
             </button>
           </div>
         </div>
+      </Modal>
+      {/* ======== MODAL REPORTE X ======== */}
+      <Modal open={reporteXOpen} onClose={() => setReporteXOpen(false)} title="Reporte X (Parcial)">
+        {reporteX && (
+          <div className="space-y-4">
+            <div className="bg-yellow-50 rounded-xl p-4 text-center">
+              <p className="text-sm text-yellow-700">Reporte parcial — La caja NO se cierra</p>
+              <p className="text-xs text-yellow-600 mt-1">Generado: {new Date().toLocaleString()}</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-gray-500">Cajero</span><span className="font-medium">{reporteX.caja.usuario_nombre}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Apertura</span><span className="font-medium">{formatDateTime(reporteX.caja.fecha_apertura)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Fondo Inicial</span><span className="font-medium">{formatCurrency(reporteX.caja.fondo_inicial)}</span></div>
+              <div className="flex justify-between font-bold pt-2 border-t border-gray-200">
+                <span>Total Esperado</span>
+                <span className="text-blue-600">{formatCurrency(reporteX.totalEsperado)}</span>
+              </div>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Ventas por Método de Pago</h4>
+              <div className="space-y-1">
+                {reporteX.ventasPorMetodo?.map((v: any, i: number) => (
+                  <div key={i} className="flex justify-between text-sm bg-white rounded-lg p-2">
+                    <span className="text-gray-600 capitalize">{v.metodo_pago} ({v.cantidad})</span>
+                    <span className="font-medium">{formatCurrency(v.total)}</span>
+                  </div>
+                ))}
+                {(!reporteX.ventasPorMetodo || reporteX.ventasPorMetodo.length === 0) && (
+                  <p className="text-sm text-gray-400 text-center py-2">No hay ventas registradas</p>
+                )}
+              </div>
+            </div>
+            {reporteX.movimientos?.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Movimientos</h4>
+                <div className="space-y-1">
+                  {reporteX.movimientos.map((m: any, i: number) => (
+                    <div key={i} className="flex justify-between text-sm bg-white rounded-lg p-2">
+                      <span className="text-gray-600">{m.tipo === 'entrada' ? '↗' : '↘'} {m.descripcion}</span>
+                      <span className={m.tipo === 'entrada' ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                        {m.tipo === 'entrada' ? '+' : '-'}{formatCurrency(m.monto)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <button onClick={() => setReporteXOpen(false)}
+              className="w-full py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200">
+              Cerrar
+            </button>
+          </div>
+        )}
       </Modal>
     </div>
   )

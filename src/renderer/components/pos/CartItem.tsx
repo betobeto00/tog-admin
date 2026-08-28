@@ -10,10 +10,11 @@ interface Props {
   item: CartItemData
   onUpdateQuantity: (id: number, delta: number) => void
   onUpdateDiscount: (id: number, descuento: number) => void
+  onUpdatePrice: (id: number, price: number) => void
   onRemove: (id: number) => void
 }
 
-export default function CartItem({ item, onUpdateQuantity, onUpdateDiscount, onRemove }: Props) {
+export default function CartItem({ item, onUpdateQuantity, onUpdateDiscount, onUpdatePrice, onRemove }: Props) {
   const lineTotal = item.precio_unitario * item.cantidad
   const lineDiscount = lineTotal * item.descuento / 100
   const lineNet = lineTotal - lineDiscount
@@ -23,7 +24,18 @@ export default function CartItem({ item, onUpdateQuantity, onUpdateDiscount, onR
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 truncate">{item.nombre}</p>
-          <p className="text-xs text-gray-500">{formatCurrency(item.precio_unitario)} c/u</p>
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className="text-xs text-gray-400">$</span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={item.precio_unitario}
+              onChange={(e) => onUpdatePrice(item.producto_id, Math.max(0, Number(e.target.value)))}
+              className="w-16 text-xs border border-gray-200 rounded px-1 py-0.5 text-right font-medium focus:ring-1 focus:ring-blue-500"
+            />
+            <span className="text-xs text-gray-400">c/u</span>
+          </div>
         </div>
         <button onClick={() => onRemove(item.producto_id)}
           className="p-1 hover:bg-red-100 rounded-lg ml-2">
