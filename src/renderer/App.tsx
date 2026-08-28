@@ -19,6 +19,7 @@ import ConfigPage from './pages/ConfigPage'
 import QuotesPage from './pages/QuotesPage'
 import HelpPage from './pages/HelpPage'
 import Tutorial, { hasTutorialCompleted } from './components/Tutorial'
+import LicenseGate from './components/LicenseGate'
 
 // Loading placeholder para Suspense (usado si hay lazy imports futuros)
 function PageLoader() {
@@ -49,6 +50,7 @@ export default function App() {
 
   return (
     <ToastProvider>
+    <LicenseGate>
     <HashRouter>
       {mustChangePassword && <ForcePasswordChange />}
       {showTutorial && <Tutorial onComplete={() => setShowTutorial(false)} />}
@@ -82,6 +84,7 @@ export default function App() {
       </Routes>
       </Suspense>
     </HashRouter>
+    </LicenseGate>
     </ToastProvider>
   )
 }
