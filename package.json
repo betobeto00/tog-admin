@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "npm run build:main && concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "build:renderer": "vite build",
+    "build:renderer": "vite build && node scripts/inline-css.js",
     "build:main": "tsc -p tsconfig.main.json",
     "rebuild": "electron-rebuild --force",
     "build:win": "npm run rebuild && npm run build:renderer && npm run build:main && electron-builder --win --dir",
