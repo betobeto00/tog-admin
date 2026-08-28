@@ -106,6 +106,8 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.invoke('reportes:productos-mas-vendidos', { fecha_inicio: inicio, fecha_fin: fin, limite }),
     ultimasVentas: (limite?: number) =>
       ipcRenderer.invoke('reportes:ultimas-ventas', { limite }),
+    ventasPorCategoria: (inicio: string, fin: string) =>
+      ipcRenderer.invoke('reportes:ventas-por-categoria', { fecha_inicio: inicio, fecha_fin: fin }),
   },
 
   // Backup
@@ -210,6 +212,7 @@ export interface PapeleriaAPI {
     ventasPeriodo: (inicio: string, fin: string) => Promise<any>
     productosMasVendidos: (inicio: string, fin: string, limite?: number) => Promise<any>
     ultimasVentas: (limite?: number) => Promise<any[]>
+    ventasPorCategoria: (inicio: string, fin: string) => Promise<any[]>
   }
   backup: {
     create: (ruta?: string) => Promise<any>

@@ -9,6 +9,7 @@ import { formatCurrency, formatDateTime } from '../lib/utils'
 interface VentaDiaria { fecha: string; total_ventas: number; monto_total: number }
 interface TopProducto { nombre: string; total_vendido: number; total_ingreso: number }
 interface ResumenDia { total_ventas: number; monto_total: number; efectivo: number; transferencia: number; pago_movil: number }
+interface VentaCategoria { categoria: string; total_ventas: number; total_unidades: number; total_ingreso: number }
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16']
 
@@ -19,20 +20,23 @@ export default function ReportesPage() {
   const [ventasDiarias, setVentasDiarias] = useState<VentaDiaria[]>([])
   const [topProductos, setTopProductos] = useState<TopProducto[]>([])
   const [resumen, setResumen] = useState<ResumenDia | null>(null)
+  const [ventasCategoria, setVentasCategoria] = useState<VentaCategoria[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => { loadReportes() }, [fechaInicio, fechaFin])
 
   const loadReportes = async () => {
     setLoading(true)
-    const [diarias, top, res] = await Promise.all([
+    const [diarias, top, res, cat] = await Promise.all([
       window.api.reportes.ventasPeriodo(fechaInicio, fechaFin),
       window.api.reportes.productosMasVendidos(fechaInicio, fechaFin, 10),
       window.api.ventas.resumenDia(),
+      window.api.reportes.ventasPorCategoria(fechaInicio, fechaFin),
     ])
     setVentasDiarias(diarias)
     setTopProductos(top)
     setResumen(res)
+    setVentasCategoria(cat)
     setLoading(false)
   }
 
@@ -96,6 +100,9 @@ export default function ReportesPage() {
           rows.push([])
           rows.push(['Producto', 'Vendidos', 'Ingreso'])
           topProductos.forEach(p => rows.push([p.nombre, String(p.total_vendido), String(p.total_ingreso)]))
+          rows.push([])
+          rows.push(['Categoría', 'Ventas', 'Unidades', 'Ingreso'])
+          ventasCategoria.forEach(c => rows.push([c.categoria, String(c.total_ventas), String(c.total_unidades), String(c.total_ingreso)]))
           const csv = rows.map(r => r.join(',')).join('\n')
           const blob = new Blob([csv], { type: 'text/csv' })
           const url = URL.createObjectURL(blob)
@@ -134,6 +141,10 @@ export default function ReportesPage() {
             <h2>Top Productos</h2>
             <table><thead><tr><th>Producto</th><th>Vendidos</th><th>Ingreso</th></tr></thead><tbody>
               ${topProductos.map(p => `<tr><td>${p.nombre}</td><td>${p.total_vendido}</td><td>$${p.total_ingreso.toFixed(2)}</td></tr>`).join('')}
+            </tbody></table>
+            <h2>Ventas por Categoría</h2>
+            <table><thead><tr><th>Categoría</th><th>Ventas</th><th>Unidades</th><th>Ingreso</th></tr></thead><tbody>
+              ${ventasCategoria.map(c => `<tr><td>${c.categoria}</td><td>${c.total_ventas}</td><td>${c.total_unidades}</td><td>$${c.total_ingreso.toFixed(2)}</td></tr>`).join('')}
             </tbody></table>
             <script>window.onload=()=>{window.print()}</script>
           </body></html>`)
@@ -229,6 +240,24 @@ export default function ReportesPage() {
                     </Pie>
                     <Tooltip formatter={(value: number) => formatCurrency(value)} />
                   </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            {/* Ventas por categoría */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h3 className="text-base font-semibold text-gray-900 mb-4">📊 Ventas por Categoría</h3>
+              {ventasCategoria.length === 0 ? (
+                <p className="text-center text-gray-400 py-12">No hay datos en este período</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={ventasCategoria} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis type="number" tick={{ fontSize: 11 }} />
+                    <YAxis dataKey="categoria" type="category" width={120} tick={{ fontSize: 10 }} />
+                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                    <Bar dataKey="total_ingreso" name="Ingreso ($)" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
+                  </BarChart>
                 </ResponsiveContainer>
               )}
             </div>
