@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import {
   Settings, Store, CreditCard, Users, Plus, Edit2, Trash2,
-  Save, Eye, EyeOff, Shield, User, Download, Upload, GraduationCap, Key, Clock
+  Save, Eye, EyeOff, Shield, User, Download, Upload, GraduationCap, Key, Clock,
+  Wifi, WifiOff, Plug, Unplug
 } from 'lucide-react'
 import { resetTutorial } from '../components/Tutorial'
 import { useToast } from '../components/ui/Toast'
@@ -30,12 +31,19 @@ export default function ConfigPage() {
   const [deleteUser, setDeleteUser] = useState<number | null>(null)
   const [showPassword, setShowPassword] = useState(false)
 
-  const [tab, setTab] = useState<'negocio' | 'usuarios' | 'sistema'>('negocio')
+  const [tab, setTab] = useState<'negocio' | 'usuarios' | 'terminal' | 'sistema'>('negocio')
   const [backupLoading, setBackupLoading] = useState(false)
 
   // Licencia
   const [licenseStatus, setLicenseStatus] = useState<any>(null)
   const [licenseLoading, setLicenseLoading] = useState(true)
+
+  // Terminal VP800
+  const [terminalPort, setTerminalPort] = useState('COM3')
+  const [terminalBaud, setTerminalBaud] = useState('9600')
+  const [terminalConnected, setTerminalConnected] = useState(false)
+  const [terminalConnecting, setTerminalConnecting] = useState(false)
+  const [terminalStatus, setTerminalStatus] = useState<any>(null)
 
   useEffect(() => { loadData() }, [])
 
@@ -52,6 +60,13 @@ export default function ConfigPage() {
       setLicenseStatus(ls)
     } catch {}
     setLicenseLoading(false)
+    // Cargar estado del terminal
+    try {
+      const ts = await window.api.terminal.estado()
+      setTerminalStatus(ts)
+      setTerminalConnected(ts.conectado)
+      if (ts.puerto) setTerminalPort(ts.puerto)
+    } catch {}
     // Llenar form con config actual
     const get = (key: string) => cfg.find((c: Config) => c.clave === key)?.valor || ''
     setForm({
@@ -74,6 +89,41 @@ export default function ConfigPage() {
     } catch (err) {
       toast.error('Error al guardar configuración')
     } finally { setSaving(false) }
+  }
+
+  // ======== TERMINAL VP800 ========
+  const connectTerminal = async () => {
+    if (!terminalPort.trim()) {
+      toast.error('Ingresa el puerto COM (ej: COM3)')
+      return
+    }
+    setTerminalConnecting(true)
+    try {
+      const result = await window.api.terminal.conectar(terminalPort.trim(), parseInt(terminalBaud))
+      if (result.success) {
+        setTerminalConnected(true)
+        toast.success(`Terminal conectado en ${terminalPort}`)
+        const ts = await window.api.terminal.estado()
+        setTerminalStatus(ts)
+      } else {
+        toast.error(result.error || 'Error conectando al terminal')
+      }
+    } catch (err: any) {
+      toast.error('Error: ' + (err.message || 'No se pudo conectar'))
+    } finally {
+      setTerminalConnecting(false)
+    }
+  }
+
+  const disconnectTerminal = async () => {
+    try {
+      await window.api.terminal.desconectar()
+      setTerminalConnected(false)
+      setTerminalStatus(null)
+      toast.success('Terminal desconectado')
+    } catch (err: any) {
+      toast.error('Error desconectando: ' + err.message)
+    }
   }
 
   // ======== USUARIOS ========
@@ -131,6 +181,12 @@ export default function ConfigPage() {
             tab === 'usuarios' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}>
           <Users className="w-4 h-4 inline mr-1.5" /> Usuarios
+        </button>
+        <button onClick={() => setTab('terminal')}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            tab === 'terminal' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}>
+          <CreditCard className="w-4 h-4 inline mr-1.5" /> Terminal
         </button>
         <button onClick={() => setTab('sistema')}
           className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
@@ -336,6 +392,139 @@ export default function ConfigPage() {
         onConfirm={() => { if (deleteUser) deleteUser_(deleteUser) }}
         title="Delete user" message="This user will be deactivated. They won't be able to log in anymore."
         confirmText="Deactivate" danger />
+
+      {/* ======== TAB TERMINAL VP800 ======== */}
+      {tab === 'terminal' && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5 max-w-2xl">
+          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-blue-600" /> Terminal VP800 — Pago con Tarjeta
+          </h3>
+          <p className="text-sm text-gray-500">
+            Configura la conexión con el terminal de pago Valor VP800 para procesar tarjetas de crédito/débito.
+          </p>
+
+          {/* Estado de conexión */}
+          <div className={`rounded-xl p-4 flex items-center gap-3 ${
+            terminalConnected
+              ? 'bg-green-50 border border-green-200'
+              : 'bg-gray-50 border border-gray-200'
+          }`}>
+            <div className={`p-2 rounded-lg ${
+              terminalConnected ? 'bg-green-100' : 'bg-gray-100'
+            }`}>
+              {terminalConnected
+                ? <Wifi className="w-5 h-5 text-green-600" />
+                : <WifiOff className="w-5 h-5 text-gray-400" />
+              }
+            </div>
+            <div className="flex-1">
+              <p className={`font-semibold text-sm ${
+                terminalConnected ? 'text-green-800' : 'text-gray-600'
+              }`}>
+                {terminalConnected ? 'Conectado' : 'Desconectado'}
+              </p>
+              {terminalConnected && terminalStatus?.puerto && (
+                <p className="text-xs text-green-600">Puerto: {terminalStatus.puerto}</p>
+              )}
+            </div>
+            <div className={`w-3 h-3 rounded-full ${
+              terminalConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-300'
+            }`} />
+          </div>
+
+          {/* Configuración */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Puerto COM *
+              </label>
+              <input
+                type="text"
+                value={terminalPort}
+                onChange={(e) => setTerminalPort(e.target.value.toUpperCase())}
+                disabled={terminalConnected}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                placeholder="COM3"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Verifica en Administrador de Dispositivos → Puertos (COM)
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Baud Rate
+              </label>
+              <select
+                value={terminalBaud}
+                onChange={(e) => setTerminalBaud(e.target.value)}
+                disabled={terminalConnected}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+              >
+                <option value="9600">9600 (estándar)</option>
+                <option value="19200">19200</option>
+                <option value="38400">38400</option>
+                <option value="57600">57600</option>
+                <option value="115200">115200</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Botones de conexión */}
+          <div className="flex gap-3">
+            {!terminalConnected ? (
+              <button
+                onClick={connectTerminal}
+                disabled={terminalConnecting || !terminalPort.trim()}
+                className="flex-1 py-2.5 px-4 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-green-300 flex items-center justify-center gap-2"
+              >
+                {terminalConnecting ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Conectando...
+                  </>
+                ) : (
+                  <><Plug className="w-4 h-4" /> Conectar Terminal</>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={disconnectTerminal}
+                className="flex-1 py-2.5 px-4 text-sm font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 flex items-center justify-center gap-2"
+              >
+                <Unplug className="w-4 h-4" /> Desconectar Terminal
+              </button>
+            )}
+          </div>
+
+          {/* Información */}
+          <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700">
+            <p className="font-medium mb-2">📋 Instrucciones de conexión:</p>
+            <ol className="list-decimal list-inside space-y-1 text-xs text-blue-600">
+              <li>Conecta el VP800 por cable USB a la computadora</li>
+              <li>Abre <strong>Administrador de Dispositivos</strong> → <strong>Puertos (COM y LPT)</strong></li>
+              <li>Busca el puerto asignado al VP800 (ej: COM3, COM4, etc.)</li>
+              <li>Ingresa el puerto en el campo de arriba</li>
+              <li>Haz clic en <strong>Conectar Terminal</strong></li>
+              <li>El terminal está listo para procesar pagos con tarjeta</li>
+            </ol>
+          </div>
+
+          {/* Tips */}
+          <div className="bg-yellow-50 rounded-xl p-4 text-sm text-yellow-700">
+            <p className="font-medium mb-1">💡 Tips</p>
+            <ul className="list-disc list-inside space-y-1 text-xs text-yellow-600">
+              <li>El puerto COM varía según la PC — siempre verificar en Administrador de Dispositivos</li>
+              <li>Si el terminal no responde, desconecta y vuelve a conectar el cable USB</li>
+              <li>El VP800 necesita batería cargada o estar conectado a la corriente</li>
+              <li>Baud Rate estándar: 9600 (no cambiar除非el fabricante lo indique)</li>
+              <li>Al procesar un pago, el terminal muestra "Inserte/Tarjee la tarjeta" automáticamente</li>
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* ======== TAB SISTEMA (Backup/Restore) ======== */}
       {tab === 'sistema' && (
