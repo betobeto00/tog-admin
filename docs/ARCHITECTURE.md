@@ -36,7 +36,7 @@
 |--------|---------|
 | `index.ts` | Entry point, ventana principal, DevTools |
 | `preload.ts` | API segura IPC (contextBridge) |
-| `ipc-handlers.ts` | 30+ canales IPC registrados |
+| `ipc-handlers.ts` | 40+ canales IPC registrados |
 | `db/database.ts` | SQLite + 13 migraciones + seeds |
 | `services/valorTerminal.ts` | Comunicación serial VP800 (USB/COM) |
 | `services/license.ts` | Validación licencias RSA-2048 |
@@ -48,15 +48,15 @@
 Router (HashRouter)
 ├── /login              → LoginPage (con botones legales)
 ├── /                   → DashboardPage
-├── /pos                → POSPage (con validación caja)
-├── /inventario         → InventarioPage (con ajuste)
+├── /pos                → POSPage (precio editable + venta rápida + validación caja)
+├── /inventario         → InventarioPage (CSV import/export + ajustes + stock bajo)
 ├── /ventas             → VentasPage
-├── /caja               → CajaPage (con impresión cierre)
+├── /caja               → CajaPage (Reporte X + backup automático)
 ├── /compras            → ComprasPage
 ├── /proveedores        → ProveedoresPage
-├── /reportes           → ReportesPage
+├── /reportes           → ReportesPage (exportar CSV + PDF)
 ├── /cotizaciones       → QuotesPage
-├── /configuracion      → ConfigPage (Terminal + Licencia + Tutorial)
+├── /configuracion      → ConfigPage (Terminal + Licencia + Impresora + Tutorial)
 └── /ayuda              → HelpPage (12 secciones)
 ```
 
@@ -84,19 +84,19 @@ Renderer (React)                    Main (Node.js)
      │  { success: true, ventaId: 123 }   │
 ```
 
-**Canales IPC principales:**
+**Canales IPC completos:**
 
 | Categoría | Canales |
 |-----------|---------|
 | Auth | `auth:login` |
 | Usuarios | `usuarios:list`, `create`, `update`, `delete`, `change-password` |
-| Productos | `productos:list`, `create`, `update`, `delete`, `low-stock`, `ajustar`, `ajustes-historial` |
+| Productos | `productos:list`, `create`, `update`, `delete`, `low-stock`, `ajustar`, `ajustes-historial`, `export-csv`, `import-csv` |
 | Categorías | `categorias:list`, `create`, `update`, `delete` |
 | Unidades | `unidades:list`, `create`, `update`, `delete` |
 | Proveedores | `proveedores:list`, `create`, `update`, `delete` |
 | Ventas | `ventas:list`, `getById`, `create`, `anular`, `resumen-dia` |
 | Compras | `compras:list`, `create` |
-| Caja | `caja:status`, `abrir`, `cerrar`, `movimiento`, `historial` |
+| Caja | `caja:status`, `abrir`, `cerrar`, `movimiento`, `historial`, `reporte-x`, `backup-auto` |
 | Quotes | `quotes:list`, `getById`, `create`, `update`, `delete` |
 | Reportes | `reportes:ventas-periodo`, `productos-mas-vendidos`, `ultimas-ventas` |
 | Config | `config:get`, `config:set` |
@@ -115,6 +115,7 @@ Renderer (React)                    Main (Node.js)
 | `Tutorial` | `Tutorial.tsx` | Onboarding de 5 pasos para nuevos usuarios |
 | `ForcePasswordChange` | `ForcePasswordChange.tsx` | Obliga cambio de contraseña en primer login |
 | `Toast` | `ui/Toast.tsx` | Sistema de notificaciones |
+| `CartItem` | `pos/CartItem.tsx` | Precio editable + descuento por item |
 | `Layout` | `layout/Layout.tsx` | Sidebar + Header + Outlet |
 | `Header` | `layout/Header.tsx` | Campana de notificaciones (stock bajo + caja) |
 | `Sidebar` | `layout/Sidebar.tsx` | Navegación principal |
@@ -133,6 +134,7 @@ Renderer (React)                    Main (Node.js)
 | Validación IPC | 19 schemas Zod en handlers críticos |
 | Licencias | RSA-2048 con validación offline |
 | Error handling | ErrorBoundary global + logging diagnóstico |
+| Backup automático | Al cerrar caja se crea backup de la DB |
 
 ---
 
@@ -153,14 +155,16 @@ Renderer (React)                    Main (Node.js)
 
 **Pasos detallados:**
 
-1. **Abrir caja** → Se registra el fondo de caja inicial
+1. **Abrir caja** → Se registra el fondo de caja inicial (con default configurable)
 2. **Escanear/buscar producto** → Se agrega al carrito
-3. **Cantidad / Precio** → Se calcula subtotal
-4. **Confirmar venta** → Se inserta en tabla `ventas` + `venta_detalles`
-5. **Pago** → Efectivo, transferencia, pago móvil, tarjeta (VP800), mixto
-6. **Descuento de stock** → Se actualiza `productos.stock`
-7. **Imprimir ticket** → Se genera y envía a impresora
-8. **Cierre de caja** → Se totaliza el día
+3. **Cantidad / Precio** → Precio editable directamente en el carrito
+4. **Venta rápida** → Botón para servicios por cobrar sin crear producto
+5. **Confirmar venta** → Se inserta en tabla `ventas` + `venta_detalles`
+6. **Pago** → Efectivo, transferencia, pago móvil, tarjeta (VP800), mixto
+7. **Descuento de stock** → Se actualiza `productos.stock`
+8. **Imprimir ticket** → Se genera y envía a impresora
+9. **Reporte X** → Ver totales parciales sin cerrar caja
+10. **Cierre de caja** → Backup automático + totalización del día
 
 ---
 
@@ -170,13 +174,36 @@ Renderer (React)                    Main (Node.js)
 Desarrollo:
   npm run dev  →  Vite (renderer) + Electron (main)
 
-Producción:
-  npm run build:renderer  →  Vite build + inline CSS
+Build de producción:
+  npm run build:renderer  →  Vite build + inline CSS (30KB Tailwind)
   npm run build:main      →  tsc (TypeScript → JavaScript)
-  npx electron-builder    →  TOG Admin.exe (portable)
+
+Empaquetado portable:
+  npm run build:win       →  release/win-unpacked/TOG Admin.exe
+
+Instalador NSIS:
+  npm run build:installer →  release/TOG-Admin-Setup-1.0.0.exe
 
 Instalación en cliente:
-  Copiar carpeta release/win-unpacked/ a la PC del cliente
-  Colocar license.key junto al .exe
-  Ejecutar TOG Admin.exe
+  1. Ejecutar TOG-Admin-Setup-1.0.0.exe
+  2. Siguiente → Siguiente → Instalar
+  3. Se crea acceso directo en escritorio
+  4. Abrir TOG Admin
+  5. Importar license.key
+  6. Login: admin / admin123
+```
+
+### Flujo completo de distribución:
+
+```
+Desarrollador                          Cliente
+─────────────                          ───────
+1. generate-keys.js (una vez)
+2. npm run build:installer
+3. Entregar TOG-Admin-Setup.exe  ──►  4. Instalar
+                                      5. Abrir app
+                                      6. Ver pantalla bloqueo
+                                      7. Enviar Machine ID  ──►
+8. generate-license.js               9. Importar license.key
+10. Enviar license.key  ──────────►  11. Todo funciona ✅
 ```

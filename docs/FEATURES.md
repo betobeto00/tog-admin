@@ -165,7 +165,17 @@
 | Q6 | Eliminar quote | 🔴 | ✅ | Solo quotes pendientes |
 | Q7 | Filtros | 🔴 | ✅ | Por estado y búsqueda de cliente |
 | Q8 | Convertir a venta | 🟡 | ⏳ | Marcar como convertida |
-| CF10 | Plantilla de ticket | 🟢 | ⏳ | Personalizar diseño del ticket |
+
+---
+
+## Módulo: Empaquetado / Distribución 🟡
+
+| # | Feature | Prioridad | Estado | Descripción |
+|---|---------|-----------|--------|-------------|
+| E1 | Instalador NSIS | 🔴 | ✅ | Genera TOG-Admin-Setup.exe con acceso directo |
+| E2 | Desinstalador | 🔴 | ✅ | Se desinstala desde Panel de Control |
+| E3 | Idioma español | 🟡 | ✅ | Instalador en español |
+| E4 | Matar procesos | 🟡 | ✅ | Cierra TOG Admin antes de instalar/desinstalar |
 
 ---
 
@@ -211,7 +221,7 @@
 
 | Prioridad | Implementadas | Pendientes |
 |-----------|---------------|------------|
-| 🔴 P0 (MVP) | ~43 | ~0 |
-| 🟡 P1 | ~29 | ~3 |
+| 🔴 P0 (MVP) | ~45 | ~0 |
+| 🟡 P1 | ~31 | ~3 |
 | 🟢 P2 | ~4 | ~2 |
-| **Total** | **~76** | **~5** |
+| **Total** | **~80** | **~5** |
