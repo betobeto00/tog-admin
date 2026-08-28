@@ -11,6 +11,7 @@
     "build:main": "tsc -p tsconfig.main.json",
     "rebuild": "electron-rebuild --force",
     "build:win": "npm run rebuild && npm run build:renderer && npm run build:main && electron-builder --win --dir",
+    "build:installer": "npm run rebuild && npm run build:renderer && npm run build:main && electron-builder --win nsis",
     "build:installer": "build.bat",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
@@ -55,6 +56,7 @@
   "build": {
     "appId": "com.tog.admin",
     "productName": "TOG Admin",
+    "author": "Bet00 Nardieu",
     "directories": {
       "output": "release"
     },
@@ -63,8 +65,20 @@
       "dist/**/*"
     ],
     "win": {
-      "target": "dir",
+      "target": "nsis",
       "icon": "resources/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "resources/icon.ico",
+      "uninstallerIcon": "resources/icon.ico",
+      "installerHeaderIcon": "resources/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "TOG Admin",
+      "installerLanguages": ["spanish", "english"],
+      "language": "2058"
     }
   }
 }
