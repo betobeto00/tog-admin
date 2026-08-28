@@ -121,7 +121,7 @@ npm run build:installer
 - [ ] Pre-cargar carrito con items de la cotización
 
 ### Tarea 3.5: Reportes avanzados 🟡
-- [ ] Ventas por categoría
+- [x] Ventas por categoría ✅
 - [ ] Margen de ganancia real vs esperada
 
 ### Tarea 3.6: WiFi para VP800 🟡

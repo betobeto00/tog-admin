@@ -128,7 +128,7 @@
 | R4 | Métodos de pago | 🔴 | ✅ | Gráfico pie (efectivo/transferencia/móvil) |
 | R5 | Tarjetas resumen | 🔴 | ✅ | Total período, promedio diario, top producto |
 | R6 | Filtros rápidos | 🔴 | ✅ | Últimos 7 días, 30 días, rango custom |
-| R7 | Ventas por categoría | 🟡 | ⏳ | Qué categorías generan más |
+| R7 | Ventas por categoría | 🟡 | ✅ | Gráfico de barras horizontales por categoría |
 | R8 | Margen de ganancia | 🟡 | ⏳ | Ganancia real vs esperada |
 | R9 | Exportar reportes | 🟡 | ✅ | Exportar CSV + Imprimir PDF desde Reportes |
 | R10 | Últimas ventas (Dashboard) | 🔴 | ✅ | Últimas 10 ventas en dashboard |
