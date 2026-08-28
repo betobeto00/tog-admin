@@ -196,48 +196,57 @@ Con el sistema:
 
 ---
 
-## Electron Production Build — Lo Aprendido
+## Electron Production Build — Resuelto ✅
 
-### El Problema
-La app funciona perfectamente en `npm run dev` (Vite dev server) pero muestra pantalla blanca en el build de producción (`TOG Admin.exe`).
+### El Problema (RESUELTO)
+La app funcionaba perfectamente en `npm run dev` pero mostraba pantalla blanca en el build de producción (`TOG Admin.exe`).
 
-### Causa Raíz
-Electron carga el HTML desde `file://` o `asar://` protocol. Estos protocolos NO sirven headers HTTP (CORS, MIME types). Esto rompe:
+### Causas Raíz (IDENTIFICADAS Y CORREGIDAS)
 
-1. **`<link rel="stylesheet">`** — No carga CSS externo desde asar
-2. **`<script type="module">`** — ES modules requieren CORS headers
-3. **Dynamic imports (`import()`)** — Pueden fallar sin contexto de módulo
+1. **`BrowserRouter` no funciona con `file://`** — Usa HTML5 History API que requiere un servidor HTTP. Solución: `HashRouter`.
+2. **`crossorigin` en tags HTML** — Vite agrega `crossorigin` que rompe la carga desde asar. Solución: plugin `removeCrossorigin`.
+3. **`<script type="module">`** — ES modules requieren CORS headers que no existen en `file://`. Solución: `type="text/javascript"`.
+4. **CSS via `<link>`** — No carga desde asar. Solución: CSS inline en `<style>` via post-build script.
+5. **`document.getElementById('root')` = null** — El script carga antes del DOM. Solución: `DOMContentLoaded` wrapper en `main.tsx`.
 
-### Lo que SÍ funciona en producción
-- HTML se carga
-- `<style>` inline SÍ aplica CSS
-- `console.log` del renderer SÍ aparece en consola del main process
-- React `createRoot().render()` SÍ ejecuta
-- DB SQLite se inicializa correctamente
-
-### Lo que NO funciona
-- El output visible de React no aparece en pantalla
-- Las páginas lazy-loaded no renderizan
-- Tailwind CSS classes no se aplican al contenido
-
-### Soluciones intentadas (sin éxito)
+### Soluciones Aplicadas
 
 | # | Solución | Resultado |
 |---|----------|-----------|
-| 1 | Quitar `crossorigin` de tags HTML | ❌ No resuelve |
-| 2 | Inline CSS en `<style>` tag | ❌ CSS aplica pero contenido no |
-| 3 | Cambiar `type="module"` a `type="text/javascript"` | ❌ No resuelve |
-| 4 | Formato IIFE en Vite build | ❌ No resuelve |
-| 5 | DevTools auto-open en producción | ✅ Confirma React monta |
+| 1 | `BrowserRouter` → `HashRouter` | ✅ React Router funciona |
+| 2 | Plugin quita `crossorigin` | ✅ Tags HTML limpios |
+| 3 | `type="module"` → `type="text/javascript"` | ✅ Script se ejecuta |
+| 4 | CSS inline via `inline-css.js` | ✅ Tailwind aplica |
+| 5 | `DOMContentLoaded` wrapper | ✅ Root element encontrado |
+| 6 | Imports estáticos (sin lazy loading) | ✅ Sin code splitting |
+| 7 | ErrorBoundary global | ✅ Errores visibles |
 
-### Soluciones pendientes de probar
+### Configuración Actual de Build
 
-1. **Quitar lazy loading** — Usar imports estáticos en App.tsx
-2. **Error boundary global** — Mostrar errores visibles en pantalla
-3. **Custom protocol** — Registrar `app://` protocol con headers CORS
-4. **`webContents.executeJavaScript`** — Inyectar debug desde main process
-5. **Probar sin asar** — Usar `files` pattern para copiar archivos sueltos
-6. **Cambiar `loadFile` por `loadURL`** con data: URL
+**vite.config.ts:**
+- `base: './'` — Paths relativos
+- `build.rollupOptions.output.format: 'iife'` — Sin módulos ES
+- `target: 'es2020'` — Chrome 126+ (Electron 31)
+- Plugin `removeCrossorigin` — Limpia tags HTML
+
+**scripts/inline-css.js:**
+- Genera Tailwind CSS standalone (30KB)
+- Inyecta como `<style>` en el HTML
+- Quita `<link>` de CSS externo
+- Cambia `type="module"` a `type="text/javascript"`
+
+**src/renderer/main.tsx:**
+- `DOMContentLoaded` wrapper para esperar al DOM
+- Error logging para diagnóstico
+
+### Lecciones Aprendidas
+
+1. **Electron + Vite no es trivial** — Hay muchos pits entre dev y production
+2. **`file://` protocol es muy limitado** — No soporta CORS, modules, ni links externos
+3. **`BrowserRouter` requiere servidor** — Usa `HashRouter` para Electron production
+4. **Siempre probar el build de producción** — Dev mode puede ocultar problemas
+5. **El debug remoto es difícil** — Necesitas DevTools o logging en main process
+6. **CSS inline es la solución más robusta** — Evita dependencia de archivos externos
 
 ### Referencia: Cómo funciona el build
 
@@ -254,34 +263,12 @@ npx electron-builder --win --dir
   → Genera release/win-unpacked/TOG Admin.exe
 ```
 
-### Configuración de Build Actual
-
-**vite.config.ts:**
-- `base: './'` — Paths relativos
-- `format: 'iife'` — Sin módulos ES
-- `outDir: 'dist'`
-
-**scripts/inline-css.js:**
-- Inlined CSS en `<style>` tag
-- Quita `crossorigin`
-- Cambia `type="module"` a `type="text/javascript"`
-
-**package.json build:**
-- `files: ["dist-electron/**/*", "dist/**/*"]`
-- `target: "dir"` (sin instalador)
-
-### Lecciones aprendidas
-
-1. **Electron + Vite no es trivial** — Hay many pitfalls entre dev y production
-2. **`file://` protocol es muy limitado** — No soporta CORS, modules, ni links externos
-3. **asar protocol tiene sus propios bugs** — No todos los tags HTML funcionan
-4. **Siempre probar el build de producción** — Dev mode puede ocultar problemas
-5. **El debug remoto es difícil** — Necesitas DevTools o logging en main process
-
 ### Referencias
 
 - [Electron Security](https://electronjs.org/docs/tutorial/security)
 - [Vite for Electron](https://vitejs.dev/guide/build.html)
 - [electron-vite](https://electron-vite.org/) — Framework que resuelve estos problemas
 - [electron-builder](https://www.electron.build/) — Empaquetado
+- [PRODUCTION_BUILD_REPORT.md](./PRODUCTION_BUILD_REPORT.md) — Reporte detallado
+- [LICENCIAMIENTO.md](./LICENCIAMIENTO.md) — Sistema de licencias RSA-2048
 - [PRODUCTION_BUILD_REPORT.md](./PRODUCTION_BUILD_REPORT.md) — Reporte detallado
