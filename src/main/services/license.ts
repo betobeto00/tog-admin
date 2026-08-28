@@ -14,6 +14,13 @@ interface LicenseData {
   firma: string
 }
 
+// Estado local de licencia (protección anti-tampering)
+interface LicenseState {
+  lastKnownDate: string | null  // Última fecha del sistema registrada
+  totalDaysUsed: number         // Días totales de uso
+  lastCheckTimestamp: number    // Timestamp del último check
+}
+
 interface LicenseValidation {
   valid: boolean
   license: LicenseData | null
@@ -75,6 +82,17 @@ export function validateLicense(): LicenseValidation {
         valid: false,
         license,
         error: 'Archivo de licencia corrupto o incompleto',
+        daysRemaining: null,
+      }
+    }
+
+    // 🔒 Anti-tampering: detectar manipulación del reloj del sistema
+    const dateCheck = detectDateManipulation()
+    if (dateCheck.tampered) {
+      return {
+        valid: false,
+        license,
+        error: dateCheck.message,
         daysRemaining: null,
       }
     }
@@ -142,6 +160,60 @@ export function validateLicense(): LicenseValidation {
 }
 
 /**
+ * Lee el estado local de la licencia (anti-tampering)
+ */
+function readLicenseState(): LicenseState {
+  const statePath = getLicenseDbPath()
+  try {
+    if (fs.existsSync(statePath)) {
+      const raw = fs.readFileSync(statePath, 'utf8')
+      return JSON.parse(raw)
+    }
+  } catch {}
+  return { lastKnownDate: null, totalDaysUsed: 0, lastCheckTimestamp: 0 }
+}
+
+/**
+ * Guarda el estado local de la licencia
+ */
+function writeLicenseState(state: LicenseState): void {
+  const statePath = getLicenseDbPath()
+  const dir = path.dirname(statePath)
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  fs.writeFileSync(statePath, JSON.stringify(state, null, 2))
+}
+
+/**
+ * Protección anti-tampering: detecta si el usuario retrocedió la fecha del sistema
+ */
+function detectDateManipulation(): { tampered: boolean; message: string } {
+  const state = readLicenseState()
+  const now = new Date()
+  const todayStr = now.toISOString().split('T')[0]
+
+  if (state.lastKnownDate) {
+    const lastDate = new Date(state.lastKnownDate)
+    const currentDate = new Date(todayStr)
+
+    if (currentDate < lastDate) {
+      return {
+        tampered: true,
+        message: `Fecha del sistema manipulada. Última fecha registrada: ${state.lastKnownDate}, fecha actual: ${todayStr}. Restaure la fecha correcta del sistema.`,
+      }
+    }
+  }
+
+  writeLicenseState({
+    ...state,
+    lastKnownDate: todayStr,
+    lastCheckTimestamp: Date.now(),
+    totalDaysUsed: state.totalDaysUsed + (state.lastKnownDate && todayStr !== state.lastKnownDate ? 1 : 0),
+  })
+
+  return { tampered: false, message: '' }
+}
+
+/**
  * Obtiene un ID único de la máquina
  */
 export function getMachineId(): string {
@@ -188,6 +260,8 @@ export function saveLicense(fileContent: string): { success: boolean; error?: st
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
     
     fs.writeFileSync(licensePath, JSON.stringify(license, null, 2))
+    // Resetear estado de tracking para la nueva licencia
+    resetLicenseState()
     return { success: true }
   } catch (err: any) {
     return { success: false, error: `Error: ${err.message}` }
@@ -199,6 +273,7 @@ export function saveLicense(fileContent: string): { success: boolean; error?: st
  */
 export function getLicenseStatus() {
   const validation = validateLicense()
+  const state = readLicenseState()
   return {
     valid: validation.valid,
     cliente: validation.license?.cliente || null,
@@ -206,5 +281,13 @@ export function getLicenseStatus() {
     diasRestantes: validation.daysRemaining,
     error: validation.error,
     machineId: getMachineId(),
+    totalDaysUsed: state.totalDaysUsed || 0,
   }
+}
+
+/**
+ * Resetea el estado de tracking (al importar nueva licencia)
+ */
+export function resetLicenseState(): void {
+  writeLicenseState({ lastKnownDate: null, totalDaysUsed: 0, lastCheckTimestamp: 0 })
 }

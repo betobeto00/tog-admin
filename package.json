@@ -12,7 +12,7 @@
     "rebuild": "electron-rebuild --force",
     "build:win": "npm run rebuild && npm run build:renderer && npm run build:main && electron-builder --win --dir",
     "build:installer": "npm run rebuild && npm run build:renderer && npm run build:main && electron-builder --win nsis",
-    "build:installer": "build.bat",
+    "build:portable": "npm run rebuild && npm run build:renderer && npm run build:main && electron-builder --win --dir",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "db:migrate": "tsx src/main/db/migrate.ts"
@@ -64,7 +64,21 @@
       "dist/**/*"
     ],
     "win": {
-      "target": "dir"
+      "target": "nsis",
+      "icon": null
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "TOG Admin",
+      "installerIcon": null,
+      "uninstallerIcon": null,
+      "installerHeaderIcon": null,
+      "deleteAppDataOnUninstall": false,
+      "include": null,
+      "script": null
     }
   }
 }
