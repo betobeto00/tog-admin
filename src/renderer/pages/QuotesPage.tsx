@@ -42,13 +42,20 @@ export default function QuotesPage() {
 
   const loadData = async () => {
     setLoading(true)
-    const [q, p] = await Promise.all([
-      window.api.quotes.list({ estado: filterStatus || undefined, search: search || undefined }),
-      window.api.productos.list(),
-    ])
-    setQuotes(q)
-    setProductos(p)
-    setLoading(false)
+    try {
+      const [q, p] = await Promise.all([
+        window.api.quotes.list({ estado: filterStatus || undefined, search: search || undefined }),
+        window.api.productos.list(),
+      ])
+      setQuotes(Array.isArray(q) ? q : [])
+      setProductos(Array.isArray(p) ? p : [])
+    } catch (err) {
+      console.error('Error loading quotes:', err)
+      setQuotes([])
+      setProductos([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   const searchProducts = searchProd.trim()
@@ -157,9 +164,9 @@ export default function QuotesPage() {
       <table><thead><tr><th style="text-align:left">Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Subtotal</th></tr></thead>
       <tbody>${rows}</tbody></table>
       <hr>
-      <div class="right">Subtotal: ${formatCurrency(q.subtotal)}</div>
-      ${q.impuesto > 0 ? `<div class="right">Tax: ${formatCurrency(q.impuesto)}</div>` : ''}
-      <div class="right total">TOTAL: ${formatCurrency(q.total)}</div>
+      <div class="right">Subtotal: ${formatCurrency(q.subtotal || 0)}</div>
+      ${(q.impuesto || 0) > 0 ? `<div class="right">Tax: ${formatCurrency(q.impuesto)}</div>` : ''}
+      <div class="right total">TOTAL: ${formatCurrency(q.total || 0)}</div>
       ${q.notas ? `<hr><div class="label">NOTES:</div><div style="font-size:10px">${q.notas}</div>` : ''}
       <hr>
       <div class="center" style="margin-top:15px;font-size:10px;color:#666">Thank you for your business!</div>
@@ -216,15 +223,15 @@ export default function QuotesPage() {
               <tr><td colSpan={7} className="text-center py-12"><div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto" /></td></tr>
             ) : quotes.length === 0 ? (
               <tr><td colSpan={7} className="text-center py-12 text-gray-400"><FileText className="w-12 h-12 mx-auto mb-2 opacity-50" /><p>No quotes found</p></td></tr>
-            ) : quotes.map((q) => {
+            ) : (quotes || []).map((q) => {
               const Icon = STATUS_ICONS[q.estado] || Clock
               return (
                 <tr key={q.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-mono font-medium">#{String(q.numero_cotizacion).padStart(6, '0')}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{q.cliente_nombre}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{formatDateTime(q.fecha)}</td>
+                  <td className="px-4 py-3 text-sm font-mono font-medium">#{String(q.numero_cotizacion || 0).padStart(6, '0')}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{q.cliente_nombre || '—'}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{q.fecha ? formatDateTime(q.fecha) : '—'}</td>
                   <td className="px-4 py-3 text-sm text-gray-500">{q.fecha_vencimiento || '—'}</td>
-                  <td className="px-4 py-3 text-sm font-bold text-right">{formatCurrency(q.total)}</td>
+                  <td className="px-4 py-3 text-sm font-bold text-right">{formatCurrency(q.total || 0)}</td>
                   <td className="px-4 py-3 text-center">
                     <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full capitalize ${STATUS_COLORS[q.estado] || ''}`}>
                       <Icon className="w-3 h-3" /> {q.estado}
@@ -338,8 +345,8 @@ export default function QuotesPage() {
         {viewQuote && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><p className="text-gray-500">Client</p><p className="font-medium">{viewQuote.cliente_nombre}</p></div>
-              <div><p className="text-gray-500">Date</p><p className="font-medium">{formatDateTime(viewQuote.fecha)}</p></div>
+              <div><p className="text-gray-500">Client</p><p className="font-medium">{viewQuote.cliente_nombre || '—'}</p></div>
+              <div><p className="text-gray-500">Date</p><p className="font-medium">{viewQuote.fecha ? formatDateTime(viewQuote.fecha) : '—'}</p></div>
               {viewQuote.cliente_email && <div><p className="text-gray-500">Email</p><p className="font-medium">{viewQuote.cliente_email}</p></div>}
               {viewQuote.cliente_telefono && <div><p className="text-gray-500">Phone</p><p className="font-medium">{viewQuote.cliente_telefono}</p></div>}
               {viewQuote.fecha_vencimiento && <div><p className="text-gray-500">Valid Until</p><p className="font-medium">{viewQuote.fecha_vencimiento}</p></div>}
@@ -357,17 +364,17 @@ export default function QuotesPage() {
                   <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500">Subtotal</th>
                 </tr></thead>
                 <tbody className="divide-y divide-gray-200">
-                  {viewQuote.detalles?.map((d: any) => (
-                    <tr key={d.id}><td className="px-3 py-2">{d.descripcion}</td><td className="px-3 py-2 text-center">{d.cantidad}</td><td className="px-3 py-2 text-right">{formatCurrency(d.precio_unitario)}</td><td className="px-3 py-2 text-right font-medium">{formatCurrency(d.subtotal)}</td></tr>
+                  {(viewQuote.detalles || []).map((d: any) => (
+                    <tr key={d.id}><td className="px-3 py-2">{d.descripcion || '—'}</td><td className="px-3 py-2 text-center">{d.cantidad || 0}</td><td className="px-3 py-2 text-right">{formatCurrency(d.precio_unitario || 0)}</td><td className="px-3 py-2 text-right font-medium">{formatCurrency(d.subtotal || 0)}</td></tr>
                   ))}
                 </tbody>
               </table>
             </div>
 
             <div className="bg-gray-50 rounded-xl p-4 space-y-1.5 text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>{formatCurrency(viewQuote.subtotal)}</span></div>
-              {viewQuote.impuesto > 0 && <div className="flex justify-between"><span className="text-gray-500">Tax</span><span>{formatCurrency(viewQuote.impuesto)}</span></div>}
-              <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200"><span>Total</span><span>{formatCurrency(viewQuote.total)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>{formatCurrency(viewQuote.subtotal || 0)}</span></div>
+              {(viewQuote.impuesto || 0) > 0 && <div className="flex justify-between"><span className="text-gray-500">Tax</span><span>{formatCurrency(viewQuote.impuesto)}</span></div>}
+              <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200"><span>Total</span><span>{formatCurrency(viewQuote.total || 0)}</span></div>
             </div>
 
             {viewQuote.notas && <div className="bg-blue-50 rounded-xl p-3 text-sm text-blue-700"><strong>Notes:</strong> {viewQuote.notas}</div>}
