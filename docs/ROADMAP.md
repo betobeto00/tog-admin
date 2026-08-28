@@ -3,24 +3,23 @@
 ## Visión General (Actualizado: 28-Ago-2026)
 
 ```
-FASE 0 ✅          FASE 1 ✅          FASE 2 ✅          FASE 3
-CRÍTICOS           CORE               SEGURIDAD/UX       PREMIUM
-(2-3 días)         (2-3 días)         (2-3 días)         (3-4 días)
-─────────────      ─────────────      ─────────────      ─────────────
-✅ Stock valid     ✅ Zod validation  ✅ Session timeout  🟡 Modo touch
-✅ Backup/Restore  ✅ Descuentos POS  ✅ Rate limiting    🟡 Crédito/Fiado
-✅ Password change ✅ Subcomponentes  ✅ Lazy loading     🟡 Import/Export
-✅ Toast system    ✅ Dashboard+      ✅ VP800 terminal   🟡 Labels print
-                   ✅ Ajuste invent.  ✅ Cierre print     🟡 Reportes PDF
-                                       ✅ License RSA     🟡 Quotes→Venta
-                                       ✅ Help Center
-                                       ✅ Tutorial
-                                       ✅ Notifications
-                                       ✅ Terminal Config UI
+FASE 0 ✅   FASE 1 ✅   FASE 2 ✅   FASE 2.5 ✅  FASE 3 🟡
+CRÍTICOS    CORE        SEGURIDAD   P0+P1+P2     PREMIUM
+            +UX
+─────────   ─────────   ─────────   ──────────   ─────────
+✅ Stock    ✅ Zod      ✅ Timeout  ✅ Precio    🟡 Touch
+✅ Backup   ✅ Dctos    ✅ Rate     ✅ Venta     🟡 Crédito
+✅ Passwd   ✅ Subcomp  ✅ VP800    ✅ Reporte X ✅ Etiquetas
+✅ Toast    ✅ Dash     ✅ License  ✅ CSV I/O   🟡 Quotes→Venta
+            ✅ Ajuste   ✅ Help     ✅ Hist.Ajuste 🟡 Cat Reports
+                        ✅ Tutorial ✅ Stock Bajo
+                        ✅ Alerts   ✅ Backup auto
+                        ✅ TermCfg  ✅ Printer/Fondo
+                                    ✅ PDF/CSV Reports
 ```
 
 **Estado actual del proyecto:** ~97% completo (Fase 0, 1, 2 y 2.5 completadas)
-**Estimación restante:** 2-3 días (Fase 3: Premium — touch, etiquetas, crédito)
+**Estimación restante:** 2-3 días (Fase 3: Premium)
 
 ---
 
@@ -53,14 +52,14 @@ CRÍTICOS           CORE               SEGURIDAD/UX       PREMIUM
 |---|-------|--------|----------|
 | 2.1 | Session timeout por inactividad | ✅ | `auth.store.ts` (30 min auto-logout) |
 | 2.2 | Rate limiting en login | ✅ | `ipc-handlers.ts` (5 intentos / 15 min) |
-| 2.3 | Lazy loading de rutas | ✅ | `App.tsx` (imports estáticos para compat Electron) |
+| 2.3 | Imports estáticos (compat Electron) | ✅ | `App.tsx` |
 | 2.4 | Integración Terminal VP800 | ✅ | `services/valorTerminal.ts`, `ipc-handlers.ts`, `preload.ts` |
 | 2.5 | Impresión de cierre de caja | ✅ | `CajaPage.tsx` |
-| 2.6 | Sistema de licencias RSA-2048 | ✅ | `services/license.ts`, `LicenseGate.tsx`, `ipc-handlers.ts`, `scripts/generate-keys.js`, `scripts/generate-license.js` |
+| 2.6 | Sistema de licencias RSA-2048 | ✅ | `services/license.ts`, `LicenseGate.tsx`, `scripts/generate-keys.js`, `scripts/generate-license.js` |
 | 2.7 | Centro de Ayuda detallado | ✅ | `HelpPage.tsx` (12 secciones con búsqueda) |
 | 2.8 | Tutorial de onboarding | ✅ | `Tutorial.tsx`, `App.tsx`, `ConfigPage.tsx` |
 | 2.9 | Campana de notificaciones real | ✅ | `Header.tsx` (stock bajo + caja cerrada) |
-| 2.10 | Configuración del terminal VP800 | ✅ | `ConfigPage.tsx` (pestaña Terminal: puerto COM, baud rate, conectar/desconectar) |
+| 2.10 | Configuración del terminal VP800 | ✅ | `ConfigPage.tsx` (puerto COM, baud rate, conectar/desconectar) |
 | 2.11 | POS bloqueado sin caja abierta | ✅ | `POSPage.tsx` |
 
 ---
@@ -69,18 +68,35 @@ CRÍTICOS           CORE               SEGURIDAD/UX       PREMIUM
 
 | # | Tarea | Estado | Archivos |
 |---|-------|--------|----------|
-| 2.6 | Precio unitario editable en POS | ✅ | `CartItem.tsx`, `POSPage.tsx` |
-| 2.7 | Venta rápida sin producto (servicio) | ✅ | `POSPage.tsx` |
-| 2.8 | Reporte X (parcial sin cerrar caja) | ✅ | `CajaPage.tsx`, `ipc-handlers.ts` |
-| 2.9 | Importar productos CSV | ✅ | `InventarioPage.tsx`, `ipc-handlers.ts` |
-| 2.10 | Exportar productos CSV | ✅ | `InventarioPage.tsx`, `ipc-handlers.ts` |
-| 2.11 | Historial de ajustes de inventario | ✅ | `InventarioPage.tsx` |
-| 2.12 | Filtro productos con stock bajo | ✅ | `InventarioPage.tsx` |
-| 2.13 | Backup automático al cerrar caja | ✅ | `CajaPage.tsx` |
-| 2.14 | Configurar impresora en Config | ✅ | `ConfigPage.tsx` |
-| 2.15 | Fondo inicial default en Config | ✅ | `ConfigPage.tsx`, `CajaPage.tsx` |
-| 2.16 | Exportar reportes CSV + PDF | ✅ | `ReportesPage.tsx` |
-| 2.17 | Fix TODO usuario_id en ajustes | ✅ | `InventarioPage.tsx` |
+| 2.12 | Precio unitario editable en POS | ✅ | `CartItem.tsx`, `POSPage.tsx` |
+| 2.13 | Venta rápida sin producto (servicio) | ✅ | `POSPage.tsx` |
+| 2.14 | Reporte X (parcial sin cerrar caja) | ✅ | `CajaPage.tsx`, `ipc-handlers.ts` |
+| 2.15 | Importar productos CSV | ✅ | `InventarioPage.tsx`, `ipc-handlers.ts` |
+| 2.16 | Exportar productos CSV | ✅ | `InventarioPage.tsx`, `ipc-handlers.ts` |
+| 2.17 | Historial de ajustes de inventario | ✅ | `InventarioPage.tsx` |
+| 2.18 | Filtro productos con stock bajo | ✅ | `InventarioPage.tsx` |
+| 2.19 | Backup automático al cerrar caja | ✅ | `CajaPage.tsx` |
+| 2.20 | Configurar impresora en Config | ✅ | `ConfigPage.tsx` |
+| 2.21 | Fondo inicial default en Config | ✅ | `ConfigPage.tsx`, `CajaPage.tsx` |
+| 2.22 | Exportar reportes CSV + PDF | ✅ | `ReportesPage.tsx` |
+
+---
+
+## ✅ EMPAQUETADO: INSTALADOR NSIS — CONFIGURADO
+
+| # | Tarea | Estado | Archivos |
+|---|-------|--------|----------|
+| E1 | Configurar electron-builder NSIS | ✅ | `package.json` (build:installer) |
+| E2 | Instalador con acceso directo | ✅ | Escritorio + Menú Inicio |
+| E3 | Idioma español | ✅ | NSIS languages config |
+| E4 | Desinstalador | ✅ | Panel de Control |
+| E5 | Matar procesos pre/post install | ✅ | taskkill automático |
+
+**Comando para generar el instalador:**
+```bash
+npm run build:installer
+# → Genera release/TOG-Admin-Setup-1.0.0.exe
+```
 
 ---
 
@@ -91,35 +107,26 @@ CRÍTICOS           CORE               SEGURIDAD/UX       PREMIUM
 ### Tarea 3.1: Modo touch 🟢
 - [ ] Botones grandes para pantalla táctil
 - [ ] Layout adaptado para tablets
-- **Archivos:** `src/renderer/pages/POSPage.tsx`
 
 ### Tarea 3.2: Imprimir etiquetas 🟢
-- [ ] Generar etiquetas con código de barras
-- [ ] Usar librería JsBarcode o similar
-- **Archivos:** Nuevos componentes
+- [ ] Generar etiquetas con código de barras (JsBarcode)
 
 ### Tarea 3.3: Venta a crédito/fiado 🟡
 - [ ] Tabla `creditos` con saldo pendiente
-- [ ] Registrar venta sin cobro inmediato
 - [ ] Registro de abonos
 - [ ] Reporte de cartera
-- **Archivos:** Múltiples nuevos archivos
 
 ### Tarea 3.4: Convertir quote a venta 🟡
 - [ ] Botón "Convertir a venta" en QuotesPage
 - [ ] Pre-cargar carrito con items de la cotización
-- **Archivos:** `src/renderer/pages/QuotesPage.tsx`, `src/renderer/pages/POSPage.tsx`
 
 ### Tarea 3.5: Reportes avanzados 🟡
 - [ ] Ventas por categoría
 - [ ] Margen de ganancia real vs esperada
-- **Archivos:** `src/renderer/pages/ReportesPage.tsx`, `src/main/ipc-handlers.ts`
 
 ### Tarea 3.6: WiFi para VP800 🟡
 - [ ] Conexión via HTTP API (Valor Connect)
-- [ ] Configuración de IP/puerto del terminal
 - [ ] Fallback automático USB → WiFi
-- **Archivos:** `src/main/services/valorTerminal.ts`
 
 ---
 
@@ -134,6 +141,8 @@ CRÍTICOS           CORE               SEGURIDAD/UX       PREMIUM
 | ✅ Sistema de licencias | Fase 2 | Completado |
 | ✅ Help + Tutorial | Fase 2 | Completado |
 | ✅ Terminal Config UI | Fase 2 | Completado |
+| ✅ P0 + P1 + P2 features | Fase 2.5 | Completado |
+| ✅ Instalador NSIS | Empaquetado | Configurado |
 | 🟡 Beta producción | Fase 3 | Pendiente |
 
 ---
@@ -142,13 +151,36 @@ CRÍTICOS           CORE               SEGURIDAD/UX       PREMIUM
 
 | Riesgo | Impacto | Estado |
 |--------|---------|--------|
-| Pérdida de datos sin backup | 🔴 Alto | ✅ Resuelto (Fase 0) |
+| Pérdida de datos sin backup | 🔴 Alto | ✅ Resuelto (Fase 0 + auto-backup) |
 | Stock negativo por carrera | 🔴 Alto | ✅ Resuelto (Fase 0) |
 | Acceso no autorizado | 🟡 Medio | ✅ Resuelto (Fase 2) |
 | VP800 incompatible | 🟡 Medio | ✅ Implementado (Fase 2) |
-| Componentes muy grandes | 🟡 Medio | ✅ Parcialmente resuelto (Fase 1) |
 | Licencias falsificadas | 🟡 Medio | ✅ RSA-2048 (Fase 2) |
 | Pantalla blanca producción | 🔴 Alto | ✅ Resuelto (HashRouter + DOMContentLoaded) |
+
+---
+
+## Flujo de Despliegue (Desarrollador → Cliente)
+
+```
+1. Generar claves RSA (una vez)
+   $ node scripts/generate-keys.js
+
+2. Generar instalador
+   $ npm run build:installer
+   → release/TOG-Admin-Setup-1.0.0.exe
+
+3. Entregar al cliente el .exe del instalador
+
+4. Cliente instala → Abre la app → Ve pantalla de bloqueo
+
+5. Cliente te envía su Machine ID
+
+6. Tú generas la licencia
+   $ node scripts/generate-license.js "Cliente" "2027-08-28" "machine_id"
+
+7. Envías license.key al cliente → Lo importa → Todo funciona ✅
+```
 
 ---
 
@@ -159,7 +191,7 @@ src/
 ├── main/
 │   ├── index.ts              # Entry point Electron
 │   ├── preload.ts            # API segura IPC (contextBridge)
-│   ├── ipc-handlers.ts       # ✅ Todos los handlers IPC (30+ canales)
+│   ├── ipc-handlers.ts       # ✅ 40+ canales IPC
 │   ├── db/
 │   │   ├── database.ts       # SQLite + 13 migraciones + seeds
 │   │   └── migrate.ts        # Script standalone de migración
@@ -167,54 +199,36 @@ src/
 │       ├── valorTerminal.ts  # ✅ Servicio VP800 (USB serial)
 │       └── license.ts        # ✅ Validación licencias RSA-2048
 ├── renderer/
-│   ├── App.tsx               # ✅ Router HashRouter + LicenseGate
-│   ├── pages/
-│   │   ├── POSPage.tsx       # ✅ Con descuentos + validación caja
-│   │   ├── InventarioPage.tsx # ✅ Con ajuste de inventario
-│   │   ├── DashboardPage.tsx  # ✅ Con últimas ventas
-│   │   ├── VentasPage.tsx
-│   │   ├── CajaPage.tsx      # ✅ Con impresión de cierre
-│   │   ├── ComprasPage.tsx
-│   │   ├── ProveedoresPage.tsx
-│   │   ├── ReportesPage.tsx
-│   │   ├── QuotesPage.tsx
-│   │   ├── ConfigPage.tsx    # ✅ Backup + Terminal + Licencia + Tutorial
-│   │   ├── HelpPage.tsx      # ✅ Centro de ayuda (12 secciones)
-│   │   └── LoginPage.tsx     # ✅ Con botones legales
+│   ├── App.tsx               # ✅ HashRouter + LicenseGate
+│   ├── pages/                # 12 páginas
 │   ├── components/
-│   │   ├── layout/
-│   │   │   ├── Layout.tsx
-│   │   │   ├── Header.tsx    # ✅ Campana notificaciones real
-│   │   │   └── Sidebar.tsx
+│   │   ├── layout/           # Header (notificaciones) + Sidebar
 │   │   ├── ui/               # Modal, ConfirmDialog, Toast
-│   │   ├── pos/              # ✅ CartItem (extraído)
-│   │   ├── ErrorBoundary.tsx # ✅ Captura errores React
-│   │   ├── LicenseGate.tsx   # ✅ Bloqueo por licencia
-│   │   ├── Tutorial.tsx      # ✅ Onboarding 5 pasos
+│   │   ├── pos/CartItem.tsx  # ✅ Precio editable + descuento
+│   │   ├── ErrorBoundary.tsx
+│   │   ├── LicenseGate.tsx
+│   │   ├── Tutorial.tsx
 │   │   └── ForcePasswordChange.tsx
-│   ├── stores/
-│   │   └── auth.store.ts     # ✅ Con session timeout
-│   └── lib/
-│       └── utils.ts
+│   ├── stores/auth.store.ts  # ✅ Session timeout
+│   └── lib/utils.ts
 ├── shared/
-│   ├── types.ts              # ✅ Tipos completos
-│   └── validations.ts        # ✅ 19 schemas Zod
+│   ├── types.ts
+│   └── validations.ts        # 19 schemas Zod
 ├── scripts/
-│   ├── generate-keys.js      # ✅ Generador claves RSA
-│   ├── generate-license.js   # ✅ Generador licencias
-│   └── inline-css.js         # Build: inline CSS para Electron
+│   ├── generate-keys.js      # Generador claves RSA
+│   ├── generate-license.js   # Generador licencias
+│   └── inline-css.js         # Build: CSS inline
 ├── keys/
-│   ├── private.key           # 🔴 SECRETA — Solo desarrollador
+│   ├── private.key           # 🔴 SECRETA
 │   └── public.key            # 🟢 Embebida en el .exe
 ├── docs/
-│   ├── ARCHITECTURE.md
+│   ├── LICENCIAMIENTO.md     # Guía completa de licencias
+│   ├── ROADMAP.md            # Este archivo
 │   ├── FEATURES.md
-│   ├── KNOWLEDGE.md
-│   ├── LICENCIAMIENTO.md     # ✅ Guía completa de licencias
-│   ├── PRODUCTION_BUILD_REPORT.md
-│   ├── ROADMAP.md
+│   ├── ARCHITECTURE.md
 │   ├── TECH_STACK.md
+│   ├── KNOWLEDGE.md
 │   └── DATA_MODEL.md
 └── packaging/
-    └── installer.iss         # Script Inno Setup
+    └── installer.iss         # Script Inno Setup (alternativo)
 ```

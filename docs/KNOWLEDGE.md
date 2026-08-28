@@ -248,27 +248,49 @@ La app funcionaba perfectamente en `npm run dev` pero mostraba pantalla blanca e
 5. **El debug remoto es difícil** — Necesitas DevTools o logging en main process
 6. **CSS inline es la solución más robusta** — Evita dependencia de archivos externos
 
-### Referencia: Cómo funciona el build
+### Referencia: Comandos de build
+
+```bash
+# Build de desarrollo
+npm run dev
+
+# Build de producción
+npm run build:renderer   # Vite build + CSS inline (30KB)
+npm run build:main       # TypeScript → JavaScript
+
+# Empaquetado portable
+npm run build:win        # → release/win-unpacked/TOG Admin.exe
+
+# Instalador NSIS
+npm run build:installer  # → release/TOG-Admin-Setup-1.0.0.exe
+```
+
+### Flujo de distribución a clientes
 
 ```
-npm run build:renderer
-  → vite build (genera dist/index.html + dist/assets/)
-  → scripts/inline-css.js (inline CSS, fix script tags)
+1. Generar claves RSA (una vez)
+   $ node scripts/generate-keys.js
 
-npm run build:main
-  → tsc (genera dist-electron/main/)
+2. Generar instalador
+   $ npm run build:installer
+   → release/TOG-Admin-Setup-1.0.0.exe
 
-npx electron-builder --win --dir
-  → Empaqueta dist/ + dist-electron/ + node_modules/ en asar
-  → Genera release/win-unpacked/TOG Admin.exe
+3. Entregar .exe al cliente
+
+4. Cliente instala → Abre la app → Ve pantalla de bloqueo
+
+5. Cliente te envía su Machine ID
+
+6. Tú generas la licencia
+   $ node scripts/generate-license.js "Cliente" "2027-08-28" "machine_id"
+
+7. Envías license.key al cliente → Lo importa → Todo funciona ✅
 ```
 
 ### Referencias
 
 - [Electron Security](https://electronjs.org/docs/tutorial/security)
 - [Vite for Electron](https://vitejs.dev/guide/build.html)
-- [electron-vite](https://electron-vite.org/) — Framework que resuelve estos problemas
-- [electron-builder](https://www.electron.build/) — Empaquetado
-- [PRODUCTION_BUILD_REPORT.md](./PRODUCTION_BUILD_REPORT.md) — Reporte detallado
+- [electron-builder NSIS](https://www.electron.build/configuration/nsis) — Configuración del instalador
 - [LICENCIAMIENTO.md](./LICENCIAMIENTO.md) — Sistema de licencias RSA-2048
 - [PRODUCTION_BUILD_REPORT.md](./PRODUCTION_BUILD_REPORT.md) — Reporte detallado
