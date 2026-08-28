@@ -11,8 +11,9 @@ export function cn(...inputs: ClassValue[]) {
 /**
  * Formatea un número como moneda.
  */
-export function formatCurrency(amount: number, symbol: string = '$'): string {
-  return `${symbol}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+export function formatCurrency(amount: number | undefined | null, symbol: string = '$'): string {
+  const safe = typeof amount === 'number' && !isNaN(amount) ? amount : 0
+  return `${symbol}${safe.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 /**
