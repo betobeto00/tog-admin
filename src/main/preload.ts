@@ -51,6 +51,8 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.invoke('productos:ajustar', data),
     ajustesHistorial: (data?: { producto_id?: number; limite?: number }) =>
       ipcRenderer.invoke('productos:ajustes-historial', data),
+    exportCsv: () => ipcRenderer.invoke('productos:export-csv'),
+    importCsv: (filePath: string) => ipcRenderer.invoke('productos:import-csv', filePath),
   },
 
   // Proveedores
@@ -83,6 +85,8 @@ contextBridge.exposeInMainWorld('api', {
     cerrar: (data: unknown) => ipcRenderer.invoke('caja:cerrar', data),
     movimiento: (data: unknown) => ipcRenderer.invoke('caja:movimiento', data),
     historial: (filters?: unknown) => ipcRenderer.invoke('caja:historial', filters),
+    reporteX: () => ipcRenderer.invoke('caja:reporte-x'),
+    backupAuto: () => ipcRenderer.invoke('caja:backup-auto'),
   },
 
   // Quotes / Cotizaciones
@@ -166,6 +170,8 @@ export interface PapeleriaAPI {
     lowStock: () => Promise<any[]>
     ajustar: (data: { producto_id: number; stock_nuevo: number; justificacion: string; usuario_id: number }) => Promise<any>
     ajustesHistorial: (data?: { producto_id?: number; limite?: number }) => Promise<any[]>
+    exportCsv: () => Promise<any>
+    importCsv: (filePath: string) => Promise<any>
   }
   proveedores: {
     list: () => Promise<any[]>
@@ -190,6 +196,8 @@ export interface PapeleriaAPI {
     cerrar: (data: unknown) => Promise<any>
     movimiento: (data: unknown) => Promise<any>
     historial: (filters?: unknown) => Promise<any>
+    reporteX: () => Promise<any>
+    backupAuto: () => Promise<any>
   }
   quotes: {
     list: (filters?: unknown) => Promise<any[]>

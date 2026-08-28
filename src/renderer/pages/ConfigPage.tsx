@@ -45,6 +45,10 @@ export default function ConfigPage() {
   const [terminalConnecting, setTerminalConnecting] = useState(false)
   const [terminalStatus, setTerminalStatus] = useState<any>(null)
 
+  // Config sistema
+  const [printerName, setPrinterName] = useState('')
+  const [fondoDefault, setFondoDefault] = useState('')
+
   useEffect(() => { loadData() }, [])
 
   const loadData = async () => {
@@ -77,6 +81,8 @@ export default function ConfigPage() {
       sales_tax_rate: get('sales_tax_rate'),
       currency_symbol: get('currency_symbol') || '$',
     })
+    setPrinterName(get('printer_name'))
+    setFondoDefault(get('fondo_inicial_default'))
   }
 
   const saveConfig = async () => {
@@ -85,6 +91,8 @@ export default function ConfigPage() {
       for (const [key, value] of Object.entries(form)) {
         await window.api.config.set(key, value)
       }
+      await window.api.config.set('printer_name', printerName)
+      await window.api.config.set('fondo_inicial_default', fondoDefault)
       toast.success('Configuración guardada exitosamente')
     } catch (err) {
       toast.error('Error al guardar configuración')
@@ -251,6 +259,29 @@ export default function ConfigPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                 placeholder="$" />
               <p className="text-xs text-gray-400 mt-1">Default: $ (USD)</p>
+            </div>
+          </div>
+
+          <h3 className="font-semibold text-gray-900 pt-4 border-t border-gray-100 flex items-center gap-2">
+            <Settings className="w-5 h-5 text-gray-600" /> Operación
+          </h3>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Impresora (nombre)</label>
+              <input value={printerName}
+                onChange={(e) => setPrinterName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                placeholder="Ej: Thermal Printer, default printer" />
+              <p className="text-xs text-gray-400 mt-1">Nombre de la impresora térmica (vacío = impresora default)</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Fondo Inicial Default</label>
+              <input type="number" step="0.01" min="0" value={fondoDefault}
+                onChange={(e) => setFondoDefault(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                placeholder="100.00" />
+              <p className="text-xs text-gray-400 mt-1">Monto sugerido al abrir caja (puede cambiarse)</p>
             </div>
           </div>
 

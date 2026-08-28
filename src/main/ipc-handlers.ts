@@ -34,6 +34,9 @@ export function registerIpcHandlers(): void {
   registerBackupHandlers()
   registerTerminalHandlers()
   registerLicenseHandlers()
+  registerProductosCsvHandlers()
+  registerCajaExtraHandlers()
+  registerAjustesHandlers()
 }
 
 // ============================================
@@ -1100,5 +1103,184 @@ function registerLicenseHandlers(): void {
 
   ipcMain.handle('license:import', async (_event, fileContent: string) => {
     return saveLicense(fileContent)
+  })
+}
+
+// ============================================
+// PRODUCTOS CSV (Import/Export)
+// ============================================
+
+function registerProductosCsvHandlers(): void {
+  ipcMain.handle('productos:export-csv', async () => {
+    try {
+      const result = await dialog.showSaveDialog({
+        title: 'Exportar Productos',
+        defaultPath: `productos-${new Date().toISOString().split('T')[0]}.csv`,
+        filters: [{ name: 'CSV', extensions: ['csv'] }],
+      })
+      if (result.canceled || !result.filePath) return { success: false, error: 'Cancelado' }
+
+      const db = getDatabase()
+      const productos = db.prepare(`
+        SELECT p.codigo_barras, p.sku, p.nombre, p.descripcion,
+               c.nombre as categoria, p.precio_compra, p.precio_venta,
+               p.stock, p.stock_minimo, p.unidad
+        FROM productos p
+        LEFT JOIN categorias c ON p.categoria_id = c.id
+        WHERE p.activo = 1
+        ORDER BY p.nombre
+      `).all() as any[]
+
+      const header = 'codigo_barras,sku,nombre,descripcion,categoria,precio_compra,precio_venta,stock,stock_minimo,unidad'
+      const rows = productos.map((p) => [
+        p.codigo_barras || '', p.sku || '', p.nombre, p.descripcion || '',
+        p.categoria || '', p.precio_compra, p.precio_venta,
+        p.stock, p.stock_minimo, p.unidad,
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+
+      fs.writeFileSync(result.filePath, [header, ...rows].join('\n'), 'utf8')
+      return { success: true, path: result.filePath, count: productos.length }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('productos:import-csv', async (_event, filePath: string) => {
+    try {
+      const content = fs.readFileSync(filePath, 'utf8')
+      const lines = content.split('\n').filter((l) => l.trim())
+      if (lines.length < 2) return { success: false, error: 'El archivo CSV está vacío o no tiene datos' }
+
+      const db = getDatabase()
+      const header = lines[0].toLowerCase()
+      const hasHeaders = header.includes('nombre') || header.includes('name')
+      const dataLines = hasHeaders ? lines.slice(1) : lines
+
+      let imported = 0
+      let skipped = 0
+
+      const importar = db.transaction(() => {
+        for (const line of dataLines) {
+          try {
+            const cols = line.split(',').map((c) => c.replace(/^"|"$/g, '').replace('""', '"').trim())
+            const nombre = cols[2] || cols[0] // nombre or first column
+            if (!nombre) { skipped++; continue }
+
+            // Check if product exists
+            const existing = db!.prepare('SELECT id FROM productos WHERE nombre = ?').get(nombre) as any
+            if (existing) { skipped++; continue }
+
+            db!.prepare(`
+              INSERT INTO productos (codigo_barras, sku, nombre, descripcion, categoria_id,
+                precio_compra, precio_venta, stock, stock_minimo, unidad)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(
+              cols[0] || null, cols[1] || null, nombre, cols[3] || null,
+              null, // categoria_id would need lookup
+              parseFloat(cols[5]) || 0, parseFloat(cols[6]) || 0,
+              parseInt(cols[7]) || 0, parseInt(cols[8]) || 5, cols[9] || 'Unit'
+            )
+            imported++
+          } catch { skipped++ }
+        }
+      })
+
+      importar()
+      return { success: true, imported, skipped, total: dataLines.length }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+}
+
+// ============================================
+// CAJA: BACKUP AUTOMÁTICO + REPORTE X
+// ============================================
+
+function registerCajaExtraHandlers(): void {
+  ipcMain.handle('caja:reporte-x', async () => {
+    try {
+      const db = getDatabase()
+      const caja = db.prepare("SELECT * FROM caja WHERE estado = 'abierta' LIMIT 1").get() as any
+      if (!caja) return { success: false, error: 'No hay caja abierta' }
+
+      const totalEsperado = caja.fondo_inicial + caja.total_entradas - caja.total_salidas + caja.total_ventas
+
+      // Ventas del día por método de pago
+      const ventasPorMetodo = db.prepare(`
+        SELECT metodo_pago, COUNT(*) as cantidad, SUM(total) as total
+        FROM ventas WHERE DATE(fecha) = DATE(?) AND estado = 'completada'
+        GROUP BY metodo_pago
+      `).all(caja.fecha_apertura) as any[]
+
+      // Últimas ventas
+      const ultimasVentas = db.prepare(`
+        SELECT v.numero_venta, v.total, v.metodo_pago, v.fecha, u.nombre as usuario_nombre
+        FROM ventas v LEFT JOIN usuarios u ON v.usuario_id = u.id
+        WHERE DATE(v.fecha) = DATE(?) AND v.estado = 'completada'
+        ORDER BY v.fecha DESC LIMIT 20
+      `).all(caja.fecha_apertura) as any[]
+
+      // Movimientos
+      const movimientos = db.prepare(`
+        SELECT tipo, monto, descripcion, fecha
+        FROM movimientos_caja WHERE caja_id = ?
+        ORDER BY fecha DESC
+      `).all(caja.id) as any[]
+
+      return {
+        success: true,
+        caja,
+        totalEsperado,
+        ventasPorMetodo,
+        ultimasVentas,
+        movimientos,
+      }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('caja:backup-auto', async () => {
+    try {
+      const dbPath = app.isPackaged
+        ? path.join(app.getPath('userData'), 'tog-admin.db')
+        : path.join(process.cwd(), 'data', 'tog-admin.db')
+      if (!fs.existsSync(dbPath)) return { success: false, error: 'DB no encontrada' }
+
+      const backupDir = app.isPackaged
+        ? path.join(app.getPath('userData'), 'backups')
+        : path.join(process.cwd(), 'data', 'backups')
+      if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true })
+
+      const filename = `tog-admin-backup-${new Date().toISOString().split('T')[0]}-${Date.now()}.db`
+      const backupPath = path.join(backupDir, filename)
+      fs.copyFileSync(dbPath, backupPath)
+      return { success: true, path: backupPath }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+}
+
+// ============================================
+// HISTORIAL DE AJUSTES
+// ============================================
+
+function registerAjustesHandlers(): void {
+  ipcMain.handle('ajustes:historial', async (_event, data?: { producto_id?: number; limite?: number }) => {
+    const db = getDatabase()
+    let sql = `
+      SELECT a.*, p.nombre as producto_nombre, u.nombre as usuario_nombre
+      FROM ajustes_inventario a
+      LEFT JOIN productos p ON a.producto_id = p.id
+      LEFT JOIN usuarios u ON a.usuario_id = u.id
+      WHERE 1=1
+    `
+    const params: any[] = []
+    if (data?.producto_id) { sql += ' AND a.producto_id = ?'; params.push(data.producto_id) }
+    sql += ' ORDER BY a.fecha DESC'
+    if (data?.limite) { sql += ` LIMIT ?`; params.push(data.limite) }
+    return db.prepare(sql).all(...params)
   })
 }
