@@ -2,7 +2,7 @@
  * Post-build script for Electron asar compatibility.
  * 1. Inlines CSS from <link> into <style> tag
  * 2. Removes crossorigin attributes
- * 3. Changes type="module" to type="text/javascript" (file:// doesn't support ES modules)
+ * 3. Changes type="module" to type="text/javascript"
  */
 const fs = require('fs')
 const path = require('path')
@@ -23,20 +23,20 @@ if (linkMatch) {
   }
 }
 
-// 2. Always fix script tags for Electron file:// protocol
+// 2. Fix script tags for Electron file:// protocol
 const original = html
 html = html
   .replace(/ crossorigin/g, '')
   .replace(/type="module"/g, 'type="text/javascript"')
 
 if (html !== original) {
-  console.log('[inline-css] Fixed script tags (removed crossorigin, changed module→text/javascript)')
+  console.log('[inline-css] Fixed script tags (removed crossorigin, changed module->text/javascript)')
   changed = true
 }
 
 if (changed) {
   fs.writeFileSync(htmlPath, html)
-  console.log(`[inline-css] Done → ${htmlPath}`)
+  console.log(`[inline-css] Done -> ${htmlPath}`)
 } else {
   console.log('[inline-css] No changes needed')
 }

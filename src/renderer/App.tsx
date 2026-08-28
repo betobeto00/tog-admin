@@ -1,23 +1,24 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './stores/auth.store'
+
+// Imports estáticos — sin lazy loading para compatibilidad con Electron file://
 import LoginPage from './pages/LoginPage'
 import Layout from './components/layout/Layout'
 import ForcePasswordChange from './components/ForcePasswordChange'
 import { ToastProvider } from './components/ui/Toast'
+import DashboardPage from './pages/DashboardPage'
+import POSPage from './pages/POSPage'
+import InventarioPage from './pages/InventarioPage'
+import VentasPage from './pages/VentasPage'
+import CajaPage from './pages/CajaPage'
+import ComprasPage from './pages/ComprasPage'
+import ProveedoresPage from './pages/ProveedoresPage'
+import ReportesPage from './pages/ReportesPage'
+import ConfigPage from './pages/ConfigPage'
+import QuotesPage from './pages/QuotesPage'
 
-// Lazy loading de páginas
-const DashboardPage = lazy(() => import('./pages/DashboardPage'))
-const POSPage = lazy(() => import('./pages/POSPage'))
-const InventarioPage = lazy(() => import('./pages/InventarioPage'))
-const VentasPage = lazy(() => import('./pages/VentasPage'))
-const CajaPage = lazy(() => import('./pages/CajaPage'))
-const ComprasPage = lazy(() => import('./pages/ComprasPage'))
-const ProveedoresPage = lazy(() => import('./pages/ProveedoresPage'))
-const ReportesPage = lazy(() => import('./pages/ReportesPage'))
-const ConfigPage = lazy(() => import('./pages/ConfigPage'))
-const QuotesPage = lazy(() => import('./pages/QuotesPage'))
-
+// Loading placeholder para Suspense (usado si hay lazy imports futuros)
 function PageLoader() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f9fafb' }}>

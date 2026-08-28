@@ -20,6 +20,8 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      webSecurity: true, // Habilitar web security para producción
+      allowRunningInsecureContent: false,
     },
     show: false,
   })
@@ -29,17 +31,42 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5173')
     mainWindow.webContents.openDevTools()
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../../dist/index.html'))
+    const htmlPath = path.join(__dirname, '../../dist/index.html')
+    console.log('[TOG Admin] Loading from:', htmlPath)
+    mainWindow.loadFile(htmlPath)
+    
+    // Diagnóstico: verificar que el archivo HTML existe
+    const fs = require('fs')
+    if (!fs.existsSync(htmlPath)) {
+      console.error('[TOG Admin] HTML file not found:', htmlPath)
+    } else {
+      console.log('[TOG Admin] HTML file exists, size:', fs.statSync(htmlPath).size)
+    }
   }
 
   // Título de la app
   mainWindow.setTitle('TOG Admin')
 
+  // Logging para diagnóstico de carga
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('[TOG Admin] Renderer finished loading')
+  })
+
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('[TOG Admin] Renderer failed to load:', errorCode, errorDescription)
+  })
+
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`[Renderer Console] [${level}] ${message}`)
+  })
+
   mainWindow.once('ready-to-show', () => {
+    console.log('[TOG Admin] Window ready to show')
     mainWindow?.show()
   })
 
   mainWindow.on('closed', () => {
+    console.log('[TOG Admin] Window closed')
     mainWindow = null
   })
 }
