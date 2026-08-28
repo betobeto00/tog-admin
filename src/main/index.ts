@@ -29,7 +29,7 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5173')
     mainWindow.webContents.openDevTools()
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
+    mainWindow.loadFile(path.join(__dirname, '../../dist/index.html'))
   }
 
   // Título de la app
@@ -37,12 +37,6 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show()
-  })
-
-  mainWindow.on('close', (e) => {
-    // Prevenir cierre accidental
-    e.preventDefault()
-    mainWindow?.hide()
   })
 
   mainWindow.on('closed', () => {
