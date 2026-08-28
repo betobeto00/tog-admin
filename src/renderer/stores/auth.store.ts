@@ -84,16 +84,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   clearError: () => set({ error: null }),
 }))
 
-// Restaurar sesión del localStorage al cargar
-const savedUser = localStorage.getItem('tog_user')
-if (savedUser) {
-  try {
-    const usuario = JSON.parse(savedUser)
-    useAuthStore.setState({ usuario, isAuthenticated: true })
-  } catch {
-    localStorage.removeItem('tog_user')
-  }
-}
+// NO restaurar sesión — siempre pedir login
+localStorage.removeItem('tog_user')
 
 // ============================================
 // SESSION TIMEOUT (30 minutos de inactividad)
