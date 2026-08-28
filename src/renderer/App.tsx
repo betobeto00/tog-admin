@@ -17,6 +17,7 @@ import ProveedoresPage from './pages/ProveedoresPage'
 import ReportesPage from './pages/ReportesPage'
 import ConfigPage from './pages/ConfigPage'
 import QuotesPage from './pages/QuotesPage'
+import HelpPage from './pages/HelpPage'
 import Tutorial, { hasTutorialCompleted } from './components/Tutorial'
 
 // Loading placeholder para Suspense (usado si hay lazy imports futuros)
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="reportes" element={<ReportesPage />} />
           <Route path="cotizaciones" element={<QuotesPage />} />
           <Route path="configuracion" element={<ConfigPage />} />
+          <Route path="ayuda" element={<HelpPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

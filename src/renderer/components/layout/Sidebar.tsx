@@ -12,6 +12,7 @@ import {
   FileText,
   Settings,
   LogOut,
+  HelpCircle,
 } from 'lucide-react'
 
 const menuItems = [
@@ -25,6 +26,7 @@ const menuItems = [
   { to: '/cotizaciones', icon: FileText, label: 'Quotes' },
   { to: '/reportes', icon: BarChart3, label: 'Reportes' },
   { to: '/configuracion', icon: Settings, label: 'Settings' },
+  { to: '/ayuda', icon: HelpCircle, label: 'Ayuda' },
 ]
 
 export default function Sidebar() {
