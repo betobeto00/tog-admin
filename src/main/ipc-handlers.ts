@@ -13,6 +13,7 @@ import {
   quoteCreateSchema,
 } from '../shared/validations'
 import { getTerminalService } from './services/valorTerminal'
+import { validateLicense, getLicenseStatus, saveLicense } from './services/license'
 
 /**
  * Registra todos los handlers IPC del sistema.
@@ -32,6 +33,7 @@ export function registerIpcHandlers(): void {
   registerConfigHandlers()
   registerBackupHandlers()
   registerTerminalHandlers()
+  registerLicenseHandlers()
 }
 
 // ============================================
@@ -1080,5 +1082,23 @@ function registerTerminalHandlers(): void {
     } catch (err: any) {
       return { success: false, error: err.message }
     }
+  })
+}
+
+// ============================================
+// LICENCIA
+// ============================================
+
+function registerLicenseHandlers(): void {
+  ipcMain.handle('license:status', async () => {
+    return getLicenseStatus()
+  })
+
+  ipcMain.handle('license:validate', async () => {
+    return validateLicense()
+  })
+
+  ipcMain.handle('license:import', async (_event, fileContent: string) => {
+    return saveLicense(fileContent)
   })
 }

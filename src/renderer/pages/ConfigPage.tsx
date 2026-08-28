@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Settings, Store, CreditCard, Users, Plus, Edit2, Trash2,
-  Save, Eye, EyeOff, Shield, User, Download, Upload, GraduationCap
+  Save, Eye, EyeOff, Shield, User, Download, Upload, GraduationCap, Key, Clock
 } from 'lucide-react'
 import { resetTutorial } from '../components/Tutorial'
 import { useToast } from '../components/ui/Toast'
@@ -33,6 +33,10 @@ export default function ConfigPage() {
   const [tab, setTab] = useState<'negocio' | 'usuarios' | 'sistema'>('negocio')
   const [backupLoading, setBackupLoading] = useState(false)
 
+  // Licencia
+  const [licenseStatus, setLicenseStatus] = useState<any>(null)
+  const [licenseLoading, setLicenseLoading] = useState(true)
+
   useEffect(() => { loadData() }, [])
 
   const loadData = async () => {
@@ -42,6 +46,12 @@ export default function ConfigPage() {
     ])
     setConfig(cfg)
     setUsuarios(users)
+    // Cargar licencia
+    try {
+      const ls = await window.api.license.status()
+      setLicenseStatus(ls)
+    } catch {}
+    setLicenseLoading(false)
     // Llenar form con config actual
     const get = (key: string) => cfg.find((c: Config) => c.clave === key)?.valor || ''
     setForm({
@@ -444,6 +454,94 @@ export default function ConfigPage() {
             >
               <GraduationCap className="w-4 h-4" /> Reiniciar Tutorial
             </button>
+          </div>
+
+          {/* Licencia */}
+          <div className="bg-green-50 rounded-xl p-5 border border-green-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Key className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">Licencia del Software</h4>
+                <p className="text-xs text-gray-500">Estado y gestión de la licencia</p>
+              </div>
+            </div>
+
+            {licenseLoading ? (
+              <p className="text-sm text-gray-500">Cargando...</p>
+            ) : licenseStatus ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500">Estado:</span>
+                    <span className={`font-semibold px-2 py-0.5 rounded-full text-xs ${
+                      licenseStatus.valid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {licenseStatus.valid ? '✅ Válida' : '❌ No válida'}
+                    </span>
+                  </div>
+                  {licenseStatus.cliente && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">Cliente:</span>
+                      <span className="font-medium">{licenseStatus.cliente}</span>
+                    </div>
+                  )}
+                  {licenseStatus.expira && (
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-gray-400" />
+                      <span className="text-gray-500">Expira:</span>
+                      <span className="font-medium">{licenseStatus.expira}</span>
+                    </div>
+                  )}
+                  {licenseStatus.diasRestantes !== null && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">Días restantes:</span>
+                      <span className={`font-semibold ${
+                        licenseStatus.diasRestantes <= 30 ? 'text-orange-600' : 'text-green-600'
+                      }`}>
+                        {licenseStatus.diasRestantes} días
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {licenseStatus.error && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-600">
+                    {licenseStatus.error}
+                  </div>
+                )}
+                <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500">
+                  <p><strong>ID de máquina:</strong> <span className="font-mono">{licenseStatus.machineId}</span></p>
+                  <p className="mt-1">Envía este ID al administrador para generar o renovar tu licencia.</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    const input = document.createElement('input')
+                    input.type = 'file'
+                    input.accept = '.key,.json'
+                    input.onchange = async (e: any) => {
+                      const file = e.target.files[0]
+                      if (!file) return
+                      const content = await file.text()
+                      const result = await window.api.license.import(content)
+                      if (result.success) {
+                        toast.success('Licencia importada exitosamente')
+                        const ls = await window.api.license.status()
+                        setLicenseStatus(ls)
+                      } else {
+                        toast.error(result.error || 'Error importando licencia')
+                      }
+                    }
+                    input.click()
+                  }}
+                  className="px-4 py-2.5 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4" /> Importar Nueva Licencia
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No se pudo cargar el estado de la licencia.</p>
+            )}
           </div>
         </div>
       )}

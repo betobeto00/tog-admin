@@ -123,6 +123,13 @@ contextBridge.exposeInMainWorld('api', {
     get: () => ipcRenderer.invoke('config:get'),
     set: (clave: string, valor: string) => ipcRenderer.invoke('config:set', { clave, valor }),
   },
+
+  // Licencia
+  license: {
+    status: () => ipcRenderer.invoke('license:status'),
+    validate: () => ipcRenderer.invoke('license:validate'),
+    import: (fileContent: string) => ipcRenderer.invoke('license:import', fileContent),
+  },
 })
 
 // Declarar tipo global para window.api
@@ -157,6 +164,8 @@ export interface PapeleriaAPI {
     update: (id: number, data: unknown) => Promise<any>
     delete: (id: number) => Promise<any>
     lowStock: () => Promise<any[]>
+    ajustar: (data: { producto_id: number; stock_nuevo: number; justificacion: string; usuario_id: number }) => Promise<any>
+    ajustesHistorial: (data?: { producto_id?: number; limite?: number }) => Promise<any[]>
   }
   proveedores: {
     list: () => Promise<any[]>
@@ -192,14 +201,26 @@ export interface PapeleriaAPI {
   reportes: {
     ventasPeriodo: (inicio: string, fin: string) => Promise<any>
     productosMasVendidos: (inicio: string, fin: string, limite?: number) => Promise<any>
+    ultimasVentas: (limite?: number) => Promise<any[]>
   }
   backup: {
     create: (ruta?: string) => Promise<any>
     restore: (ruta: string) => Promise<any>
   }
+  terminal: {
+    conectar: (puerto: string, baudRate?: number) => Promise<any>
+    desconectar: () => Promise<any>
+    estado: () => Promise<any>
+    procesarPago: (monto: number, timeoutMs?: number) => Promise<any>
+  }
   config: {
     get: () => Promise<any[]>
     set: (clave: string, valor: string) => Promise<any>
+  }
+  license: {
+    status: () => Promise<any>
+    validate: () => Promise<any>
+    import: (fileContent: string) => Promise<any>
   }
 }
 
