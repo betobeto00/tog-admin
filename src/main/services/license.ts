@@ -24,13 +24,13 @@ interface LicenseValidation {
 // Public key embebida en la app (generada con generate-keys.js)
 // Esta key se integra en el código fuente y viaja con el .exe
 const PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvLpYWuYa/19ucYkbd2ZU
-yamD7y6eRsyn/1H5ewSAUXRK1PwZG/ZonQp7g6OQNWPijUyycLMAGdgEwLk9y8Hm
-fFn32V6OOx8BKhesW0A7ebraDum0u1zIEI/T5wrcBRZN6Ftp8qb7dslsy8TIXfR9
-RuQkaoV5ZyNql9wGHy9mq7k0mtKOeychGJ3SYgx5XYRN2IBl+l2WRtiIT9HyiT1l
-TZgM3e+6er64QOp45zPjpG1BIlATMWb0g0hN+gSw+8OhoSwAX4TYHJ1PvWu/w8PL
-zfO3K5YAc9huXuL5524I214FJug1yQHgdqooPWDZ7oZNzgHPZhBhzHnV+Ok7ZDMJ
-mQIDAQAB
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA39zIsIGhsA5K+BgIT03C
+l96QmwXiDykF5KXj7vmMqXwE6am9bPbcAKBC+pBRdiGHreo+ND8Bpjt0MOSCC5pJ
+RLIwU9VreGvyMoD+gFoLiIVWbYNUaxG57RvCOjDfwKhz0cGUmy7ahe2YY/gsGK8J
+p2lpCrKA9hf7VoevShjyKCpGYYBYPAWdWZ6scebodH9KDEMpk9fV4V9mjjD44Ouz
+7pXWCKBNYEUQa02FcnhX5ff+W9GSdvfzT3ID8wayKac93IP8nOczY9nSirOC+0TJ
+DvZrxqLgZP9h4uAeYeZAlUn4SbtDahbJfA2tolW6punhkKZSXgtsMw5tIeYzqPl1
+TQIDAQAB
 -----END PUBLIC KEY-----`
 
 // Ruta del archivo de licencia
