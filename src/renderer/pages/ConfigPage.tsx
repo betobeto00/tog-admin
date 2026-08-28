@@ -292,7 +292,7 @@ export default function ConfigPage() {
           </div>
 
           <div className="flex justify-end pt-4 border-t border-gray-100">
-            <button onClick={saveConfig} disabled={saving}
+            <button onClick={saveConfig} disabled={saving || !form.nombre_negocio.trim()}
               className="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 flex items-center gap-2">
               <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Settings'}
             </button>
