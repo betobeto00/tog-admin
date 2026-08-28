@@ -1,0 +1,69 @@
+{
+  "name": "tog-admin",
+  "version": "1.0.0",
+  "description": "TOG Admin - Sistema de Punto de Venta para Papelería, Centro de Copiado e Impresión",
+  "main": "dist-electron/main/index.js",
+  "author": "Bet00 Nardieu",
+  "license": "MIT",
+  "scripts": {
+    "dev": "npm run build:main && concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "build:renderer": "vite build",
+    "build:main": "tsc -p tsconfig.main.json",
+    "rebuild": "electron-rebuild --force",
+    "build:win": "npm run rebuild && npm run build:renderer && npm run build:main && electron-builder --win --dir",
+    "build:installer": "build.bat",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "tsx src/main/db/migrate.ts"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.6.0",
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.0.0",
+    "clsx": "^2.1.0",
+    "date-fns": "^3.6.0",
+    "lucide-react": "^0.378.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-hook-form": "^7.51.0",
+    "react-router-dom": "^6.23.0",
+    "recharts": "^3.10.1",
+    "tailwind-merge": "^2.3.0",
+    "zod": "^3.23.0",
+    "zustand": "^4.5.0"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.2.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/better-sqlite3": "^7.6.9",
+    "@types/node": "^20.12.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.19",
+    "concurrently": "^8.2.0",
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.0",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.0",
+    "tsx": "^4.11.0",
+    "typescript": "5.4",
+    "vite": "^5.2.0",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.tog.admin",
+    "productName": "TOG Admin",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist-electron/**/*",
+      "dist/**/*"
+    ],
+    "win": {
+      "target": "dir",
+      "icon": "resources/icon.ico"
+    }
+  }
+}

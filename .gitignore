@@ -1,0 +1,17 @@
+node_modules/
+dist/
+dist-electron/
+dist-win/
+release/
+data/
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.local
+*.log
+.DS_Store
+Thumbs.db
+
+# Private files
+Chat privado*
