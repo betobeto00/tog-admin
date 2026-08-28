@@ -94,3 +94,47 @@ if (savedUser) {
     localStorage.removeItem('tog_user')
   }
 }
+
+// ============================================
+// SESSION TIMEOUT (30 minutos de inactividad)
+// ============================================
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000 // 30 minutos
+let sessionTimer: ReturnType<typeof setTimeout> | null = null
+
+function resetSessionTimer() {
+  if (sessionTimer) clearTimeout(sessionTimer)
+  sessionTimer = setTimeout(() => {
+    const state = useAuthStore.getState()
+    if (state.isAuthenticated) {
+      state.logout()
+      // Recargar para mostrar login
+      window.location.reload()
+    }
+  }, SESSION_TIMEOUT_MS)
+}
+
+// Escuchar actividad del usuario para resetear timer
+const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart']
+function setupSessionTimeout() {
+  activityEvents.forEach((event) => {
+    window.addEventListener(event, resetSessionTimer, { passive: true })
+  })
+  resetSessionTimer()
+}
+
+// Iniciar timeout si hay sesión activa
+if (useAuthStore.getState().isAuthenticated) {
+  setupSessionTimeout()
+}
+
+// Reiniciar timer cuando se inicie sesión
+useAuthStore.subscribe((state, prevState) => {
+  if (state.isAuthenticated && !prevState.isAuthenticated) {
+    setupSessionTimeout()
+  } else if (!state.isAuthenticated && prevState.isAuthenticated) {
+    if (sessionTimer) clearTimeout(sessionTimer)
+    activityEvents.forEach((event) => {
+      window.removeEventListener(event, resetSessionTimer)
+    })
+  }
+})

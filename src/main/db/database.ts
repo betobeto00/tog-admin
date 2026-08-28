@@ -342,6 +342,24 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
         ALTER TABLE usuarios ADD COLUMN debe_cambiar_contrasena INTEGER NOT NULL DEFAULT 0;
       `,
     },
+    {
+      nombre: '012_ajustes_inventario',
+      sql: `
+        CREATE TABLE IF NOT EXISTS ajustes_inventario (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          producto_id INTEGER NOT NULL REFERENCES productos(id),
+          usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+          stock_anterior INTEGER NOT NULL,
+          stock_nuevo INTEGER NOT NULL,
+          diferencia INTEGER NOT NULL,
+          justificacion TEXT NOT NULL,
+          fecha TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_ajustes_producto ON ajustes_inventario(producto_id);
+        CREATE INDEX IF NOT EXISTS idx_ajustes_fecha ON ajustes_inventario(fecha);
+      `,
+    },
   ]
 }
 

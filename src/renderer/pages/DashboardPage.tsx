@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '../stores/auth.store'
-import { formatCurrency } from '../lib/utils'
+import { formatCurrency, formatDateTime, formatTicketNumber } from '../lib/utils'
 import {
   ShoppingCart,
   DollarSign,
@@ -26,10 +26,16 @@ interface StockBajo {
   categoria_nombre: string | null
 }
 
+interface VentaReciente {
+  id: number; numero_venta: number; fecha: string
+  total: number; metodo_pago: string; usuario_nombre: string
+}
+
 export default function DashboardPage() {
   const usuario = useAuthStore((s) => s.usuario)
   const [resumen, setResumen] = useState<ResumenDia | null>(null)
   const [stockBajo, setStockBajo] = useState<StockBajo[]>([])
+  const [ultimasVentas, setUltimasVentas] = useState<VentaReciente[]>([])
   const [hora, setHora] = useState(new Date())
 
   useEffect(() => {
@@ -40,12 +46,14 @@ export default function DashboardPage() {
 
   const cargarDatos = async () => {
     try {
-      const [resumenData, stockData] = await Promise.all([
+      const [resumenData, stockData, ventasRecientes] = await Promise.all([
         window.api.ventas.resumenDia(),
         window.api.productos.lowStock(),
+        window.api.reportes.ultimasVentas(10),
       ])
       setResumen(resumenData)
       setStockBajo(stockData)
+      setUltimasVentas(ventasRecientes)
     } catch (err) {
       console.error('Error cargando dashboard:', err)
     }
@@ -140,6 +148,37 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Últimas ventas */}
+      {ultimasVentas.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">📋 Últimas Ventas</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-500 border-b border-gray-100">
+                  <th className="pb-2 font-medium">Ticket</th>
+                  <th className="pb-2 font-medium">Hora</th>
+                  <th className="pb-2 font-medium">Cajero</th>
+                  <th className="pb-2 font-medium">Método</th>
+                  <th className="pb-2 font-medium text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ultimasVentas.map((v) => (
+                  <tr key={v.id} className="border-b border-gray-50 hover:bg-gray-50">
+                    <td className="py-2 font-mono font-medium">{formatTicketNumber(v.numero_venta)}</td>
+                    <td className="py-2 text-gray-500">{formatDateTime(v.fecha)}</td>
+                    <td className="py-2 text-gray-600">{v.usuario_nombre}</td>
+                    <td className="py-2 text-gray-600 capitalize">{v.metodo_pago.replace('_', ' ')}</td>
+                    <td className="py-2 text-right font-bold">{formatCurrency(v.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

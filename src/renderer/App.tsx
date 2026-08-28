@@ -1,19 +1,30 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './stores/auth.store'
 import LoginPage from './pages/LoginPage'
-import DashboardPage from './pages/DashboardPage'
-import POSPage from './pages/POSPage'
-import InventarioPage from './pages/InventarioPage'
-import VentasPage from './pages/VentasPage'
-import CajaPage from './pages/CajaPage'
-import ComprasPage from './pages/ComprasPage'
-import ProveedoresPage from './pages/ProveedoresPage'
-import ReportesPage from './pages/ReportesPage'
-import ConfigPage from './pages/ConfigPage'
-import QuotesPage from './pages/QuotesPage'
 import Layout from './components/layout/Layout'
 import ForcePasswordChange from './components/ForcePasswordChange'
 import { ToastProvider } from './components/ui/Toast'
+
+// Lazy loading de páginas
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const POSPage = lazy(() => import('./pages/POSPage'))
+const InventarioPage = lazy(() => import('./pages/InventarioPage'))
+const VentasPage = lazy(() => import('./pages/VentasPage'))
+const CajaPage = lazy(() => import('./pages/CajaPage'))
+const ComprasPage = lazy(() => import('./pages/ComprasPage'))
+const ProveedoresPage = lazy(() => import('./pages/ProveedoresPage'))
+const ReportesPage = lazy(() => import('./pages/ReportesPage'))
+const ConfigPage = lazy(() => import('./pages/ConfigPage'))
+const QuotesPage = lazy(() => import('./pages/QuotesPage'))
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+    </div>
+  )
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -31,6 +42,7 @@ export default function App() {
     <ToastProvider>
     <BrowserRouter>
       {mustChangePassword && <ForcePasswordChange />}
+      <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route
           path="/login"
@@ -57,6 +69,7 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
     </BrowserRouter>
     </ToastProvider>
   )

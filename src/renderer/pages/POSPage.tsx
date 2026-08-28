@@ -6,6 +6,7 @@ import {
   Package, AlertTriangle
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
+import CartItem from '../components/pos/CartItem'
 import { formatCurrency, formatTicketNumber } from '../lib/utils'
 import { useToast } from '../components/ui/Toast'
 
@@ -18,6 +19,7 @@ interface Producto {
 interface CartItem {
   producto_id: number; nombre: string; precio_unitario: number
   cantidad: number; stock: number; unidad: string
+  descuento: number  // descuento por item (0-100 %)
 }
 
 type MetodoPago = 'efectivo' | 'transferencia' | 'pago_movil' | 'mixto'
@@ -30,6 +32,9 @@ export default function POSPage() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [focusSearch, setFocusSearch] = useState(true)
   const searchRef = useRef<HTMLInputElement>(null)
+
+  // Descuento global
+  const [descuentoGlobal, setDescuentoGlobal] = useState(0)  // % global
 
   // Cobro
   const [cobrarOpen, setCobrarOpen] = useState(false)
@@ -66,7 +71,11 @@ export default function POSPage() {
   }, [search, productos])
 
   // Totales
-  const subtotal = cart.reduce((acc, item) => acc + item.precio_unitario * item.cantidad, 0)
+  const subtotalBruto = cart.reduce((acc, item) => acc + item.precio_unitario * item.cantidad, 0)
+  const descuentoItems = cart.reduce((acc, item) => acc + (item.precio_unitario * item.cantidad * item.descuento / 100), 0)
+  const subtotal = subtotalBruto - descuentoItems
+  const descuentoGlobalMonto = subtotal * descuentoGlobal / 100
+  const subtotalConGlobal = subtotal - descuentoGlobalMonto
   const [taxRate, setTaxRate] = useState(0)
   useEffect(() => {
     window.api.config.get().then((cfg: any[]) => {
@@ -74,8 +83,8 @@ export default function POSPage() {
       if (rate) setTaxRate(parseFloat(rate.valor) / 100)
     })
   }, [])
-  const impuesto = subtotal * taxRate
-  const total = subtotal + impuesto
+  const impuesto = subtotalConGlobal * taxRate
+  const total = subtotalConGlobal + impuesto
   const cambio = metodoPago === 'efectivo' && montoPagado
     ? Math.max(0, parseFloat(montoPagado) - total)
     : 0
@@ -98,6 +107,7 @@ export default function POSPage() {
         cantidad: 1,
         stock: producto.stock,
         unidad: producto.unidad,
+        descuento: 0,
       }]
     })
     setSearch('')
@@ -112,6 +122,12 @@ export default function POSPage() {
       if (newQty > i.stock && i.unidad !== 'servicio') return i
       return { ...i, cantidad: newQty }
     }))
+  }
+
+  const updateItemDiscount = (productoId: number, descuento: number) => {
+    setCart((prev) => prev.map((i) =>
+      i.producto_id === productoId ? { ...i, descuento: Math.min(100, Math.max(0, descuento)) } : i
+    ))
   }
 
   const removeFromCart = (productoId: number) => {
@@ -136,20 +152,23 @@ export default function POSPage() {
     try {
       const result = await window.api.ventas.create({
         usuario_id: usuario!.id,
-        subtotal,
+        subtotal: subtotalConGlobal,
         impuesto,
-        descuento: 0,
+        descuento: descuentoItems + descuentoGlobalMonto,
         total,
         metodo_pago: metodoPago,
         monto_pagado: metodoPago === 'efectivo' ? parseFloat(montoPagado) : total,
         cambio: metodoPago === 'efectivo' ? cambio : 0,
-        detalles: cart.map((item) => ({
-          producto_id: item.producto_id,
-          cantidad: item.cantidad,
-          precio_unitario: item.precio_unitario,
-          descuento: 0,
-          subtotal: item.precio_unitario * item.cantidad,
-        })),
+        detalles: cart.map((item) => {
+          const itemDiscount = item.precio_unitario * item.cantidad * item.descuento / 100
+          return {
+            producto_id: item.producto_id,
+            cantidad: item.cantidad,
+            precio_unitario: item.precio_unitario,
+            descuento: itemDiscount,
+            subtotal: item.precio_unitario * item.cantidad - itemDiscount,
+          }
+        }),
       })
 
       if (result && !result.success && result.error) {
@@ -282,34 +301,13 @@ export default function POSPage() {
             </div>
           ) : (
             cart.map((item) => (
-              <div key={item.producto_id} className="bg-gray-50 rounded-lg p-3">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{item.nombre}</p>
-                    <p className="text-xs text-gray-500">{formatCurrency(item.precio_unitario)} c/u</p>
-                  </div>
-                  <button onClick={() => removeFromCart(item.producto_id)}
-                    className="p-1 hover:bg-red-100 rounded-lg ml-2">
-                    <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                  </button>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => updateQuantity(item.producto_id, -1)}
-                      className="w-7 h-7 flex items-center justify-center bg-white border border-gray-200 rounded-lg hover:bg-gray-100">
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
-                    <span className="w-8 text-center text-sm font-medium">{item.cantidad}</span>
-                    <button onClick={() => updateQuantity(item.producto_id, 1)}
-                      className="w-7 h-7 flex items-center justify-center bg-white border border-gray-200 rounded-lg hover:bg-gray-100">
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <span className="text-sm font-bold text-gray-900">
-                    {formatCurrency(item.precio_unitario * item.cantidad)}
-                  </span>
-                </div>
-              </div>
+              <CartItem
+                key={item.producto_id}
+                item={item}
+                onUpdateQuantity={updateQuantity}
+                onUpdateDiscount={updateItemDiscount}
+                onRemove={removeFromCart}
+              />
             ))
           )}
         </div>
@@ -319,7 +317,35 @@ export default function POSPage() {
           <div className="space-y-1.5 text-sm">
             <div className="flex justify-between text-gray-600">
               <span>Subtotal</span>
-              <span>{formatCurrency(subtotal)}</span>
+              <span>{formatCurrency(subtotalBruto)}</span>
+            </div>
+            {descuentoItems > 0 && (
+              <div className="flex justify-between text-red-500">
+                <span>Dcto. items</span>
+                <span>-{formatCurrency(descuentoItems)}</span>
+              </div>
+            )}
+            {/* Descuento global */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1">
+                <span className="text-gray-600">Dcto. global:</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={descuentoGlobal}
+                  onChange={(e) => setDescuentoGlobal(Math.min(100, Math.max(0, Number(e.target.value))))}
+                  className="w-14 text-center text-xs border border-gray-200 rounded px-1 py-0.5"
+                />
+                <span className="text-xs text-gray-400">%</span>
+              </div>
+              {descuentoGlobalMonto > 0 && (
+                <span className="text-red-500">-{formatCurrency(descuentoGlobalMonto)}</span>
+              )}
+            </div>
+            <div className="flex justify-between text-gray-600">
+              <span>Subtotal neto</span>
+              <span>{formatCurrency(subtotalConGlobal)}</span>
             </div>
             <div className="flex justify-between text-gray-600">
               <span>Tax ({(taxRate * 100).toFixed(1)}%)</span>
@@ -407,7 +433,10 @@ export default function POSPage() {
           {/* Resumen */}
           <div className="bg-gray-50 rounded-xl p-3 text-sm space-y-1">
             <div className="flex justify-between"><span className="text-gray-500">Items</span><span>{cart.length}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>{formatCurrency(subtotalBruto)}</span></div>
+            {(descuentoItems + descuentoGlobalMonto) > 0 && (
+              <div className="flex justify-between text-red-500"><span>Descuento</span><span>-{formatCurrency(descuentoItems + descuentoGlobalMonto)}</span></div>
+            )}
             <div className="flex justify-between"><span className="text-gray-500">Sales Tax</span><span>{formatCurrency(impuesto)}</span></div>
             <div className="flex justify-between font-bold pt-1 border-t border-gray-200"><span>Total</span><span>{formatCurrency(total)}</span></div>
           </div>
@@ -463,7 +492,10 @@ export default function POSPage() {
                 ))}
               </div>
               <div className="border-t border-dashed border-gray-200 pt-2 space-y-1">
-                <div className="flex justify-between"><span>Subtotal:</span><span>{formatCurrency(subtotal)}</span></div>
+                <div className="flex justify-between"><span>Subtotal:</span><span>{formatCurrency(subtotalBruto)}</span></div>
+                {(descuentoItems + descuentoGlobalMonto) > 0 && (
+                  <div className="flex justify-between text-red-500"><span>Descuento:</span><span>-{formatCurrency(descuentoItems + descuentoGlobalMonto)}</span></div>
+                )}
                 <div className="flex justify-between"><span>Tax:</span><span>{formatCurrency(impuesto)}</span></div>
                 <div className="flex justify-between font-bold text-sm"><span>TOTAL:</span><span>{formatCurrency(ultimoTicket.total)}</span></div>
               </div>

@@ -4,6 +4,15 @@ import fs from 'fs'
 import path from 'path'
 import { app } from 'electron'
 import { getDatabase, closeDatabase, initializeDatabase } from './db/database'
+import {
+  productoCreateSchema, productoUpdateSchema,
+  ventaCreateSchema, compraCreateSchema,
+  categoriaCreateSchema, proveedorCreateSchema,
+  usuarioCreateSchema,
+  cajaAbrirSchema, cajaCerrarSchema, movimientoCajaSchema,
+  quoteCreateSchema,
+} from '../shared/validations'
+import { getTerminalService } from './services/valorTerminal'
 
 /**
  * Registra todos los handlers IPC del sistema.
@@ -22,26 +31,48 @@ export function registerIpcHandlers(): void {
   registerReportesHandlers()
   registerConfigHandlers()
   registerBackupHandlers()
+  registerTerminalHandlers()
 }
 
 // ============================================
 // AUTH
 // ============================================
 
+// Rate limiting para login
+const MAX_LOGIN_ATTEMPTS = 5
+const LOGIN_LOCKOUT_MS = 15 * 60 * 1000 // 15 minutos
+const loginAttempts = new Map<string, { count: number; lastAttempt: number }>()
+
 function registerAuthHandlers(): void {
   ipcMain.handle('auth:login', async (_event, data: { usuario: string; contrasena: string }) => {
     try {
+      // Rate limiting
+      const attempts = loginAttempts.get(data.usuario)
+      if (attempts && attempts.count >= MAX_LOGIN_ATTEMPTS && Date.now() - attempts.lastAttempt < LOGIN_LOCKOUT_MS) {
+        const remaining = Math.ceil((LOGIN_LOCKOUT_MS - (Date.now() - attempts.lastAttempt)) / 60000)
+        return { success: false, error: `Demasiados intentos fallidos. Intenta de nuevo en ${remaining} minutos.` }
+      }
+
       const db = getDatabase()
       const user = db.prepare('SELECT * FROM usuarios WHERE usuario = ? AND activo = 1').get(data.usuario) as any
 
       if (!user) {
+        // Registrar intento fallido
+        const prev = loginAttempts.get(data.usuario) || { count: 0, lastAttempt: 0 }
+        loginAttempts.set(data.usuario, { count: prev.count + 1, lastAttempt: Date.now() })
         return { success: false, error: 'Usuario no encontrado' }
       }
 
       const validPassword = bcrypt.compareSync(data.contrasena, user.contrasena)
       if (!validPassword) {
+        // Registrar intento fallido
+        const prev = loginAttempts.get(data.usuario) || { count: 0, lastAttempt: 0 }
+        loginAttempts.set(data.usuario, { count: prev.count + 1, lastAttempt: Date.now() })
         return { success: false, error: 'Contraseña incorrecta' }
       }
+
+      // Login exitoso: limpiar intentos
+      loginAttempts.delete(data.usuario)
 
       // No enviar la contraseña al renderer
       const { contrasena: _, ...usuario } = user
@@ -227,6 +258,10 @@ function registerProductosHandlers(): void {
   })
 
   ipcMain.handle('productos:create', async (_event, data: any) => {
+    const parsed = productoCreateSchema.safeParse(data)
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.errors[0].message }
+    }
     const db = getDatabase()
     const result = db.prepare(`
       INSERT INTO productos (codigo_barras, sku, nombre, descripcion, categoria_id,
@@ -288,6 +323,46 @@ function registerProductosHandlers(): void {
       WHERE p.activo = 1 AND p.stock <= p.stock_minimo
       ORDER BY p.stock ASC
     `).all()
+  })
+
+  ipcMain.handle('productos:ajustar', async (_event, data: { producto_id: number; stock_nuevo: number; justificacion: string; usuario_id: number }) => {
+    const db = getDatabase()
+    const ajustar = db.transaction(() => {
+      const producto = db!.prepare('SELECT id, nombre, stock FROM productos WHERE id = ?').get(data.producto_id) as any
+      if (!producto) return { success: false, error: 'Producto no encontrado' }
+      if (!data.justificacion.trim()) return { success: false, error: 'La justificación es obligatoria' }
+
+      const stockAnterior = producto.stock
+      const diferencia = data.stock_nuevo - stockAnterior
+
+      // Actualizar stock
+      db!.prepare('UPDATE productos SET stock = ?, actualizado_en = datetime(\'now\') WHERE id = ?').run(data.stock_nuevo, data.producto_id)
+
+      // Registrar ajuste
+      db!.prepare(`
+        INSERT INTO ajustes_inventario (producto_id, usuario_id, stock_anterior, stock_nuevo, diferencia, justificacion)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(data.producto_id, data.usuario_id, stockAnterior, data.stock_nuevo, diferencia, data.justificacion)
+
+      return { success: true, stock_anterior: stockAnterior, stock_nuevo: data.stock_nuevo, diferencia }
+    })
+    return ajustar()
+  })
+
+  ipcMain.handle('productos:ajustes-historial', async (_event, data?: { producto_id?: number; limite?: number }) => {
+    const db = getDatabase()
+    let sql = `
+      SELECT a.*, p.nombre as producto_nombre, u.nombre as usuario_nombre
+      FROM ajustes_inventario a
+      LEFT JOIN productos p ON a.producto_id = p.id
+      LEFT JOIN usuarios u ON a.usuario_id = u.id
+      WHERE 1=1
+    `
+    const params: any[] = []
+    if (data?.producto_id) { sql += ' AND a.producto_id = ?'; params.push(data.producto_id) }
+    sql += ' ORDER BY a.fecha DESC'
+    if (data?.limite) { sql += ` LIMIT ?`; params.push(data.limite) }
+    return db.prepare(sql).all(...params)
   })
 }
 
@@ -379,6 +454,11 @@ function registerVentasHandlers(): void {
   })
 
   ipcMain.handle('ventas:create', async (_event, data: any) => {
+    const parsed = ventaCreateSchema.safeParse(data)
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.errors[0].message }
+    }
+
     const db = getDatabase()
 
     // Validación de stock antes de procesar la venta
@@ -542,6 +622,11 @@ function registerComprasHandlers(): void {
   })
 
   ipcMain.handle('compras:create', async (_event, data: any) => {
+    const parsed = compraCreateSchema.safeParse(data)
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.errors[0].message }
+    }
+
     const db = getDatabase()
 
     const createCompra = db.transaction(() => {
@@ -808,6 +893,19 @@ function registerReportesHandlers(): void {
       LIMIT ?
     `).all(data.fecha_inicio, data.fecha_fin, limite)
   })
+
+  ipcMain.handle('reportes:ultimas-ventas', async (_event, data?: { limite?: number }) => {
+    const db = getDatabase()
+    const limite = data?.limite || 10
+    return db.prepare(`
+      SELECT v.*, u.nombre as usuario_nombre
+      FROM ventas v
+      LEFT JOIN usuarios u ON v.usuario_id = u.id
+      WHERE v.estado = 'completada'
+      ORDER BY v.fecha DESC
+      LIMIT ?
+    `).all(limite)
+  })
 }
 
 // ============================================
@@ -929,6 +1027,57 @@ function registerBackupHandlers(): void {
         }
         initializeDatabase()
       } catch {}
+      return { success: false, error: err.message }
+    }
+  })
+}
+
+// ============================================
+// TERMINAL VP800
+// ============================================
+
+function registerTerminalHandlers(): void {
+  const terminal = getTerminalService()
+
+  ipcMain.handle('terminal:conectar', async (_event, data: { puerto: string; baudRate?: number }) => {
+    try {
+      await terminal.connect(data.puerto, data.baudRate || 9600)
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('terminal:desconectar', async () => {
+    terminal.disconnect()
+    return { success: true }
+  })
+
+  ipcMain.handle('terminal:estado', async () => {
+    return terminal.consultarEstado()
+  })
+
+  ipcMain.handle('terminal:procesar-pago', async (_event, data: { monto: number; timeoutMs?: number }) => {
+    try {
+      const resultado = await terminal.enviarCobro(data.monto, data.timeoutMs)
+
+      if (resultado.RESPONSE_CODE === '00') {
+        return {
+          success: true,
+          referencia: resultado.REF_NUM,
+          autorizacion: resultado.AUTH_CODE,
+          tipo_tarjeta: resultado.CARD_TYPE,
+          ultimos_4: resultado.MASKED_PAN,
+          mensaje: 'Pago aprobado',
+        }
+      } else {
+        return {
+          success: false,
+          error: resultado.RESPONSE_TEXT || 'Transacción rechazada por el terminal',
+          codigo_respuesta: resultado.RESPONSE_CODE,
+        }
+      }
+    } catch (err: any) {
       return { success: false, error: err.message }
     }
   })

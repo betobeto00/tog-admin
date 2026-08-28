@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuthStore } from '../stores/auth.store'
 import {
   Lock, Unlock, DollarSign, ArrowUpCircle, ArrowDownCircle,
-  Clock, AlertTriangle, CheckCircle, History, Calculator
+  Clock, AlertTriangle, CheckCircle, History, Calculator, Printer
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import { formatCurrency, formatDateTime } from '../lib/utils'
@@ -97,6 +97,44 @@ export default function CajaPage() {
     await loadCaja()
   }
 
+  const imprimirCierre = () => {
+    if (!caja) return
+    const html = `<!DOCTYPE html><html><head><style>
+      body{font-family:monospace;font-size:12px;width:280px;margin:0 auto;padding:10px}
+      h2{text-align:center;margin:5px 0;font-size:14px}
+      table{width:100%;border-collapse:collapse;margin:8px 0}
+      td{padding:2px 0}
+      .total{font-weight:bold;font-size:13px;border-top:1px dashed #000;padding-top:5px;margin-top:5px}
+      .center{text-align:center}.right{text-align:right}
+      hr{border:none;border-top:1px dashed #000;margin:8px 0}
+    </style></head><body>
+      <h2>TOG Admin - Cierre de Caja</h2>
+      <div class="center">${formatDateTime(new Date().toISOString())}</div>
+      <hr>
+      <div>Cajero: <strong>${caja.usuario_nombre}</strong></div>
+      <div>Apertura: ${formatDateTime(caja.fecha_apertura)}</div>
+      <hr>
+      <table>
+        <tr><td>Fondo Inicial</td><td class="right">${formatCurrency(caja.fondo_inicial)}</td></tr>
+        <tr><td>+ Ventas</td><td class="right">${formatCurrency(caja.total_ventas)}</td></tr>
+        <tr><td>+ Entradas</td><td class="right">${formatCurrency(caja.total_entradas)}</td></tr>
+        <tr><td>- Salidas</td><td class="right">${formatCurrency(caja.total_salidas)}</td></tr>
+        <tr><td class="total">Total Esperado</td><td class="right total">${formatCurrency(totalEsperado)}</td></tr>
+      </table>
+      <hr>
+      <div class="total">Conteo Físico: ${formatCurrency(totalEsperado)}</div>
+      <div class="total">Diferencia: $0.00</div>
+      <hr>
+      <div class="center" style="margin-top:15px;font-size:10px;color:#666">Documento de cierre de caja</div>
+    </body></html>`
+    const win = window.open('', '_blank', 'width=320,height=600')
+    if (win) {
+      win.document.write(html)
+      win.document.close()
+      win.print()
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -179,6 +217,10 @@ export default function CajaPage() {
               <button onClick={() => setTotalReal(String(Math.round(totalEsperado)))}
                 className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
                 <Calculator className="w-5 h-5" /> Auto-llenar
+              </button>
+              <button onClick={imprimirCierre}
+                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
+                <Printer className="w-5 h-5" /> Imprimir
               </button>
               <button onClick={() => setCierreOpen(true)}
                 className="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2">

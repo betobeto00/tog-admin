@@ -47,6 +47,10 @@ contextBridge.exposeInMainWorld('api', {
     update: (id: number, data: unknown) => ipcRenderer.invoke('productos:update', { id, data }),
     delete: (id: number) => ipcRenderer.invoke('productos:delete', { id }),
     lowStock: () => ipcRenderer.invoke('productos:low-stock'),
+    ajustar: (data: { producto_id: number; stock_nuevo: number; justificacion: string; usuario_id: number }) =>
+      ipcRenderer.invoke('productos:ajustar', data),
+    ajustesHistorial: (data?: { producto_id?: number; limite?: number }) =>
+      ipcRenderer.invoke('productos:ajustes-historial', data),
   },
 
   // Proveedores
@@ -96,12 +100,22 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.invoke('reportes:ventas-periodo', { fecha_inicio: inicio, fecha_fin: fin }),
     productosMasVendidos: (inicio: string, fin: string, limite?: number) =>
       ipcRenderer.invoke('reportes:productos-mas-vendidos', { fecha_inicio: inicio, fecha_fin: fin, limite }),
+    ultimasVentas: (limite?: number) =>
+      ipcRenderer.invoke('reportes:ultimas-ventas', { limite }),
   },
 
   // Backup
   backup: {
     create: (ruta?: string) => ipcRenderer.invoke('backup:create', { ruta }),
     restore: (ruta: string) => ipcRenderer.invoke('backup:restore', { ruta }),
+  },
+
+  // Terminal VP800
+  terminal: {
+    conectar: (puerto: string, baudRate?: number) => ipcRenderer.invoke('terminal:conectar', { puerto, baudRate }),
+    desconectar: () => ipcRenderer.invoke('terminal:desconectar'),
+    estado: () => ipcRenderer.invoke('terminal:estado'),
+    procesarPago: (monto: number, timeoutMs?: number) => ipcRenderer.invoke('terminal:procesar-pago', { monto, timeoutMs }),
   },
 
   // Configuración

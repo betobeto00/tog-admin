@@ -52,6 +52,13 @@ export default function InventarioPage() {
   const [showQuickUnidad, setShowQuickUnidad] = useState(false)
   const [quickUnidad, setQuickUnidad] = useState({ nombre: '', abreviatura: '' })
 
+  // Ajuste de inventario
+  const [ajusteOpen, setAjusteOpen] = useState(false)
+  const [ajusteTarget, setAjusteTarget] = useState<Producto | null>(null)
+  const [ajusteStock, setAjusteStock] = useState('')
+  const [ajusteJustificacion, setAjusteJustificacion] = useState('')
+  const [ajustando, setAjustando] = useState(false)
+
   // Confirm delete
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'producto' | 'categoria' | 'unidad'; id: number } | null>(null)
 
@@ -129,6 +136,36 @@ export default function InventarioPage() {
   const deleteProduct = async (id: number) => {
     await window.api.productos.delete(id)
     await loadData()
+  }
+
+  // ======== AJUSTE DE INVENTARIO ========
+
+  const openAjuste = (p: Producto) => {
+    setAjusteTarget(p)
+    setAjusteStock(String(p.stock))
+    setAjusteJustificacion('')
+    setAjusteOpen(true)
+  }
+
+  const ajustarStock = async () => {
+    if (!ajusteTarget || !ajusteJustificacion.trim() || ajustando) return
+    setAjustando(true)
+    try {
+      const result = await window.api.productos.ajustar({
+        producto_id: ajusteTarget.id,
+        stock_nuevo: Number(ajusteStock),
+        justificacion: ajusteJustificacion,
+        usuario_id: 1, // TODO: get from auth store
+      })
+      if (result?.success) {
+        setAjusteOpen(false)
+        await loadData()
+      } else {
+        alert(result?.error || 'Error al ajustar stock')
+      }
+    } finally {
+      setAjustando(false)
+    }
   }
 
   // ======== CATEGORÍAS ========
@@ -359,6 +396,9 @@ export default function InventarioPage() {
                   <td className="px-4 py-3 text-sm text-gray-500 text-center capitalize">{p.unidad}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
+                      <button onClick={() => openAjuste(p)} className="p-1.5 hover:bg-blue-50 rounded-lg" title="Ajustar stock">
+                        <Package className="w-4 h-4 text-blue-500" />
+                      </button>
                       <button onClick={() => openEdit(p)} className="p-1.5 hover:bg-gray-100 rounded-lg" title="Editar">
                         <Edit2 className="w-4 h-4 text-gray-500" />
                       </button>
@@ -524,6 +564,50 @@ export default function InventarioPage() {
             <button onClick={saveUnidad} disabled={!unidForm.nombre.trim()}
               className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:bg-emerald-300">
               {editingUnid ? 'Guardar' : 'Crear'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal Ajuste de Inventario */}
+      <Modal open={ajusteOpen} onClose={() => setAjusteOpen(false)} title="Ajustar Stock">
+        <div className="space-y-4">
+          {ajusteTarget && (
+            <div className="bg-blue-50 rounded-xl p-4">
+              <p className="text-sm font-medium text-gray-900">{ajusteTarget.nombre}</p>
+              <p className="text-xs text-gray-500 mt-1">Stock actual: <strong>{ajusteTarget.stock}</strong> {ajusteTarget.unidad}</p>
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nuevo Stock *</label>
+            <input type="number" min="0" value={ajusteStock}
+              onChange={(e) => setAjusteStock(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl text-2xl font-bold text-center focus:ring-2 focus:ring-blue-500"
+              autoFocus />
+            {ajusteTarget && ajusteStock && (
+              <p className={`text-sm text-center mt-2 ${
+                Number(ajusteStock) > ajusteTarget.stock ? 'text-blue-600' :
+                Number(ajusteStock) < ajusteTarget.stock ? 'text-red-600' : 'text-gray-500'
+              }`}>
+                {Number(ajusteStock) > ajusteTarget.stock ? `+${Number(ajusteStock) - ajusteTarget.stock} unidades` :
+                 Number(ajusteStock) < ajusteTarget.stock ? `${Number(ajusteStock) - ajusteTarget.stock} unidades` : 'Sin cambio'}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Justificación * (obligatoria)</label>
+            <textarea rows={2} value={ajusteJustificacion}
+              onChange={(e) => setAjusteJustificacion(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+              placeholder="Ej: Conteo físico, producto dañado, merma..." />
+          </div>
+          <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+            <button onClick={() => setAjusteOpen(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
+            <button onClick={ajustarStock}
+              disabled={!ajusteJustificacion.trim() || ajustando || ajusteStock === ''}
+              className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 flex items-center gap-2">
+              {ajustando ? 'Ajustando...' : 'Ajustar Stock'}
             </button>
           </div>
         </div>
