@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './stores/auth.store'
 
@@ -17,6 +17,7 @@ import ProveedoresPage from './pages/ProveedoresPage'
 import ReportesPage from './pages/ReportesPage'
 import ConfigPage from './pages/ConfigPage'
 import QuotesPage from './pages/QuotesPage'
+import Tutorial, { hasTutorialCompleted } from './components/Tutorial'
 
 // Loading placeholder para Suspense (usado si hay lazy imports futuros)
 function PageLoader() {
@@ -35,14 +36,21 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-
   const usuario = useAuthStore((s) => s.usuario)
   const mustChangePassword = isAuthenticated && usuario?.debe_cambiar_contrasena === 1
+  const [showTutorial, setShowTutorial] = useState(false)
+
+  useEffect(() => {
+    if (isAuthenticated && !mustChangePassword && !hasTutorialCompleted()) {
+      setShowTutorial(true)
+    }
+  }, [isAuthenticated, mustChangePassword])
 
   return (
     <ToastProvider>
     <HashRouter>
       {mustChangePassword && <ForcePasswordChange />}
+      {showTutorial && <Tutorial onComplete={() => setShowTutorial(false)} />}
       <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route

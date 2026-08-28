@@ -32,6 +32,8 @@ export default function POSPage() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [focusSearch, setFocusSearch] = useState(true)
   const searchRef = useRef<HTMLInputElement>(null)
+  const [cajaAbierta, setCajaAbierta] = useState<any>(null)
+  const [cajaLoading, setCajaLoading] = useState(true)
 
   // Descuento global
   const [descuentoGlobal, setDescuentoGlobal] = useState(0)  // % global
@@ -46,7 +48,18 @@ export default function POSPage() {
   const [ticketOpen, setTicketOpen] = useState(false)
   const [ultimoTicket, setUltimoTicket] = useState<any>(null)
 
-  useEffect(() => { loadProducts() }, [])
+  useEffect(() => {
+    loadProducts()
+    checkCaja()
+  }, [])
+
+  const checkCaja = async () => {
+    try {
+      const caja = await window.api.caja.status()
+      setCajaAbierta(caja)
+    } catch { setCajaAbierta(null) }
+    finally { setCajaLoading(false) }
+  }
 
   // Auto-focus en búsqueda
   useEffect(() => {
@@ -206,6 +219,27 @@ export default function POSPage() {
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [cart, total])
+
+  // Bloquear POS si no hay caja abierta
+  if (!cajaLoading && !cajaAbierta) {
+    return (
+      <div className="flex h-[calc(100vh-8rem)] items-center justify-center">
+        <div className="text-center bg-white rounded-2xl border border-gray-200 p-12 max-w-md">
+          <AlertTriangle className="w-16 h-16 text-orange-400 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Caja Cerrada</h2>
+          <p className="text-gray-500 mb-6">
+            No hay una caja abierta. Debes abrir la caja antes de usar el punto de venta.
+          </p>
+          <button
+            onClick={() => window.location.hash = '#/caja'}
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl"
+          >
+            Ir a Caja
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-4">

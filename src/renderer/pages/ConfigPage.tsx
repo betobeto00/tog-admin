@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import {
   Settings, Store, CreditCard, Users, Plus, Edit2, Trash2,
-  Save, Eye, EyeOff, Shield, User, Download, Upload
+  Save, Eye, EyeOff, Shield, User, Download, Upload, GraduationCap
 } from 'lucide-react'
+import { resetTutorial } from '../components/Tutorial'
 import { useToast } from '../components/ui/Toast'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
@@ -418,6 +419,31 @@ export default function ConfigPage() {
               <li>Se recomienda hacer backup diariamente antes de cerrar caja</li>
               <li>La restauración creará un backup automático (.bak) por seguridad</li>
             </ul>
+          </div>
+
+          {/* Tutorial */}
+          <div className="bg-purple-50 rounded-xl p-5 border border-purple-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <GraduationCap className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">Tutorial de Onboarding</h4>
+                <p className="text-xs text-gray-500">Guía interactiva para nuevos usuarios</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Reinicia el tutorial para que el próximo usuario que entre vea la guía de inicio.
+            </p>
+            <button
+              onClick={() => {
+                resetTutorial()
+                toast.success('Tutorial reiniciado. Se mostrará en el próximo login.')
+              }}
+              className="px-4 py-2.5 text-sm font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 flex items-center gap-2"
+            >
+              <GraduationCap className="w-4 h-4" /> Reiniciar Tutorial
+            </button>
           </div>
         </div>
       )}
