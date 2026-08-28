@@ -9,6 +9,7 @@ interface LicenseStatus {
   diasRestantes: number | null
   error: string | null
   machineId: string
+  totalDaysUsed?: number
 }
 
 export default function LicenseGate({ children }: { children: React.ReactNode }) {

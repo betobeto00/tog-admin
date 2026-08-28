@@ -135,6 +135,7 @@ contextBridge.exposeInMainWorld('api', {
     status: () => ipcRenderer.invoke('license:status'),
     validate: () => ipcRenderer.invoke('license:validate'),
     import: (fileContent: string) => ipcRenderer.invoke('license:import', fileContent),
+    resetState: () => ipcRenderer.invoke('license:reset-state'),
   },
 })
 
@@ -232,6 +233,7 @@ export interface PapeleriaAPI {
     status: () => Promise<any>
     validate: () => Promise<any>
     import: (fileContent: string) => Promise<any>
+    resetState: () => Promise<any>
   }
 }
 
