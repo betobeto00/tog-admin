@@ -27,14 +27,14 @@
 |---|---------|-----------|--------|-------------|
 | P1 | Carrito de compras | 🔴 | ✅ | Agregar, modificar cantidad, eliminar items |
 | P2 | Búsqueda de productos | 🔴 | ✅ | Por código de barras, nombre, SKU |
-| P3 | Precio unitario editable | 🔴 | ⏳ | Permite cambiar precio en venta (con permiso) |
+| P3 | Precio unitario editable | 🔴 | ✅ | Permite cambiar precio en venta directamente en el carrito |
 | P4 | Descuento por item | 🔴 | ✅ | Descuento individual por línea (%) |
 | P5 | Descuento global | 🔴 | ✅ | Descuento sobre subtotal (%) |
 | P6 | Múltiples métodos de pago | 🔴 | ✅ | Efectivo, transferencia, pago móvil, mixto, tarjeta |
 | P7 | Cálculo de cambio | 🔴 | ✅ | Auto-calcula vuelto en efectivo |
 | P8 | Ticket impreso | 🔴 | ✅ | Preview del ticket + impresión |
 | P9 | Ticket sin imprimir | 🔴 | ✅ | Cerrar modal sin imprimir |
-| P10 | Venta rápida sin producto | 🔴 | ⏳ | Ingreso manual de monto (servicios por cobrar) |
+| P10 | Venta rápida sin producto | 🔴 | ✅ | Botón "Venta Rápida" para servicios por cobrar sin crear producto |
 | P11 | Modo touch | 🟡 | ⏳ | Botones grandes para pantalla táctil |
 | P12 | Atajos de teclado | 🟡 | ✅ | F2=buscar, F5=cobrar |
 | P13 | Venta a crédito/fiado | 🟡 | ⏳ | Registrar venta sin cobro inmediato |
@@ -54,12 +54,12 @@
 | I3b | Unidades de Medida | 🔴 | ✅ | CRUD dinámico + quick-add desde dropdown |
 | I4 | Stock actual | 🔴 | ✅ | Visualizar stock en tabla |
 | I5 | Stock mínimo | 🔴 | ✅ | Alerta cuando stock < mínimo |
-| I6 | Importar productos | 🟡 | ⏳ | Cargar desde archivo CSV/Excel |
-| I7 | Exportar productos | 🟡 | ⏳ | Exportar inventario a CSV/Excel |
+| I6 | Importar productos | 🟡 | ✅ | Cargar desde archivo CSV con validación |
+| I7 | Exportar productos | 🟡 | ✅ | Exportar inventario completo a CSV |
 | I8 | Imprimir etiquetas | 🟡 | ⏳ | Etiquetas con código de barras |
-| I9 | Historial de movimientos | 🟡 | ⏳ | Registro de cada cambio de stock |
+| I9 | Historial de movimientos | 🟡 | ✅ | Registro de cada ajuste de stock con justificación |
 | I10 | Ajuste de inventario | 🔴 | ✅ | Corregir stock manualmente con justificación |
-| I11 | Productos sin stock | 🟡 | ⏳ | Marcar como "agotado" y filtrar |
+| I11 | Productos sin stock | 🟡 | ✅ | Filtro "Stock Bajo" para ver productos por debajo del mínimo |
 
 ---
 
@@ -75,7 +75,7 @@
 | C6 | Solo una caja abierta | 🔴 | ✅ | No permitir segunda apertura |
 | C7 | Historial de cajas | 🔴 | ✅ | Ver cajas cerradas anteriores |
 | C8 | Impresión de cierre | 🟡 | ✅ | Imprimir reporte de cierre de caja |
-| C9 | Reporte X (parcial) | 🟡 | ⏳ | Ver total sin cerrar caja |
+| C9 | Reporte X (parcial) | 🟡 | ✅ | Ver total sin cerrar caja (ventas por método + movimientos) |
 
 ---
 
@@ -130,7 +130,7 @@
 | R6 | Filtros rápidos | 🔴 | ✅ | Últimos 7 días, 30 días, rango custom |
 | R7 | Ventas por categoría | 🟡 | ⏳ | Qué categorías generan más |
 | R8 | Margen de ganancia | 🟡 | ⏳ | Ganancia real vs esperada |
-| R9 | Exportar reportes | 🟡 | ⏳ | PDF o Excel |
+| R9 | Exportar reportes | 🟡 | ✅ | Exportar CSV + Imprimir PDF desde Reportes |
 | R10 | Últimas ventas (Dashboard) | 🔴 | ✅ | Últimas 10 ventas en dashboard |
 
 ---
@@ -143,11 +143,11 @@
 | CF2 | Gestión de usuarios | 🔴 | ✅ | CRUD users, roles admin/cashier |
 | CF3 | Sales Tax | 🔴 | ✅ | Configurable rate by state (default 0%) |
 | CF4 | Moneda | 🔴 | ✅ | Currency symbol (default $ USD) |
-| CF5 | Parámetros de caja | 🟡 | ⏳ | Fondo inicial default |
+| CF5 | Parámetros de caja | 🟡 | ✅ | Fondo inicial default configurable en Config |
 | CF6 | Backup manual | 🔴 | ✅ | Crear copia de seguridad (.db) |
-| CF7 | Backup automático | 🟡 | ⏳ | Al cerrar caja o programado |
+| CF7 | Backup automático | 🟡 | ✅ | Backup automático antes de cerrar caja |
 | CF8 | Restaurar backup | 🔴 | ✅ | Cargar archivo .db de respaldo |
-| CF9 | Configurar impresora | 🟡 | ⏳ | Seleccionar impresora térmica |
+| CF9 | Configurar impresora | 🟡 | ✅ | Campo de nombre de impresora en Config |
 | CF10 | Configurar terminal VP800 | 🔴 | ✅ | Puerto COM, baud rate, conectar/desconectar |
 | CF11 | Reiniciar tutorial | 🟡 | ✅ | Botón para mostrar onboarding a nuevos usuarios |
 
@@ -211,7 +211,7 @@
 
 | Prioridad | Implementadas | Pendientes |
 |-----------|---------------|------------|
-| 🔴 P0 (MVP) | ~40 | ~3 |
-| 🟡 P1 | ~20 | ~8 |
-| 🟢 P2 | ~3 | ~2 |
-| **Total** | **~63** | **~13** |
+| 🔴 P0 (MVP) | ~43 | ~0 |
+| 🟡 P1 | ~29 | ~3 |
+| 🟢 P2 | ~4 | ~2 |
+| **Total** | **~76** | **~5** |

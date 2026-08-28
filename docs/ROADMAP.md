@@ -19,8 +19,8 @@ CRÍTICOS           CORE               SEGURIDAD/UX       PREMIUM
                                        ✅ Terminal Config UI
 ```
 
-**Estado actual del proyecto:** ~92% completo (Fase 0, 1 y 2 completadas + extras)
-**Estimación restante:** 3-4 días (Fase 3: Premium)
+**Estado actual del proyecto:** ~97% completo (Fase 0, 1, 2 y 2.5 completadas)
+**Estimación restante:** 2-3 días (Fase 3: Premium — touch, etiquetas, crédito)
 
 ---
 
@@ -65,6 +65,25 @@ CRÍTICOS           CORE               SEGURIDAD/UX       PREMIUM
 
 ---
 
+## ✅ FASE 2.5: P0 + P1 + P2 — COMPLETADA
+
+| # | Tarea | Estado | Archivos |
+|---|-------|--------|----------|
+| 2.6 | Precio unitario editable en POS | ✅ | `CartItem.tsx`, `POSPage.tsx` |
+| 2.7 | Venta rápida sin producto (servicio) | ✅ | `POSPage.tsx` |
+| 2.8 | Reporte X (parcial sin cerrar caja) | ✅ | `CajaPage.tsx`, `ipc-handlers.ts` |
+| 2.9 | Importar productos CSV | ✅ | `InventarioPage.tsx`, `ipc-handlers.ts` |
+| 2.10 | Exportar productos CSV | ✅ | `InventarioPage.tsx`, `ipc-handlers.ts` |
+| 2.11 | Historial de ajustes de inventario | ✅ | `InventarioPage.tsx` |
+| 2.12 | Filtro productos con stock bajo | ✅ | `InventarioPage.tsx` |
+| 2.13 | Backup automático al cerrar caja | ✅ | `CajaPage.tsx` |
+| 2.14 | Configurar impresora en Config | ✅ | `ConfigPage.tsx` |
+| 2.15 | Fondo inicial default en Config | ✅ | `ConfigPage.tsx`, `CajaPage.tsx` |
+| 2.16 | Exportar reportes CSV + PDF | ✅ | `ReportesPage.tsx` |
+| 2.17 | Fix TODO usuario_id en ajustes | ✅ | `InventarioPage.tsx` |
+
+---
+
 ## 🟡 FASE 3: PREMIUM — PENDIENTE
 
 > **Objetivo:** Features avanzadas para competitividad.
@@ -74,35 +93,29 @@ CRÍTICOS           CORE               SEGURIDAD/UX       PREMIUM
 - [ ] Layout adaptado para tablets
 - **Archivos:** `src/renderer/pages/POSPage.tsx`
 
-### Tarea 3.2: Import/Export productos 🟡
-- [ ] Exportar inventario a CSV
-- [ ] Importar productos desde CSV con validación
-- **Archivos:** `src/renderer/pages/InventarioPage.tsx`, `src/main/ipc-handlers.ts`
-
-### Tarea 3.3: Imprimir etiquetas 🟢
+### Tarea 3.2: Imprimir etiquetas 🟢
 - [ ] Generar etiquetas con código de barras
 - [ ] Usar librería JsBarcode o similar
 - **Archivos:** Nuevos componentes
 
-### Tarea 3.4: Venta a crédito/fiado 🟡
+### Tarea 3.3: Venta a crédito/fiado 🟡
 - [ ] Tabla `creditos` con saldo pendiente
 - [ ] Registrar venta sin cobro inmediato
 - [ ] Registro de abonos
 - [ ] Reporte de cartera
 - **Archivos:** Múltiples nuevos archivos
 
-### Tarea 3.5: Convertir quote a venta 🟡
+### Tarea 3.4: Convertir quote a venta 🟡
 - [ ] Botón "Convertir a venta" en QuotesPage
 - [ ] Pre-cargar carrito con items de la cotización
 - **Archivos:** `src/renderer/pages/QuotesPage.tsx`, `src/renderer/pages/POSPage.tsx`
 
-### Tarea 3.6: Reportes avanzados 🟡
+### Tarea 3.5: Reportes avanzados 🟡
 - [ ] Ventas por categoría
 - [ ] Margen de ganancia real vs esperada
-- [ ] Exportar reportes a PDF/CSV
 - **Archivos:** `src/renderer/pages/ReportesPage.tsx`, `src/main/ipc-handlers.ts`
 
-### Tarea 3.7: WiFi para VP800 🟡
+### Tarea 3.6: WiFi para VP800 🟡
 - [ ] Conexión via HTTP API (Valor Connect)
 - [ ] Configuración de IP/puerto del terminal
 - [ ] Fallback automático USB → WiFi
