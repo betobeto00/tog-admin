@@ -1,37 +1,42 @@
 /**
- * Post-build script: inline CSS into HTML for Electron asar compatibility.
- *
- * Electron's asar protocol doesn't properly load <link rel="stylesheet"> tags.
- * This script reads the CSS file referenced in the HTML and inlines it as a
- * <style> tag directly in the HTML.
+ * Post-build script for Electron asar compatibility.
+ * 1. Inlines CSS from <link> into <style> tag
+ * 2. Removes crossorigin attributes
+ * 3. Changes type="module" to type="text/javascript" (file:// doesn't support ES modules)
  */
 const fs = require('fs')
 const path = require('path')
 
 const htmlPath = path.resolve(__dirname, '../dist/index.html')
 let html = fs.readFileSync(htmlPath, 'utf-8')
+let changed = false
 
-// Find the <link rel="stylesheet" ... href="..."> tag (may have crossorigin)
+// 1. Inline CSS if <link> exists
 const linkMatch = html.match(/<link rel="stylesheet"[^>]+href="([^"]+)"[^>]*>/)
-if (!linkMatch) {
-  console.log('[inline-css] No <link> stylesheet found, skipping')
-  process.exit(0)
+if (linkMatch) {
+  const cssPath = path.resolve(__dirname, '../dist', linkMatch[1])
+  if (fs.existsSync(cssPath)) {
+    const css = fs.readFileSync(cssPath, 'utf-8')
+    html = html.replace(/<link rel="stylesheet"[^>]+href="[^"]+"[^>]*>/, `<style>${css}</style>`)
+    console.log(`[inline-css] CSS inlined: ${css.length} bytes`)
+    changed = true
+  }
 }
 
-const cssRelPath = linkMatch[1]
-const cssPath = path.resolve(__dirname, '../dist', cssRelPath)
-
-if (!fs.existsSync(cssPath)) {
-  console.error(`[inline-css] CSS file not found: ${cssPath}`)
-  process.exit(1)
-}
-
-const cssContent = fs.readFileSync(cssPath, 'utf-8')
-
-// Replace <link> with inline <style> and remove crossorigin
+// 2. Always fix script tags for Electron file:// protocol
+const original = html
 html = html
-  .replace(/<link rel="stylesheet"[^>]+href="[^"]+"[^>]*>/, `<style>${cssContent}</style>`)
   .replace(/ crossorigin/g, '')
+  .replace(/type="module"/g, 'type="text/javascript"')
 
-fs.writeFileSync(htmlPath, html)
-console.log(`[inline-css] CSS inlined: ${cssContent.length} bytes → ${htmlPath}`)
+if (html !== original) {
+  console.log('[inline-css] Fixed script tags (removed crossorigin, changed module→text/javascript)')
+  changed = true
+}
+
+if (changed) {
+  fs.writeFileSync(htmlPath, html)
+  console.log(`[inline-css] Done → ${htmlPath}`)
+} else {
+  console.log('[inline-css] No changes needed')
+}

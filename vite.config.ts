@@ -14,6 +14,11 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        format: 'iife',
+      },
+    },
   },
   server: {
     port: 5173,
