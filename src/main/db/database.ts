@@ -380,24 +380,8 @@ function seedDatabase(db: Database.Database): void {
         VALUES (?, ?, ?, ?, 1)
       `).run('admin', hash, 'Administrador', 'admin')
 
-      // Categorías iniciales
-      const categorias = [
-        { nombre: 'Papelería', desc: 'Cuadernos, lápices, útiles escolares' },
-        { nombre: 'Copiado', desc: 'Servicios de copiado B/N y color' },
-        { nombre: 'Impresión', desc: 'Servicios de impresión documentos y fotos' },
-        { nombre: 'Encuadernación', desc: 'Plastificado, espiral, wire-o' },
-        { nombre: 'Artículos de Oficina', desc: 'Clips, folders, archivadores, cinta' },
-        { nombre: 'Sellos', desc: 'Fabricación y venta de sellos' },
-        { nombre: 'Impresión de Fotos', desc: 'Impresiones photo, posters, lonas' },
-        { nombre: 'Servicios Varios', desc: 'Digitalización, envíos, otros servicios' },
-      ]
-
-      const insertCat = db!.prepare(
-        'INSERT INTO categorias (nombre, descripcion) VALUES (?, ?)'
-      )
-      for (const cat of categorias) {
-        insertCat.run(cat.nombre, cat.desc)
-      }
+      // Nota: categorías NO se seedean — el cliente crea las suyas
+      // Solo se insertan unidades de medida genéricas
 
       // Unidades de medida iniciales
       const unidades = [
@@ -421,18 +405,11 @@ function seedDatabase(db: Database.Database): void {
         insertUnidad.run(u.nombre, u.abbr)
       }
 
-      // Configuración inicial
+      // Configuración inicial (solo defaults mínimos)
       const configs = [
-        ['nombre_negocio', 'Mi Papelería', 'Nombre del negocio'],
-        ['ein', '', 'EIN (Employer Identification Number)'],
-        ['telefono', '', 'Teléfono de contacto'],
-        ['direccion', '', 'Dirección del negocio'],
-        ['sales_tax_rate', '0', 'Sales Tax rate (%) — varies by state/county'],
         ['currency_symbol', '$', 'Currency symbol (USD)'],
         ['ticket_numero_venta', '0', 'Número secuencial de la última venta'],
         ['ticket_numero_compra', '0', 'Número secuencial de la última compra'],
-        ['backup_automatico', 'true', 'Crear backup al cerrar caja'],
-        ['backup_ruta', '', 'Ruta donde guardar backups'],
       ]
 
       const insertConfig = db!.prepare(

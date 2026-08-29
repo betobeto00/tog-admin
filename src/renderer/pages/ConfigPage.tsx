@@ -763,6 +763,60 @@ export default function ConfigPage() {
               <p className="text-sm text-gray-500">No se pudo cargar el estado de la licencia.</p>
             )}
           </div>
+
+          {/* Zona de Peligro */}
+          <div className="bg-red-50 rounded-xl p-5 border border-red-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <Trash2 className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-red-900">Zona de Peligro</h4>
+                <p className="text-xs text-red-500">Acciones irreversibles</p>
+              </div>
+            </div>
+            <p className="text-sm text-red-700 mb-4">
+              <strong>Resetear Base de Datos:</strong> Elimina TODOS los datos (productos, ventas, caja, historial, usuarios) y empieza de cero.
+              Esta acción NO se puede deshacer.
+            </p>
+            <button
+              onClick={async () => {
+                // Triple confirmación
+                const step1 = window.confirm(
+                  '⚠️ PELIGRO: Esto eliminará TODA la base de datos.\n\n¿Estás ABSOLUTAMENTE seguro?'
+                )
+                if (!step1) return
+
+                const step2 = window.confirm(
+                  '🔴 ÚLTIMA OPORTUNIDAD:\n\nSe eliminarán:\n• Todos los productos\n• Todo el historial de ventas\n• Todos los datos de caja\n• Todos los usuarios (excepto admin)\n\n¿Confirmas?'
+                )
+                if (!step2) return
+
+                const confirmText = window.prompt(
+                  'Escribe RESET para confirmar:'
+                )
+                if (confirmText !== 'RESET') {
+                  toast.error('Confirmación incorrecta. Operación cancelada.')
+                  return
+                }
+
+                try {
+                  const result = await window.api.db.reset()
+                  if (result?.success) {
+                    toast.success('Base de datos reseteada. Reiniciando...')
+                    setTimeout(() => window.location.reload(), 2000)
+                  } else {
+                    toast.error(result?.error || 'Error reseteando la DB')
+                  }
+                } catch (err: any) {
+                  toast.error('Error: ' + err.message)
+                }
+              }}
+              className="px-4 py-2.5 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 flex items-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" /> Resetear Base de Datos
+            </button>
+          </div>
         </div>
       )}
     </div>
