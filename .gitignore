@@ -15,3 +15,13 @@ Thumbs.db
 
 # Private files
 Chat privado*
+
+# Secrets - never commit
+keys/private.key
+keys/*.pem
+keys/*.key
+!keys/public.key
+licenses/*.key
+
+# Allow licenses/.gitkeep so the directory structure is preserved
+!licenses/.gitkeep
