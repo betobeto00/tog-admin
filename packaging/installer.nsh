@@ -2,14 +2,24 @@
 ; NSIS custom script for TOG Admin
 ; Shows a language selection dialog before installation begins.
 ; Writes the chosen language to $INSTDIR\.lang for first-launch detection.
+;
+; electron-builder macros available:
+;   - customHeader:  add Pages
+;   - customInit:    extend .onInit
+;   - customInstall: extend .onInstSuccess (after install completes)
+
+!include nsDialogs.nsh
+!include LogicLib.nsh
+
+; File-scope variable
+Var TOG_LANG
 
 !macro customHeader
-  Var /GLOBAL TOG_LANG
-  StrCpy $TOG_LANG "en"
+  Page custom togLanguagePageCreate togLanguagePageLeave
+!macroend
 
-  ${IfNot} ${Silent}
-    Page custom togLanguagePageCreate togLanguagePageLeave
-  ${EndIf}
+!macro customInit
+  StrCpy $TOG_LANG "en"
 !macroend
 
 !macro customInstall
@@ -21,39 +31,35 @@
 Function togLanguagePageCreate
   nsDialogs::Create 1018
   Pop $1
-
-  ${If} $1 == error
-    Abort
-  ${EndIf}
+  StrCmp $1 "error" 0 +2
+  Abort
 
   ${NSD_CreateLabel} 0 0 100% 18u "Language / Idioma"
   Pop $0
   CreateFont $0 "Segoe UI" "12" "700"
   SendMessage $0 ${WM_SETFONT} $0 0
 
-  ${NSD_CreateLabel} 0 22u 100% 14u "Choose the installation language / Elija el idioma de instalación:"
+  ${NSD_CreateLabel} 0 22u 100% 14u "Choose the installation language / Elija el idioma de instalacion:"
   Pop $0
 
   ${NSD_CreateRadioButton} 20u 50u 100% 14u "1. English"
   Pop $R0
 
-  ${NSD_CreateRadioButton} 20u 72u 100% 14u "2. Español"
+  ${NSD_CreateRadioButton} 20u 72u 100% 14u "2. Espanol"
   Pop $R1
 
-  ${If} $TOG_LANG == "es"
-    SendMessage $R1 ${BM_SETCHECK} ${BST_CHECKED} 0
-  ${Else}
-    SendMessage $R0 ${BM_SETCHECK} ${BST_CHECKED} 0
-  ${EndIf}
+  StrCmp $TOG_LANG "es" 0 +3
+  SendMessage $R1 ${BM_SETCHECK} ${BST_CHECKED} 0
+  Goto +2
+  SendMessage $R0 ${BM_SETCHECK} ${BST_CHECKED} 0
 
   nsDialogs::Show
 FunctionEnd
 
 Function togLanguagePageLeave
   ${NSD_GetState} $R0 $0
-  ${If} $0 == ${BST_CHECKED}
-    StrCpy $TOG_LANG "en"
-  ${Else}
-    StrCpy $TOG_LANG "es"
-  ${EndIf}
+  StrCmp $0 ${BST_CHECKED} 0 +3
+  StrCpy $TOG_LANG "en"
+  Goto +2
+  StrCpy $TOG_LANG "es"
 FunctionEnd
