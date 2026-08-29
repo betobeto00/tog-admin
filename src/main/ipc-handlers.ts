@@ -1053,6 +1053,33 @@ function registerBackupHandlers(): void {
       return { success: false, error: err.message }
     }
   })
+
+  // Reset DB (dangerous - only admin)
+  ipcMain.handle('db:reset', async () => {
+    try {
+      const dbPath = getDbPath()
+      if (!fs.existsSync(dbPath)) {
+        return { success: false, error: 'No existe base de datos.' }
+      }
+
+      // Cerrar DB actual
+      closeDatabase()
+
+      // Crear backup de seguridad antes de borrar
+      fs.copyFileSync(dbPath, dbPath + '.pre-reset')
+
+      // Borrar la DB
+      fs.unlinkSync(dbPath)
+
+      // Reinicializar limpia
+      initializeDatabase()
+
+      console.log('[TOG Admin] Base de datos reseteada por admin')
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
 }
 
 // ============================================

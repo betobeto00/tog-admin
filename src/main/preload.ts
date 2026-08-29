@@ -116,6 +116,11 @@ contextBridge.exposeInMainWorld('api', {
     restore: (ruta: string) => ipcRenderer.invoke('backup:restore', { ruta }),
   },
 
+  // DB Reset (dangerous)
+  db: {
+    reset: () => ipcRenderer.invoke('db:reset'),
+  },
+
   // Terminal VP800
   terminal: {
     conectar: (puerto: string, baudRate?: number) => ipcRenderer.invoke('terminal:conectar', { puerto, baudRate }),
@@ -218,6 +223,9 @@ export interface PapeleriaAPI {
   backup: {
     create: (ruta?: string) => Promise<any>
     restore: (ruta: string) => Promise<any>
+  }
+  db: {
+    reset: () => Promise<any>
   }
   terminal: {
     conectar: (puerto: string, baudRate?: number) => Promise<any>
