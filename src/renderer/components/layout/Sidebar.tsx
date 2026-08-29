@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../stores/auth.store'
 import {
   LayoutDashboard,
@@ -15,22 +16,23 @@ import {
   HelpCircle,
 } from 'lucide-react'
 
-const menuItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/pos', icon: ShoppingCart, label: 'Punto de Venta' },
-  { to: '/caja', icon: Lock, label: 'Caja' },
-  { to: '/inventario', icon: Package, label: 'Inventario' },
-  { to: '/ventas', icon: Receipt, label: 'Ventas' },
-  { to: '/compras', icon: Truck, label: 'Compras' },
-  { to: '/proveedores', icon: Users, label: 'Proveedores' },
-  { to: '/cotizaciones', icon: FileText, label: 'Quotes' },
-  { to: '/reportes', icon: BarChart3, label: 'Reportes' },
-  { to: '/configuracion', icon: Settings, label: 'Settings' },
-  { to: '/ayuda', icon: HelpCircle, label: 'Ayuda' },
-]
-
 export default function Sidebar() {
+  const { t } = useTranslation()
   const { usuario, logout } = useAuthStore()
+
+  const menuItems = [
+    { to: '/', icon: LayoutDashboard, label: t('nav.dashboard') },
+    { to: '/pos', icon: ShoppingCart, label: t('nav.pos') },
+    { to: '/caja', icon: Lock, label: t('nav.cash') },
+    { to: '/inventario', icon: Package, label: t('nav.inventory') },
+    { to: '/ventas', icon: Receipt, label: t('nav.sales') },
+    { to: '/compras', icon: Truck, label: t('nav.purchases') },
+    { to: '/proveedores', icon: Users, label: t('nav.suppliers') },
+    { to: '/cotizaciones', icon: FileText, label: t('nav.quotes') },
+    { to: '/reportes', icon: BarChart3, label: t('nav.reports') },
+    { to: '/configuracion', icon: Settings, label: t('nav.settings') },
+    { to: '/ayuda', icon: HelpCircle, label: t('nav.help') },
+  ]
 
   return (
     <aside className="w-64 bg-gray-900 text-white flex flex-col">
@@ -41,8 +43,8 @@ export default function Sidebar() {
             <span className="text-white text-lg font-bold">T</span>
           </div>
           <div>
-            <h1 className="text-lg font-bold leading-tight">TOG Admin</h1>
-            <p className="text-xs text-gray-400">Punto de Venta</p>
+            <h1 className="text-lg font-bold leading-tight">{t('common.appName')}</h1>
+            <p className="text-xs text-gray-400">{t('nav.pos')}</p>
           </div>
         </div>
       </div>
@@ -81,7 +83,7 @@ export default function Sidebar() {
               {usuario?.nombre}
             </p>
             <p className="text-xs text-gray-400 capitalize">
-              {usuario?.rol}
+              {usuario?.rol === 'admin' ? t('config.admin') : t('config.cashier')}
             </p>
           </div>
         </div>
@@ -91,7 +93,7 @@ export default function Sidebar() {
             text-gray-400 hover:bg-gray-800 hover:text-red-400 transition-colors"
         >
           <LogOut className="w-5 h-5" />
-          Cerrar Sesión
+          {t('nav.logout')}
         </button>
       </div>
     </aside>

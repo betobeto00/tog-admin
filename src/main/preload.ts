@@ -142,6 +142,12 @@ contextBridge.exposeInMainWorld('api', {
     import: (fileContent: string) => ipcRenderer.invoke('license:import', fileContent),
     resetState: () => ipcRenderer.invoke('license:reset-state'),
   },
+
+  // Idioma
+  i18n: {
+    getLang: () => ipcRenderer.invoke('i18n:get-lang'),
+    setLang: (lang: 'es' | 'en') => ipcRenderer.invoke('i18n:set-lang', { lang }),
+  },
 })
 
 // Declarar tipo global para window.api
@@ -242,6 +248,10 @@ export interface PapeleriaAPI {
     validate: () => Promise<any>
     import: (fileContent: string) => Promise<any>
     resetState: () => Promise<any>
+  }
+  i18n: {
+    getLang: () => Promise<'es' | 'en'>
+    setLang: (lang: 'es' | 'en') => Promise<{ success: boolean; lang: 'es' | 'en' }>
   }
 }
 

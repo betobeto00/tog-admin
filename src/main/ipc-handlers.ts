@@ -14,6 +14,7 @@ import {
 } from '../shared/validations'
 import { getTerminalService } from './services/valorTerminal'
 import { validateLicense, getLicenseStatus, saveLicense, resetLicenseState } from './services/license'
+import { getLang, setLang, initI18n, t, type SupportedLang } from './i18n'
 
 /**
  * Registra todos los handlers IPC del sistema.
@@ -37,6 +38,19 @@ export function registerIpcHandlers(): void {
   registerProductosCsvHandlers()
   registerCajaExtraHandlers()
   registerAjustesHandlers()
+  registerI18nHandlers()
+}
+
+function registerI18nHandlers(): void {
+  ipcMain.handle('i18n:get-lang', () => getLang())
+
+  ipcMain.handle('i18n:set-lang', (_evt, payload: { lang: string }) => {
+    if (payload?.lang !== 'es' && payload?.lang !== 'en') {
+      return { success: false, lang: getLang() }
+    }
+    setLang(payload.lang as SupportedLang)
+    return { success: true, lang: getLang() }
+  })
 }
 
 // ============================================

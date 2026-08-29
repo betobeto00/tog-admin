@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage } from 'electron'
 import path from 'path'
 import { initializeDatabase } from './db/database'
 import { registerIpcHandlers } from './ipc-handlers'
+import { initI18n, t as i18nT } from './i18n'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -102,14 +103,21 @@ function createTray() {
 
 // App lifecycle
 app.whenReady().then(() => {
+  // Inicializar i18n (lee .lang del NSIS installer o de userData)
+  const lang = initI18n()
+  console.log(`[TOG Admin] i18n: ${i18nT('logs.appStarting')} (${lang})`)
+
   // Inicializar base de datos
   initializeDatabase()
+  console.log(`[TOG Admin] ${i18nT('logs.dbInitialized')}`)
 
   // Registrar handlers IPC
   registerIpcHandlers()
+  console.log(`[TOG Admin] ${i18nT('logs.ipcRegistered')}`)
 
   // Crear ventana
   createWindow()
+  console.log(`[TOG Admin] ${i18nT('logs.windowCreated')}`)
 
   // Crear tray (opcional, descomentar si se desea)
   // createTray()

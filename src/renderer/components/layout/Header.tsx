@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../../stores/auth.store'
 import { Search, Bell, AlertTriangle, X, ShoppingCart } from 'lucide-react'
 
@@ -11,6 +12,7 @@ interface Notificacion {
 }
 
 export default function Header() {
+  const { t, i18n } = useTranslation()
   const usuario = useAuthStore((s) => s.usuario)
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
   const [panelOpen, setPanelOpen] = useState(false)
@@ -19,7 +21,7 @@ export default function Header() {
     loadNotificaciones()
     const interval = setInterval(loadNotificaciones, 60000) // cada minuto
     return () => clearInterval(interval)
-  }, [])
+  }, [i18n.language])
 
   const loadNotificaciones = async () => {
     const notifs: Notificacion[] = []
@@ -31,7 +33,7 @@ export default function Header() {
         notifs.push({
           id: 'stock_bajo',
           tipo: 'stock_bajo',
-          titulo: `${lowStock.length} producto(s) con stock bajo`,
+          titulo: t('dashboard.productsLow', { count: lowStock.length }),
           mensaje: lowStock.slice(0, 3).map((p: any) => `${p.nombre} (${p.stock} ${p.unidad})`).join(', ') + (lowStock.length > 3 ? '...' : ''),
           leida: false,
         })
@@ -45,8 +47,8 @@ export default function Header() {
         notifs.push({
           id: 'caja_cerrada',
           tipo: 'caja_cerrada',
-          titulo: 'Caja cerrada',
-          mensaje: 'No hay caja abierta. Abre la caja para iniciar ventas.',
+          titulo: t('caja.closed'),
+          mensaje: t('caja.mustOpenToSell'),
           leida: false,
         })
       }
@@ -56,6 +58,7 @@ export default function Header() {
   }
 
   const unreadCount = notificaciones.filter(n => !n.leida).length
+  const localeForDate = i18n.language === 'en' ? 'en-US' : 'es-VE'
 
   return (
     <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 relative">
@@ -65,7 +68,7 @@ export default function Header() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar productos, ventas..."
+            placeholder={t('common.search') + '...'}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm
               focus:ring-2 focus:ring-blue-500 focus:border-blue-500
               bg-gray-50 placeholder-gray-400"
@@ -77,7 +80,7 @@ export default function Header() {
       <div className="flex items-center gap-4 ml-4">
         {/* Hora actual */}
         <span className="text-sm text-gray-500 hidden md:block">
-          {new Date().toLocaleDateString('es-VE', {
+          {new Date().toLocaleDateString(localeForDate, {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
@@ -105,7 +108,7 @@ export default function Header() {
               <div className="fixed inset-0 z-40" onClick={() => setPanelOpen(false)} />
               <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl border border-gray-200 shadow-xl z-50 overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                  <span className="font-semibold text-gray-900 text-sm">Notificaciones</span>
+                  <span className="font-semibold text-gray-900 text-sm">{t('nav.help')}</span>
                   <button onClick={() => setPanelOpen(false)} className="p-1 hover:bg-gray-100 rounded-lg">
                     <X className="w-4 h-4 text-gray-400" />
                   </button>
@@ -114,7 +117,7 @@ export default function Header() {
                   {notificaciones.length === 0 ? (
                     <div className="p-6 text-center text-gray-400">
                       <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">Sin notificaciones</p>
+                      <p className="text-sm">{t('common.noData')}</p>
                     </div>
                   ) : (
                     notificaciones.map((n) => (
