@@ -1068,8 +1068,11 @@ function registerBackupHandlers(): void {
       // Crear backup de seguridad antes de borrar
       fs.copyFileSync(dbPath, dbPath + '.pre-reset')
 
-      // Borrar la DB
+      // Borrar la DB Y todos los archivos WAL/SHM
       fs.unlinkSync(dbPath)
+      try { fs.unlinkSync(dbPath + '-wal') } catch {}
+      try { fs.unlinkSync(dbPath + '-shm') } catch {}
+      try { fs.unlinkSync(dbPath + '-journal') } catch {}
 
       // Reinicializar limpia
       initializeDatabase()
