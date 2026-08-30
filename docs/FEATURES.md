@@ -208,8 +208,8 @@
 | S6 | Sistema de licencias | 🔴 | ✅ | RSA-2048 con validación offline |
 | S7 | ErrorBoundary global | 🔴 | ✅ | Captura errores React + genera crash report |
 | S8 | Crash reports automáticos | 🟡 | ✅ | Reportes de error con info del sistema |
-| S9 | Internacionalización (i18n) | 🟡 | ✅ | 2 idiomas (ES/EN), ~500 keys |
-| S10 | Tests automatizados | 🟡 | ✅ | 50 tests (validaciones + componentes) |
+| S9 | Internacionalización (i18n) | 🟡 | ✅ | 2 idiomas (ES/EN), ~630 keys, todos los componentes traducidos |
+| S10 | Tests automatizados | 🟡 | ✅ | 104 tests (validaciones + componentes + permisos + utils + PermissionsModal) |
 | S11 | **Sistema de permisos por usuario** | 🟡 | ✅ | 28 permisos en 7 categorías, admin tiene todos, cajero tiene defaults |
 | S12 | **Sidebar filtrado por permisos** | 🟡 | ✅ | Ocultar módulos según permisos del usuario |
 | S13 | **Botones protegidos por permisos** | 🟡 | ✅ | Inventario, Compras, Config protegidos con checks de permisos |
