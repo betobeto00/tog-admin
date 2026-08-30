@@ -239,10 +239,10 @@ export default function QuotesPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <button onClick={() => openView(q)} className="p-1.5 hover:bg-gray-100 rounded-lg" title="View"><Eye className="w-4 h-4 text-gray-500" /></button>
-                      <button onClick={() => printQuote(q)} className="p-1.5 hover:bg-gray-100 rounded-lg" title="Print"><Printer className="w-4 h-4 text-gray-500" /></button>
-                      {q.estado === 'pendiente' && <button onClick={() => openEdit(q)} className="p-1.5 hover:bg-gray-100 rounded-lg" title="Edit"><Edit2 className="w-4 h-4 text-gray-500" /></button>}
-                      {q.estado === 'pendiente' && <button onClick={() => setDeleteTarget(q.id)} className="p-1.5 hover:bg-red-50 rounded-lg" title="Delete"><Trash2 className="w-4 h-4 text-red-400" /></button>}
+                      <button onClick={() => openView(q)} className="p-1.5 hover:bg-gray-100 rounded-lg" title={t('quotes.view')}><Eye className="w-4 h-4 text-gray-500" /></button>
+                      <button onClick={() => printQuote(q)} className="p-1.5 hover:bg-gray-100 rounded-lg" title={t('quotes.print')}><Printer className="w-4 h-4 text-gray-500" /></button>
+                      {q.estado === 'pendiente' && <button onClick={() => openEdit(q)} className="p-1.5 hover:bg-gray-100 rounded-lg" title={t('quotes.edit')}><Edit2 className="w-4 h-4 text-gray-500" /></button>}
+                      {q.estado === 'pendiente' && <button onClick={() => setDeleteTarget(q.id)} className="p-1.5 hover:bg-red-50 rounded-lg" title={t('quotes.delete')}><Trash2 className="w-4 h-4 text-red-400" /></button>}
                     </div>
                   </td>
                 </tr>
@@ -396,7 +396,7 @@ export default function QuotesPage() {
 
       <ConfirmDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}
         onConfirm={() => { if (deleteTarget) removeQuote(deleteTarget) }}
-        title="Delete Quote" message="This action cannot be undone." confirmText="Delete" danger />
+        title={t('quotes.deleteConfirm')} message={t('quotes.deleteMsg')} confirmText={t('quotes.deleteButton')} danger />
     </div>
   )
 }

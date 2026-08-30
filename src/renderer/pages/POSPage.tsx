@@ -87,15 +87,15 @@ export default function POSPage() {
         addToCart(producto)
         toast.success(`${producto.nombre} - ${formatCurrency(producto.precio_venta)}`)
       } else if (producto) {
-        toast.warning(t('pos.productOutOfStock') || `"${producto.nombre}" sin stock`)
+        toast.warning(t('pos.productOutOfStock', { name: producto.nombre }))
       } else {
-        toast.warning(t('pos.productNotFound') || `Codigo no encontrado: ${barcode}`)
+        toast.warning(t('pos.productNotFound'))
         setSearch(barcode)
         setFocusSearch(true)
       }
     } catch (err) {
       console.error('Error escaneando codigo:', err)
-      toast.error(t('errors.barcodeScanError') || 'Error al escanear codigo')
+      toast.error(t('errors.barcodeScanError'))
     }
   }
 
