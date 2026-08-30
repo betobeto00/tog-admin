@@ -366,6 +366,26 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
         ALTER TABLE usuarios ADD COLUMN permisos TEXT;
       `,
     },
+    {
+      nombre: '014_metodos_pago',
+      sql: `
+        CREATE TABLE IF NOT EXISTS metodos_pago (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          clave TEXT NOT NULL UNIQUE,
+          nombre TEXT NOT NULL,
+          icono TEXT NOT NULL DEFAULT 'DollarSign',
+          requiere_terminal INTEGER NOT NULL DEFAULT 0,
+          activo INTEGER NOT NULL DEFAULT 1,
+          orden INTEGER NOT NULL DEFAULT 0,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+          actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        INSERT OR IGNORE INTO metodos_pago (clave, nombre, icono, requiere_terminal, orden) VALUES
+          ('efectivo', 'Efectivo', 'DollarSign', 0, 1),
+          ('tarjeta', 'Tarjeta (VP800)', 'CreditCard', 1, 2);
+      `,
+    },
   ]
 }
 

@@ -149,6 +149,14 @@ contextBridge.exposeInMainWorld('api', {
     set: (clave: string, valor: string) => ipcRenderer.invoke('config:set', { clave, valor }),
   },
 
+  metodosPago: {
+    list: (activoOnly?: boolean) => ipcRenderer.invoke('metodos-pago:list', { activoOnly }),
+    create: (data: unknown) => ipcRenderer.invoke('metodos-pago:create', data),
+    update: (id: number, data: unknown) => ipcRenderer.invoke('metodos-pago:update', { id, data }),
+    delete: (id: number) => ipcRenderer.invoke('metodos-pago:delete', { id }),
+    procesarTarjeta: (monto: number) => ipcRenderer.invoke('metodos-pago:procesar-tarjeta', { monto }),
+  },
+
   // Licencia
   license: {
     status: () => ipcRenderer.invoke('license:status'),
@@ -282,6 +290,13 @@ export interface PapeleriaAPI {
   config: {
     get: () => Promise<any[]>
     set: (clave: string, valor: string) => Promise<any>
+  }
+  metodosPago: {
+    list: (activoOnly?: boolean) => Promise<any[]>
+    create: (data: unknown) => Promise<{ success: boolean; id?: number; error?: string }>
+    update: (id: number, data: unknown) => Promise<{ success: boolean; error?: string }>
+    delete: (id: number) => Promise<{ success: boolean; error?: string }>
+    procesarTarjeta: (monto: number) => Promise<{ success: boolean; authCode?: string; refNum?: string; cardType?: string; maskedPan?: string; responseText?: string; error?: string }>
   }
   license: {
     status: () => Promise<any>
