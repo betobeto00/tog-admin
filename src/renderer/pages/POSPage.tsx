@@ -99,6 +99,11 @@ export default function POSPage() {
     }
   }
 
+  // Venta rápida sin producto (servicio por cobrar)
+  const [quickSaleOpen, setQuickSaleOpen] = useState(false)
+  const [quickSaleDesc, setQuickSaleDesc] = useState('')
+  const [quickSaleMonto, setQuickSaleMonto] = useState('')
+
   // Hook de escaneo de codigos de barras
   useBarcodeScanner({
     onScan: handleBarcodeScan,
@@ -188,10 +193,7 @@ export default function POSPage() {
 
   const clearCart = () => setCart([])
 
-  // Venta rápida sin producto (servicio por cobrar)
-  const [quickSaleOpen, setQuickSaleOpen] = useState(false)
-  const [quickSaleDesc, setQuickSaleDesc] = useState('')
-  const [quickSaleMonto, setQuickSaleMonto] = useState('')
+
 
   const addQuickSale = () => {
     if (!quickSaleDesc.trim() || !quickSaleMonto || parseFloat(quickSaleMonto) <= 0) return

@@ -26,3 +26,4 @@ licenses/*.key
 # Allow licenses/.gitkeep so the directory structure is preserved
 !licenses/.gitkeep
 *.png
+license.key

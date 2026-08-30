@@ -52,6 +52,20 @@ export default function ComprasPage() {
 
   useEffect(() => { loadData() }, [fechaInicio, fechaFin])
 
+  const addItem = (producto: Producto) => {
+    const existente = items.find((i) => i.producto_id === producto.id)
+    if (existente) {
+      setItems(items.map((i) => i.producto_id === producto.id ? { ...i, cantidad: i.cantidad + 1, subtotal: (i.cantidad + 1) * i.costo_unitario } : i))
+    } else {
+      setItems([...items, {
+        producto_id: producto.id, nombre: producto.nombre,
+        cantidad: 1, costo_unitario: producto.precio_compra || 0,
+        subtotal: producto.precio_compra || 0,
+      }])
+    }
+    setSearchProd('')
+  }
+
   // Handler de escaneo de código de barras
   const handleBarcodeScan = useCallback((barcode: string) => {
     if (!nuevaOpen) return
@@ -125,20 +139,6 @@ export default function ComprasPage() {
   const prodsFiltrados = searchProd.trim()
     ? productos.filter((p) => p.nombre.toLowerCase().includes(searchProd.toLowerCase())).slice(0, 10)
     : []
-
-  const addItem = (producto: Producto) => {
-    const existente = items.find((i) => i.producto_id === producto.id)
-    if (existente) {
-      setItems(items.map((i) => i.producto_id === producto.id ? { ...i, cantidad: i.cantidad + 1, subtotal: (i.cantidad + 1) * i.costo_unitario } : i))
-    } else {
-      setItems([...items, {
-        producto_id: producto.id, nombre: producto.nombre,
-        cantidad: 1, costo_unitario: producto.precio_compra || 0,
-        subtotal: producto.precio_compra || 0,
-      }])
-    }
-    setSearchProd('')
-  }
 
   const updateItem = (idx: number, field: string, value: number) => {
     setItems(items.map((item, i) => {
