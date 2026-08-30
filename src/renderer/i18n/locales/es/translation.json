@@ -189,7 +189,14 @@
     "addToCartButton": "Agregar al Carrito",
     "printButton": "Imprimir",
     "closeButton": "Cerrar",
-    "thankYou": "¡Gracias por su compra!"
+    "thankYou": "¡Gracias por su compra!",
+    "scannerActive": "Escáner activo",
+    "scannerInactive": "Escáner inactivo",
+    "scannerEnabled": "Escáner de código de barras habilitado",
+    "scannerDisabled": "Escáner de código de barras deshabilitado",
+    "scannerReady": "Listo para escanear",
+    "productOutOfStock": "Producto sin stock",
+    "productNotFound": "Código no encontrado"
   },
   "inventario": {
     "title": "Inventario",
@@ -643,7 +650,8 @@
     "restoreError": "Error restaurando",
     "configSaveError": "Error al guardar configuración",
     "configSaveSuccess": "Configuración guardada exitosamente",
-    "processSaleError": "Error al procesar la venta"
+    "processSaleError": "Error al procesar la venta",
+    "barcodeScanError": "Error al escanear código de barras"
   },
   "toast": {
     "saved": "Guardado correctamente",

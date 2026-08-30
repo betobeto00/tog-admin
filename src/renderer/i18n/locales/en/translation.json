@@ -189,7 +189,14 @@
     "addToCartButton": "Add to Cart",
     "printButton": "Print",
     "closeButton": "Close",
-    "thankYou": "Thank you for your purchase!"
+    "thankYou": "Thank you for your purchase!",
+    "scannerActive": "Scanner active",
+    "scannerInactive": "Scanner inactive",
+    "scannerEnabled": "Barcode scanner enabled",
+    "scannerDisabled": "Barcode scanner disabled",
+    "scannerReady": "Ready to scan",
+    "productOutOfStock": "Product out of stock",
+    "productNotFound": "Barcode not found"
   },
   "inventario": {
     "title": "Inventory",
@@ -643,7 +650,8 @@
     "restoreError": "Error restoring",
     "configSaveError": "Error saving settings",
     "configSaveSuccess": "Settings saved successfully",
-    "processSaleError": "Error processing sale"
+    "processSaleError": "Error processing sale",
+    "barcodeScanError": "Error scanning barcode"
   },
   "toast": {
     "saved": "Saved successfully",

@@ -467,6 +467,33 @@ function registerProductosHandlers(): void {
     if (data?.limite) { sql += ` LIMIT ?`; params.push(data.limite) }
     return db.prepare(sql).all(...params)
   })
+
+  // Buscar producto por codigo de barras o SKU (para lector USB HID)
+  ipcMain.handle('productos:buscar-por-codigo', async (_event, data: { codigo: string }) => {
+    const db = getDatabase()
+    const codigo = data.codigo.trim()
+    if (!codigo) return null
+
+    // 1. Buscar por codigo_barras exacto
+    let producto = db.prepare(`
+      SELECT p.*, c.nombre as categoria_nombre
+      FROM productos p
+      LEFT JOIN categorias c ON p.categoria_id = c.id
+      WHERE p.activo = 1 AND p.codigo_barras = ?
+    `).get(codigo) as any
+
+    // 2. Fallback: buscar por SKU
+    if (!producto) {
+      producto = db.prepare(`
+        SELECT p.*, c.nombre as categoria_nombre
+        FROM productos p
+        LEFT JOIN categorias c ON p.categoria_id = c.id
+        WHERE p.activo = 1 AND p.sku = ?
+      `).get(codigo) as any
+    }
+
+    return producto || null
+  })
 }
 
 // ============================================
