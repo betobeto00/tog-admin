@@ -111,7 +111,7 @@ export default function ReportesPage() {
           const a = document.createElement('a'); a.href = url; a.download = `reporte-${fechaInicio}-${fechaFin}.csv`; a.click()
           URL.revokeObjectURL(url)
         }} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
-          <Download className="w-4 h-4" /> Exportar CSV
+          <Download className="w-4 h-4" /> {t('reportes.exportCsv')}
         </button>
         <button onClick={() => {
           const win = window.open('', '_blank', 'width=800,height=600')
@@ -130,18 +130,18 @@ export default function ReportesPage() {
             .card span{font-size:18px;font-weight:bold}
           </style></head><body>
             <h1>TOG Admin — {t('reportes.reportTitle')}</h1>
-            <p>Período: ${fechaInicio} al ${fechaFin} | Generado: ${new Date().toLocaleString()}</p>
+            <p>${t('reportes.periodLabel')} ${fechaInicio} - ${fechaFin} | ${t('reportes.generated')} ${new Date().toLocaleString()}</p>
             <div class="summary">
-              <div class="card"><p>Total Período</p><span>$${totalPeriodo.toFixed(2)}</span></div>
+              <div class="card"><p>${t('reportes.totalPeriod')}</p><span>$${totalPeriodo.toFixed(2)}</span></div>
               <div class="card"><p>{t('reportes.totalTickets')}</p><span>${totalVentasPeriodo}</span></div>
-              <div class="card"><p>Promedio Diario</p><span>$${promedioDiario.toFixed(2)}</span></div>
+              <div class="card"><p>${t('reportes.dailyAvg')}</p><span>$${promedioDiario.toFixed(2)}</span></div>
             </div>
             <h2>{t('reportes.salesByDay')}</h2>
             <table><thead><tr><th>{t('reportes.date')}</th><th>{t('reportes.salesCount')}</th><th>{t('reportes.amount')}</th></tr></thead><tbody>
               ${ventasDiarias.map(v => `<tr><td>${v.fecha}</td><td>${v.total_ventas}</td><td>$${v.monto_total.toFixed(2)}</td></tr>`).join('')}
             </tbody></table>
             <h2>{t('reportes.topProducts')}</h2>
-            <table><thead><tr><th>Producto</th><th>Vendidos</th><th>Ingreso</th></tr></thead><tbody>
+            <table><thead><tr><th>${t('reportes.product')}</th><th>${t('reportes.sold')}</th><th>${t('reportes.income')}</th></tr></thead><tbody>
               ${topProductos.map(p => `<tr><td>${p.nombre}</td><td>${p.total_vendido}</td><td>$${p.total_ingreso.toFixed(2)}</td></tr>`).join('')}
             </tbody></table>
             <h2>{t('reportes.salesByCategory')}</h2>
@@ -152,7 +152,7 @@ export default function ReportesPage() {
           </body></html>`)
           win.document.close()
         }} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-          <FileText className="w-4 h-4" /> Imprimir PDF
+          <FileText className="w-4 h-4" /> {t('reportes.printPdf')}
         </button>
       </div>
 
@@ -167,35 +167,35 @@ export default function ReportesPage() {
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2 bg-blue-50 rounded-lg"><TrendingUp className="w-5 h-5 text-blue-600" /></div>
-                <span className="text-sm text-gray-500">Total Período</span>
+                <span className="text-sm text-gray-500">{t('reportes.totalPeriod')}</span>
               </div>
               <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalPeriodo)}</p>
-              <p className="text-xs text-gray-400 mt-1">{totalVentasPeriodo} ventas en {ventasDiarias.length} días</p>
+              <p className="text-xs text-gray-400 mt-1">{t('reportes.periodSummary', { days: ventasDiarias.length })}</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2 bg-green-50 rounded-lg"><BarChart3 className="w-5 h-5 text-green-600" /></div>
-                <span className="text-sm text-gray-500">Promedio Diario</span>
+                <span className="text-sm text-gray-500">{t('reportes.dailyAvg')}</span>
               </div>
               <p className="text-2xl font-bold text-gray-900">{formatCurrency(promedioDiario)}</p>
-              <p className="text-xs text-gray-400 mt-1">promedio por día</p>
+              <p className="text-xs text-gray-400 mt-1">{t('reportes.avgPerDay')}</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2 bg-purple-50 rounded-lg"><Package className="w-5 h-5 text-purple-600" /></div>
-                <span className="text-sm text-gray-500">Top Producto</span>
+                <span className="text-sm text-gray-500">{t('reportes.topProduct')}</span>
               </div>
               <p className="text-lg font-bold text-gray-900">{topProductos[0]?.nombre || '—'}</p>
-              <p className="text-xs text-gray-400 mt-1">{topProductos[0] ? `${topProductos[0].total_vendido} unidades` : 'sin datos'}</p>
+              <p className="text-xs text-gray-400 mt-1">{topProductos[0] ? `${topProductos[0].total_vendido} ${t('inventario.units')}` : t('reportes.noData')}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Gráfica de ventas por día */}
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-base font-semibold text-gray-900 mb-4">📈 Ventas por Día</h3>
+              <h3 className="text-base font-semibold text-gray-900 mb-4">{t('reportes.salesByDayChart')}</h3>
               {lineData.length === 0 ? (
-                <p className="text-center text-gray-400 py-12">No hay datos en este período</p>
+                <p className="text-center text-gray-400 py-12">{t('reportes.noDataPeriod')}</p>
               ) : (
                 <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={lineData}>
@@ -212,9 +212,9 @@ export default function ReportesPage() {
 
             {/* Top productos más vendidos */}
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-base font-semibold text-gray-900 mb-4">🏆 Productos Más Vendidos</h3>
+              <h3 className="text-base font-semibold text-gray-900 mb-4">{t('reportes.topProductsChart')}</h3>
               {barData.length === 0 ? (
-                <p className="text-center text-gray-400 py-12">No hay datos en este período</p>
+                <p className="text-center text-gray-400 py-12">{t('reportes.noDataPeriod')}</p>
               ) : (
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={barData} layout="vertical">
@@ -230,9 +230,9 @@ export default function ReportesPage() {
 
             {/* Métodos de pago */}
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-base font-semibold text-gray-900 mb-4">💳 Métodos de Pago (Hoy)</h3>
+              <h3 className="text-base font-semibold text-gray-900 mb-4">{t('reportes.paymentMethodsChart')}</h3>
               {pieData.length === 0 ? (
-                <p className="text-center text-gray-400 py-12">No hay ventas hoy</p>
+                <p className="text-center text-gray-400 py-12">{t('reportes.noSalesToday')}</p>
               ) : (
                 <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
@@ -248,7 +248,7 @@ export default function ReportesPage() {
 
             {/* Ventas por categoría */}
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-base font-semibold text-gray-900 mb-4">📊 Ventas por Categoría</h3>
+              <h3 className="text-base font-semibold text-gray-900 mb-4">{t('reportes.categoryChart')}</h3>
               {ventasCategoria.length === 0 ? (
                 <p className="text-center text-gray-400 py-12">No hay datos en este período</p>
               ) : (
@@ -266,18 +266,18 @@ export default function ReportesPage() {
 
             {/* Tabla de top productos */}
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-base font-semibold text-gray-900 mb-4">📋 Detalle Top Productos</h3>
+              <h3 className="text-base font-semibold text-gray-900 mb-4">{t('reportes.topProductsDetail')}</h3>
               {topProductos.length === 0 ? (
-                <p className="text-center text-gray-400 py-12">No hay datos</p>
+                <p className="text-center text-gray-400 py-12">{t('reportes.noDataShort')}</p>
               ) : (
                 <div className="overflow-y-auto max-h-64">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">#</th>
-                        <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">Producto</th>
-                        <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500">Vendidos</th>
-                        <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500">Ingreso</th>
+                        <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">{t('reportes.product')}</th>
+                        <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500">{t('reportes.sold')}</th>
+                        <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500">{t('reportes.income')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
