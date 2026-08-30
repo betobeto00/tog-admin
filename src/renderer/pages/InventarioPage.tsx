@@ -26,6 +26,7 @@ const emptyProduct = {
 }
 
 export default function InventarioPage() {
+  const { t } = useTranslation()
   const usuario = useAuthStore((s) => s.usuario)
   const [productos, setProductos] = useState<Producto[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])

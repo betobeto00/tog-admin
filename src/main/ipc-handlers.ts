@@ -48,6 +48,13 @@ export function registerIpcHandlers(): void {
   registerAjustesHandlers()
   registerI18nHandlers()
   registerCrashReportHandlers()
+  registerAppHandlers()
+}
+
+function registerAppHandlers(): void {
+  ipcMain.handle('app:version', () => {
+    return app.getVersion()
+  })
 }
 
 function registerI18nHandlers(): void {  

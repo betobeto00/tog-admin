@@ -7,6 +7,17 @@ contextBridge.exposeInMainWorld('api', {
     return ipcRenderer.invoke(channel, ...args)
   },
 
+  // Updater
+  updater: {
+    checkForUpdates: () => ipcRenderer.invoke('update:check'),
+    downloadUpdate: () => ipcRenderer.invoke('update:download'),
+    installUpdate: () => ipcRenderer.invoke('update:install'),
+    onProgress: (callback: (data: { percent: number; transferred: number; total: number }) => void) => {
+      ipcRenderer.on('update:progress', (_event, data) => callback(data))
+    },
+    getAppVersion: () => ipcRenderer.invoke('updater:version'),
+  },
+
   // Atajos específicos para autenticación
   auth: {
     login: (data: { usuario: string; contrasena: string }) =>
@@ -149,6 +160,11 @@ contextBridge.exposeInMainWorld('api', {
     setLang: (lang: 'es' | 'en') => ipcRenderer.invoke('i18n:set-lang', { lang }),
   },
 
+  // Versión de la app
+  app: {
+    getVersion: () => ipcRenderer.invoke('app:version'),
+  },
+
   // Crash Reports
   crashReport: {
     save: (data: {
@@ -270,6 +286,16 @@ export interface PapeleriaAPI {
   i18n: {
     getLang: () => Promise<'es' | 'en'>
     setLang: (lang: 'es' | 'en') => Promise<{ success: boolean; lang: 'es' | 'en' }>
+  }
+  updater: {
+    checkForUpdates: () => Promise<{ available: boolean; version?: string; error?: string }>
+    downloadUpdate: () => Promise<void>
+    installUpdate: () => Promise<void>
+    onProgress: (callback: (data: { percent: number; transferred: number; total: number }) => void) => void
+    getAppVersion: () => Promise<string>
+  }
+  app: {
+    getVersion: () => Promise<string>
   }
   crashReport: {
     save: (data: {

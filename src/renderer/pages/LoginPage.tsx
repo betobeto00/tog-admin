@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../stores/auth.store'
-import { Lock, User, Eye, EyeOff } from 'lucide-react'
+import { Lock, User, Eye, EyeOff, Download, RefreshCw } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import { changeLang } from '../i18n'
 
@@ -10,8 +10,25 @@ export default function LoginPage() {
   const [usuario, setUsuario] = useState('')
   const [contrasena, setContrasena] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [modalContent, setModalContent] = useState<null | 'copyright' | 'licenses' | 'privacy' | 'terms'>(null)
+  const [modalContent, setModalContent] = useState<null | 'copyright' | 'licenses' | 'privacy' | 'terms' | 'releases'>(null)
   const { login, isLoading, error, clearError } = useAuthStore()
+  const [appVersion, setAppVersion] = useState('1.0.1')
+  const [updateInfo, setUpdateInfo] = useState<{ available: boolean; version?: string } | null>(null)
+  const [checkingUpdate, setCheckingUpdate] = useState(false)
+
+  // Obtener versión al montar
+  useEffect(() => {
+    window.api.app.getVersion().then((v) => setAppVersion(v || '1.0.1')).catch(() => {})
+  }, [])
+
+  const handleCheckUpdate = async () => {
+    setCheckingUpdate(true)
+    try {
+      const result = await window.api.updater.checkForUpdates()
+      setUpdateInfo(result)
+    } catch {}
+    setCheckingUpdate(false)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -19,9 +36,44 @@ export default function LoginPage() {
     await login(usuario.trim(), contrasena)
   }
 
+  // Release Notes ficticios para demo
+  const releaseNotes = [
+    {
+      version: '1.0.1',
+      date: '2026-08-30',
+      changes: [
+        'Corregido error "t is not defined" en la página de Inventario',
+        'Icono de la empresa (logo TOG) en el instalador y ejecutable',
+        'Sistema de actualizaciones automáticas (auto-updater)',
+        'Release Notes visible desde la pantalla de login',
+        'Fondo hero-bg.jpg en la pantalla de login',
+      ],
+    },
+    {
+      version: '1.0.0',
+      date: '2026-08-28',
+      changes: [
+        'Sistema de Punto de Venta completo',
+        'Gestión de inventario con categorías y unidades de medida',
+        'Sistema de ventas con impresión de tickets',
+        'Caja diaria con control de movimientos',
+        'Reportes de ventas y productos más vendidos',
+        'Sistema de cotizaciones',
+        'Soporte para terminal de pago VP800',
+        'Backup y restauración de base de datos',
+        'Sistema de licenciamiento',
+        'Soporte multi-idioma (ES/EN)',
+      ],
+    },
+  ]
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
-      <div className="w-full max-w-md">
+    <div
+      className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: `url('./hero-bg.jpg')` }}
+    >
+      <div className="absolute inset-0 bg-white/70 backdrop-blur-sm" />
+      <div className="w-full max-w-md relative z-10">
         {/* Logo / Header */}
         <div className="text-center mb-8">
           <div className="mx-auto w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
@@ -130,6 +182,35 @@ export default function LoginPage() {
           <div className="mt-6 text-center text-xs text-gray-400">
             <p>admin / admin123</p>
           </div>
+
+          {/* Update check */}
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <button
+              onClick={handleCheckUpdate}
+              disabled={checkingUpdate}
+              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-blue-600 transition-colors"
+            >
+              {checkingUpdate ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              {checkingUpdate ? (i18n.language === 'en' ? 'Checking...' : 'Buscando...') : (i18n.language === 'en' ? 'Check for updates' : 'Buscar actualizaciones')}
+            </button>
+            {updateInfo && (
+              <span className="text-xs">
+                {updateInfo.available ? (
+                  <span className="text-green-600 font-medium">
+                    {i18n.language === 'en' ? `v${updateInfo.version} available!` : `¡v${updateInfo.version} disponible!`}
+                  </span>
+                ) : (
+                  <span className="text-gray-400">
+                    {i18n.language === 'en' ? 'Up to date' : 'Al día'}
+                  </span>
+                )}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Language switcher */}
@@ -166,17 +247,43 @@ export default function LoginPage() {
           <button onClick={() => setModalContent('terms')} className="text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2">
             {t('login.terms')}
           </button>
+          <span className="text-gray-300">•</span>
+          <button onClick={() => setModalContent('releases')} className="text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2">
+            Release Notes
+          </button>
         </div>
 
         {/* Version */}
         <p className="text-center text-xs text-gray-400 mt-4">
-          {t('login.copyright')}
+          {t('login.copyright')} — v{appVersion}
         </p>
+
+      {/* Modal Release Notes */}
+      <Modal open={modalContent === 'releases'} onClose={() => setModalContent(null)} title="Release Notes">
+        <div className="space-y-4 text-sm text-gray-600 max-h-96 overflow-y-auto">
+          {releaseNotes.map((release) => (
+            <div key={release.version} className="bg-blue-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-bold text-gray-800">TOG Admin v{release.version}</h4>
+                <span className="text-xs text-gray-500">{release.date}</span>
+              </div>
+              <ul className="space-y-1">
+                {release.changes.map((change, i) => (
+                  <li key={i} className="text-xs text-gray-600 flex items-start gap-2">
+                    <span className="text-blue-500 mt-0.5">•</span>
+                    {change}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </Modal>
 
       {/* Modales legales (textos legales intencionalmente fijos — son documentos contractuales) */}
       <Modal open={modalContent === 'copyright'} onClose={() => setModalContent(null)} title="Copyright">
         <div className="space-y-4 text-sm text-gray-600">
-          <p><strong>TOG Admin v1.0.0</strong></p>
+          <p><strong>TOG Admin v1.0.1</strong></p>
           <p>© {new Date().getFullYear()} TOG Admin. {i18n.language === 'en' ? 'All rights reserved.' : 'Todos los derechos reservados.'}</p>
           <p>{i18n.language === 'en'
             ? 'This software is the exclusive property of TOG Admin. Reproduction, distribution or modification without prior written authorization is prohibited.'
@@ -188,7 +295,7 @@ export default function LoginPage() {
           </p>
           <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500">
             <p>License: Proprietary</p>
-            <p>Version: 1.0.0</p>
+            <p>Version: 1.0.1</p>
             <p>Platform: Windows 10/11 (x64)</p>
           </div>
         </div>

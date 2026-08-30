@@ -1,0 +1,122 @@
+import { autoUpdater, UpdateInfo } from 'electron-updater'
+import { app, BrowserWindow, dialog, shell } from 'electron'
+import log from 'electron-log'
+
+// Configurar logging
+autoUpdater.logger = log
+
+// Deshabilitar auto-download — solo notificaremos al usuario
+autoUpdater.autoDownload = false
+autoUpdater.autoInstallOnAppQuit = false
+
+let mainWindow: BrowserWindow | null = null
+
+export function setupAutoUpdater(win: BrowserWindow): void {
+  mainWindow = win
+
+  // Cuando hay una actualización disponible
+  autoUpdater.on('update-available', (info: UpdateInfo) => {
+    log.info(`[Updater] Actualización disponible: v${info.version}`)
+
+    dialog
+      .showMessageBox(mainWindow!, {
+        type: 'info',
+        title: 'Actualización disponible',
+        message: `TOG Admin v${info.version} está disponible.`,
+        detail: '¿Deseas descargar e instalar la actualización ahora?',
+        buttons: ['Actualizar ahora', 'Más tarde'],
+        defaultId: 0,
+        cancelId: 1,
+      })
+      .then(({ response }) => {
+        if (response === 0) {
+          autoUpdater.downloadUpdate()
+        }
+      })
+  })
+
+  // Progreso de descarga
+  autoUpdater.on('download-progress', (progress) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('update:progress', {
+        percent: progress.percent,
+        transferred: progress.transferred,
+        total: progress.total,
+      })
+    }
+  })
+
+  // Cuando la descarga termina
+  autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
+    log.info(`[Updater] Descarga completada: v${info.version}`)
+
+    dialog
+      .showMessageBox(mainWindow!, {
+        type: 'info',
+        title: 'Actualización lista',
+        message: 'La actualización se ha descargado.',
+        detail: 'La aplicación se reiniciará para aplicar la actualización.',
+        buttons: ['Reiniciar ahora', 'Más tarde'],
+        defaultId: 0,
+        cancelId: 1,
+      })
+      .then(({ response }) => {
+        if (response === 0) {
+          autoUpdater.quitAndInstall()
+        }
+      })
+  })
+
+  // Errores
+  autoUpdater.on('error', (err) => {
+    log.error('[Updater] Error:', err.message)
+  })
+
+  // Verificar actualizaciones al iniciar (después de 3 segundos)
+  setTimeout(() => {
+    autoUpdater.checkForUpdates().catch((err) => {
+      log.error('[Updater] Error al verificar actualizaciones:', err.message)
+    })
+  }, 3000)
+
+  // Verificar cada 4 horas
+  setInterval(() => {
+    autoUpdater.checkForUpdates().catch(() => {})
+  }, 4 * 60 * 60 * 1000)
+}
+
+/**
+ * Verifica actualizaciones manualmente (llamado desde IPC).
+ */
+export async function checkForUpdatesManual(): Promise<{
+  available: boolean
+  version?: string
+  error?: string
+}> {
+  try {
+    const result = await autoUpdater.checkForUpdates()
+    if (result) {
+      return {
+        available: true,
+        version: result.updateInfo.version,
+      }
+    }
+    return { available: false }
+  } catch (err: any) {
+    return { available: false, error: err.message }
+  }
+}
+
+/**
+ * Descarga la actualización (llamado desde IPC tras confirmar).
+ */
+export function downloadUpdate(): void {
+  autoUpdater.downloadUpdate()
+}
+
+/**
+ * Instala la actualización y reinicia.
+ */
+export function installUpdate(): void {
+  autoUpdater.quitAndInstall(false, true)
+}
