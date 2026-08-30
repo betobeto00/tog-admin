@@ -4,6 +4,7 @@ import { initializeDatabase } from './db/database'
 import { registerIpcHandlers } from './ipc-handlers'
 import { initI18n, t as i18nT } from './i18n'
 import { saveCrashReport, captureLog } from './services/crash-reporter'
+import { setupAutoUpdater, checkForUpdatesManual, downloadUpdate, installUpdate } from './services/updater'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -176,6 +177,16 @@ app.whenReady().then(() => {
   // Crear ventana
   createWindow()
   console.log(`[TOG Admin] ${i18nT('logs.windowCreated')}`)
+
+  // Iniciar auto-updater
+  if (mainWindow) {
+    setupAutoUpdater(mainWindow)
+  }
+
+  // Handlers IPC para updater
+  ipcMain.handle('update:check', () => checkForUpdatesManual())
+  ipcMain.handle('update:download', () => { downloadUpdate() })
+  ipcMain.handle('update:install', () => { installUpdate() })
 
   // Crear tray (opcional, descomentar si se desea)
   // createTray()
