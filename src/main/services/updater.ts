@@ -70,14 +70,25 @@ export function setupAutoUpdater(win: BrowserWindow): void {
   // Errores
   autoUpdater.on('error', (err) => {
     log.error('[Updater] Error:', err.message)
+    console.error('[Updater] Error:', err.message)
   })
 
-  // Verificar actualizaciones al iniciar (después de 3 segundos)
+  // Log cuando no hay actualización
+  autoUpdater.on('update-not-available', () => {
+    log.info('[Updater] No hay actualización disponible')
+    console.log('[Updater] No hay actualización disponible')
+  })
+
+  // Verificar actualizaciones al iniciar (después de 5 segundos)
   setTimeout(() => {
+    console.log('[Updater] Verificando actualizaciones...')
+    console.log('[Updater] Versión actual:', app.getVersion())
+    console.log('[Updater] Publish config:', JSON.stringify(autoUpdater.getFeedURL()))
     autoUpdater.checkForUpdates().catch((err) => {
       log.error('[Updater] Error al verificar actualizaciones:', err.message)
+      console.error('[Updater] Error al verificar:', err.message)
     })
-  }, 3000)
+  }, 5000)
 
   // Verificar cada 4 horas
   setInterval(() => {
@@ -95,10 +106,14 @@ export async function checkForUpdatesManual(): Promise<{
 }> {
   try {
     const result = await autoUpdater.checkForUpdates()
-    if (result) {
+    if (result && result.updateInfo) {
+      const currentVersion = app.getVersion()
+      const latestVersion = result.updateInfo.version
+      // Comparar versiones: si la nueva es mayor, hay update disponible
+      const available = latestVersion !== currentVersion
       return {
-        available: true,
-        version: result.updateInfo.version,
+        available,
+        version: latestVersion,
       }
     }
     return { available: false }

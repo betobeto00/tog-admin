@@ -1,6 +1,6 @@
 {
   "name": "tog-admin",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "TOG Admin - Sistema de Punto de Venta para Papelería, Centro de Copiado e Impresión",
   "main": "dist-electron/main/index.js",
   "author": "Bet00 Nardieu",
@@ -103,7 +103,7 @@
     },
     "publish": {
       "provider": "github",
-      "owner": "Bet00-Nardieu",
+      "owner": "betobeto00",
       "repo": "tog-admin"
     }
   }
