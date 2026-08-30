@@ -23,7 +23,7 @@ interface CompraRecord {
 }
 
 export default function ComprasPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const usuario = useAuthStore((s) => s.usuario)
   const { has } = usePermissions()
   const [compras, setCompras] = useState<CompraRecord[]>([])
