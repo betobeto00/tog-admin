@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual del Usuario — TOG Admin</title>
+<style>
+  :root {
+    --primary: #3b82f6;
+    --primary-dark: #1e40af;
+    --accent: #10b981;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --bg: #f8fafc;
+    --bg-card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --text-muted: #64748b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    font-size: 16px;
+  }
+  .cover {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    color: #fff;
+    text-align: center;
+    padding: 40px 20px;
+    page-break-after: always;
+  }
+  .cover img { width: 200px; height: auto; margin-bottom: 30px; filter: drop-shadow(0 4px 20px rgba(0,0,0,0.3)); }
+  .cover h1 { font-size: 56px; font-weight: 800; margin-bottom: 12px; letter-spacing: -1px; }
+  .cover h2 { font-size: 28px; font-weight: 300; opacity: 0.9; margin-bottom: 40px; }
+  .cover .badge { display: inline-block; padding: 8px 20px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 30px; font-size: 14px; backdrop-filter: blur(10px); }
+  .cover .version { margin-top: 60px; font-size: 14px; opacity: 0.7; }
+  .container { max-width: 980px; margin: 0 auto; padding: 30px 24px; }
+  nav.toc {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 32px;
+    position: sticky;
+    top: 16px;
+    z-index: 100;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+  }
+  nav.toc h2 { font-size: 16px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 16px; font-weight: 700; }
+  nav.toc ol { columns: 2; column-gap: 28px; }
+  nav.toc li { margin-bottom: 6px; break-inside: avoid; }
+  nav.toc a { color: var(--primary); text-decoration: none; font-size: 14px; }
+  nav.toc a:hover { text-decoration: underline; }
+  section.chapter {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    scroll-margin-top: 20px;
+  }
+  section.chapter h2 {
+    font-size: 30px;
+    color: var(--primary-dark);
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 3px solid var(--primary);
+  }
+  section.chapter h3 {
+    font-size: 21px;
+    color: var(--text);
+    margin: 28px 0 12px;
+    padding-left: 14px;
+    border-left: 4px solid var(--primary);
+  }
+  section.chapter h4 {
+    font-size: 17px;
+    color: var(--text);
+    margin: 20px 0 10px;
+    font-weight: 700;
+  }
+  section.chapter p { margin-bottom: 14px; }
+  section.chapter ul, section.chapter ol { margin: 12px 0 14px 24px; }
+  section.chapter li { margin-bottom: 6px; }
+  .hero {
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+    color: #fff;
+    padding: 24px 28px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+  }
+  .hero h2 { border: none; color: #fff; padding: 0; margin-bottom: 8px; font-size: 22px; }
+  .hero p { margin: 0; opacity: 0.95; }
+  .callout {
+    padding: 16px 20px;
+    border-radius: 10px;
+    margin: 16px 0;
+    border-left: 4px solid;
+    background: var(--bg);
+  }
+  .callout.info { border-color: var(--primary); background: #eff6ff; }
+  .callout.warn { border-color: var(--warn); background: #fffbeb; }
+  .callout.danger { border-color: var(--danger); background: #fef2f2; }
+  .callout.tip { border-color: var(--accent); background: #f0fdf4; }
+  .callout strong { display: block; margin-bottom: 4px; }
+  code, kbd {
+    background: #f1f5f9;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-family: "SF Mono", Monaco, Consolas, monospace;
+    font-size: 0.9em;
+    color: #be185d;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: #f1f5f9; font-weight: 700; color: var(--text); font-size: 14px; }
+  tr:hover { background: #f8fafc; }
+  .shortcut {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: #f1f5f9;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary-dark);
+  }
+  .grid { display: grid; gap: 16px; margin: 16px 0; }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .card {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .card h4 { margin-top: 0; color: var(--primary); }
+  .steps { counter-reset: step; list-style: none; margin-left: 0; }
+  .steps li {
+    counter-increment: step;
+    padding-left: 44px;
+    position: relative;
+    margin-bottom: 14px;
+    min-height: 32px;
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 32px;
+    height: 32px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .step-image {
+    background: #fff;
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-style: italic;
+    margin: 10px 0;
+  }
+  .footer {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+  @media (max-width: 768px) {
+    .cover h1 { font-size: 36px; }
+    .cover h2 { font-size: 20px; }
+    nav.toc ol { columns: 1; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    section.chapter { padding: 20px; }
+    section.chapter h2 { font-size: 24px; }
+  }
+  @media print {
+    .cover { min-height: auto; padding: 60px 20px; }
+    nav.toc { page-break-after: always; position: static; }
+    section.chapter { box-shadow: none; page-break-inside: avoid; }
+    .callout { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <img src="../public/android-chrome-192x192.png" alt="TOG Admin Logo">
+  <h1>TOG Admin</h1>
+  <h2>Manual del Usuario</h2>
+  <div class="badge">Sistema de Punto de Venta · Papelería</div>
+  <div class="version">Versión 1.0.6 · Agosto 2026</div>
+</div>
+
+<div class="container">
+
+<nav class="toc">
+  <h2>Contenido</h2>
+  <ol>
+    <li><a href="#intro">1. Introducción</a></li>
+    <li><a href="#inicio">2. Primer Inicio</a></li>
+    <li><a href="#login">3. Iniciar Sesión</a></li>
+    <li><a href="#dashboard">4. Panel Principal (Dashboard)</a></li>
+    <li><a href="#pos">5. Punto de Venta (POS)</a></li>
+    <li><a href="#caja">6. Gestión de Caja</a></li>
+    <li><a href="#inventario">7. Inventario y Productos</a></li>
+    <li><a href="#compras">8. Compras a Proveedores</a></li>
+    <li><a href="#ventas">9. Ventas e Historial</a></li>
+    <li><a href="#cotizaciones">10. Cotizaciones</a></li>
+    <li><a href="#proveedores">11. Proveedores</a></li>
+    <li><a href="#reportes">12. Reportes</a></li>
+    <li><a href="#config">13. Configuración</a></li>
+    <li><a href="#terminal">14. Terminal de Tarjeta VP800</a></li>
+    <li><a href="#metodos">15. Métodos de Pago</a></li>
+    <li><a href="#permisos">16. Usuarios y Permisos</a></li>
+    <li><a href="#backup">17. Respaldos y Restauración</a></li>
+    <li><a href="#licencia">18. Licencia</a></li>
+    <li><a href="#actualizaciones">19. Actualizaciones</a></li>
+    <li><a href="#faq">20. Preguntas Frecuentes</a></li>
+    <li><a href="#soporte">21. Soporte</a></li>
+  </ol>
+</nav>
+
+<section class="chapter" id="intro">
+  <h2>1. Introducción</h2>
+  <p>Bienvenido a <strong>TOG Admin</strong>, tu sistema de punto de venta diseñado para papelerías y centros de copiado. Este manual te guiará paso a paso por todas las funciones disponibles.</p>
+
+  <h3>¿Qué puedes hacer con TOG Admin?</h3>
+  <div class="grid grid-3">
+    <div class="card">
+      <h4>🛒 Vender rápido</h4>
+      <p>Procesa ventas en segundos con lector de códigos de barras, búsqueda rápida y múltiples métodos de pago.</p>
+    </div>
+    <div class="card">
+      <h4>📦 Controlar inventario</h4>
+      <p>Gestiona productos, categorías, unidades de medida y alertas de stock bajo.</p>
+    </div>
+    <div class="card">
+      <h4>💰 Manejar caja</h4>
+      <p>Apertura, cierre, movimientos de efectivo y reporte X parcial sin cerrar caja.</p>
+    </div>
+    <div class="card">
+      <h4>📊 Analizar ventas</h4>
+      <p>Reportes por período, productos más vendidos, ventas por categoría y métodos de pago.</p>
+    </div>
+    <div class="card">
+      <h4>🧾 Cotizar clientes</h4>
+      <p>Crea presupuestos con validez, aprobación y conversión a venta.</p>
+    </div>
+    <div class="card">
+      <h4>🔌 Terminal VP800</h4>
+      <p>Cobra con tarjeta de crédito/débito directamente en el POS.</p>
+    </div>
+  </div>
+
+  <h3>A quién está dirigido</h3>
+  <ul>
+    <li><strong>Dueños y administradores</strong> de papelerías y centros de copiado.</li>
+    <li><strong>Cajeros y vendedores</strong> que procesan ventas a diario.</li>
+    <li>Negocios con <strong>una sola caja registradora</strong> en una PC.</li>
+  </ul>
+
+  <div class="callout info">
+    <strong>Requisitos del sistema</strong>
+    Windows 10/11 (64 bits), 4 GB de RAM mínimo, puerto USB disponible (para lector y/o terminal VP800).
+  </div>
+</section>
+
+<section class="chapter" id="inicio">
+  <h2>2. Primer Inicio</h2>
+  <p>Si acabas de instalar TOG Admin por primera vez, sigue estos pasos para configurar tu negocio.</p>
+
+  <h3>Paso 1: Iniciar la aplicación</h3>
+  <ol class="steps">
+    <li>Busca "TOG Admin" en el menú Inicio de Windows y ábrelo.</li>
+    <li>Aparecerá la pantalla de bienvenida con un campo para tu <strong>ID de máquina</strong>.</li>
+  </ol>
+
+  <h3>Paso 2: Activar la licencia</h3>
+  <ol class="steps">
+    <li>Copia tu <strong>ID de máquina</strong> (es un código largo tipo UUID).</li>
+    <li>Envíaselo al proveedor del software.</li>
+    <li>El proveedor te enviará un archivo <code>license.key</code>.</li>
+    <li>Haz clic en "Importar Licencia" y selecciona el archivo.</li>
+    <li>La aplicación se activará y mostrará la pantalla de login.</li>
+  </ol>
+
+  <div class="callout warn">
+    <strong>Importante</strong>
+    Sin licencia válida, la aplicación no te dejará iniciar sesión. Conserva tu archivo <code>license.key</code> en un lugar seguro.
+  </div>
+
+  <h3>Paso 3: Iniciar sesión por primera vez</h3>
+  <p>El sistema crea automáticamente un usuario administrador:</p>
+  <ul>
+    <li><strong>Usuario:</strong> <code>admin</code></li>
+    <li><strong>Contraseña temporal:</strong> <code>admin123</code></li>
+  </ul>
+  <ol class="steps">
+    <li>En la pantalla de login, ingresa <code>admin</code> y <code>admin123</code>.</li>
+    <li>El sistema te pedirá <strong>cambiar la contraseña</strong> inmediatamente. Elige una contraseña segura (mínimo 6 caracteres).</li>
+    <li>Una vez cambiado, verás el <strong>Panel Principal</strong>.</li>
+  </ol>
+
+  <div class="callout tip">
+    <strong>Consejo de seguridad</strong>
+    No uses contraseñas obvias como "123456" o tu nombre. Combina letras, números y símbolos.
+  </div>
+
+  <h3>Paso 4: Configurar tu negocio</h3>
+  <p>Antes de empezar a vender, ve a <strong>Configuración</strong> y completa:</p>
+  <ol>
+    <li><strong>Datos del Negocio</strong>: nombre, dirección, teléfono, EIN, logo.</li>
+    <li><strong>Impuestos</strong>: tasa de impuesto (por defecto 0%).</li>
+    <li><strong>Operación</strong>: nombre de impresora térmica, fondo inicial de caja.</li>
+    <li><strong>Usuarios</strong>: crea cuentas para tus cajeros.</li>
+  </ol>
+
+  <p>Más detalles en la sección <a href="#config">13. Configuración</a>.</p>
+</section>
+
+<section class="chapter" id="login">
+  <h2>3. Iniciar Sesión</h2>
+  <p>Cada vez que abras TOG Admin verás la pantalla de login.</p>
+
+  <h3>Acceder</h3>
+  <ol class="steps">
+    <li>Ingresa tu <strong>usuario</strong> (no tu email, sino tu nombre de usuario).</li>
+    <li>Ingresa tu <strong>contraseña</strong>.</li>
+    <li>Pulsa <strong>Iniciar Sesión</strong> o presiona <kbd>Enter</kbd>.</li>
+  </ol>
+
+  <h3>Seleccionar idioma</h3>
+  <p>En la esquina superior derecha de la pantalla de login puedes cambiar entre <strong>Español</strong> e <strong>Inglés</strong>. La preferencia se guarda automáticamente.</p>
+
+  <h3>Cambiar contraseña</h3>
+  <p>Si el sistema te obliga a cambiar la contraseña (primer login o un administrador lo decidió), completa el formulario:</p>
+  <ul>
+    <li>Tu contraseña actual.</li>
+    <li>La nueva contraseña (mínimo 6 caracteres).</li>
+    <li>Repite la nueva contraseña.</li>
+  </ul>
+
+  <h3>Problemas al iniciar sesión</h3>
+  <div class="callout danger">
+    <strong>Si olvidas tu contraseña</strong>
+    Contacta al administrador del sistema. Él puede restablecerla desde Configuración → Usuarios.
+  </div>
+  <div class="callout warn">
+    <strong>Cuenta bloqueada</strong>
+    Tras 5 intentos fallidos, el sistema bloquea el usuario por 15 minutos. Espera y vuelve a intentar.
+  </div>
+
+  <h3>Sesión por inactividad</h3>
+  <p>Por seguridad, la sesión se cierra automáticamente tras <strong>30 minutos de inactividad</strong>. Tu trabajo no guardado se conservará al volver a iniciar sesión.</p>
+</section>
+
+<section class="chapter" id="dashboard">
+  <h2>4. Panel Principal (Dashboard)</h2>
+  <p>Al iniciar sesión verás el Panel Principal con un resumen rápido del día.</p>
+
+  <h3>Tarjetas de resumen</h3>
+  <div class="grid grid-3">
+    <div class="card">
+      <h4>💵 Ventas de hoy</h4>
+      <p>Total vendido en el día actual.</p>
+    </div>
+    <div class="card">
+      <h4>🧾 Tickets</h4>
+      <p>Cantidad de ventas realizadas hoy.</p>
+    </div>
+    <div class="card">
+      <h4>📈 Comparativa</h4>
+      <p>Porcentaje vs. el día anterior (verde si mejor, rojo si peor).</p>
+    </div>
+  </div>
+
+  <h3>Últimas ventas</h3>
+  <p>Una tabla muestra las <strong>10 ventas más recientes</strong> con número de ticket, hora, cajero, método de pago y total.</p>
+
+  <h3>Alertas de stock bajo</h3>
+  <p>Si hay productos con stock igual o menor al mínimo configurado, aparecerán listados aquí. Haz clic en cualquiera para ir directo a Inventario.</p>
+
+  <h3>Campana de notificaciones</h3>
+  <p>En la esquina superior derecha, el ícono de campana 🔔 muestra:</p>
+  <ul>
+    <li>Productos con stock bajo.</li>
+    <li>Alerta si no hay caja abierta.</li>
+  </ul>
+  <p>El número en rojo indica notificaciones no leídas.</p>
+</section>
+
+<section class="chapter" id="pos">
+  <h2>5. Punto de Venta (POS)</h2>
+  <p>El POS es el corazón del sistema. Aquí procesas cada venta.</p>
+
+  <div class="callout warn">
+    <strong>Requisito</strong>
+    Debes tener una <strong>caja abierta</strong> antes de poder vender. Si no la hay, el POS te mostrará una alerta con un botón para ir a Caja.
+  </div>
+
+  <h3>Atajos de teclado</h3>
+  <table>
+    <tr><th>Acción</th><th>Atajo</th></tr>
+    <tr><td>Enfocar búsqueda de productos</td><td><span class="shortcut">F2</span></td></tr>
+    <tr><td>Abrir modal de cobro</td><td><span class="shortcut">F5</span></td></tr>
+    <tr><td>Buscar producto al escribir</td><td>(automático)</td></tr>
+  </table>
+
+  <h3>Agregar productos al carrito</h3>
+  <p>Tienes <strong>tres formas</strong> de agregar productos:</p>
+
+  <h4>Método 1: Búsqueda por nombre</h4>
+  <ol class="steps">
+    <li>Haz clic en la barra de búsqueda (o presiona <kbd>F2</kbd>).</li>
+    <li>Escribe el nombre del producto. Verás resultados en tiempo real (máximo 20).</li>
+    <li>Haz clic en el producto para agregarlo al carrito.</li>
+  </ol>
+
+  <h4>Método 2: Lector de código de barras</h4>
+  <ol class="steps">
+    <li>Activa el botón <strong>Escáner</strong> (esquina superior izquierda del POS).</li>
+    <li>Escanea el código del producto. Se agrega automáticamente.</li>
+    <li>Si no existe, verás una advertencia y el código quedará en el buscador.</li>
+  </ol>
+  <div class="callout tip">
+    <strong>Tip</strong>
+    El escáner distingue entre tipeo manual y escaneo (umbral de 50ms entre teclas). Puedes tener el escáner activo y tipear al mismo tiempo sin conflictos.
+  </div>
+
+  <h4>Método 3: Venta rápida (servicio)</h4>
+  <p>Para ventas sin producto (ej: copias, envíos):</p>
+  <ol class="steps">
+    <li>Pulsa <strong>+ Venta Rápida (Servicio)</strong>.</li>
+    <li>Escribe la descripción (ej: "10 copias B/N").</li>
+    <li>Ingresa el monto.</li>
+    <li>Pulsa <strong>Agregar al carrito</strong>.</li>
+  </ol>
+
+  <h3>El carrito</h3>
+  <p>A la derecha verás el carrito con todos los productos agregados. Para cada item puedes:</p>
+  <ul>
+    <li><strong>Cambiar cantidad</strong> con los botones <kbd>+</kbd> y <kbd>−</kbd>.</li>
+    <li><strong>Aplicar descuento</strong> por item (porcentaje 0-100%).</li>
+    <li><strong>Editar precio</strong> unitario (útil para ajustes manuales).</li>
+    <li><strong>Eliminar</strong> el item con el ícono de papelera.</li>
+  </ul>
+  <p>Vacía todo el carrito con <strong>Vaciar carrito</strong>.</p>
+
+  <h3>Totales</h3>
+  <p>El panel inferior del carrito muestra el desglose en tiempo real:</p>
+  <table>
+    <tr><th>Concepto</th><th>Descripción</th></tr>
+    <tr><td>Subtotal bruto</td><td>Suma de precio × cantidad sin descuentos.</td></tr>
+    <tr><td>Descuento por item</td><td>Suma de descuentos aplicados por item.</td></tr>
+    <tr><td>Descuento global (%)</td><td>Aplica un porcentaje al subtotal neto.</td></tr>
+    <tr><td>Subtotal neto</td><td>Tras aplicar todos los descuentos.</td></tr>
+    <tr><td>Impuesto</td><td>Tasa configurada en Configuración (0% por defecto).</td></tr>
+    <tr><td><strong>Total</strong></td><td><strong>Monto final a cobrar.</strong></td></tr>
+  </table>
+
+  <h3>Cobrar la venta</h3>
+  <ol class="steps">
+    <li>Pulsa el botón verde <strong>Cobrar</strong> (o <kbd>F5</kbd>).</li>
+    <li>Aparecerá el modal con el total y los métodos de pago disponibles.</li>
+    <li>Selecciona el método (Efectivo, Tarjeta, etc.).</li>
+    <li>Si es efectivo, ingresa el monto recibido — el sistema calcula el cambio.</li>
+    <li>Si es tarjeta, sigue las instrucciones del terminal (ver <a href="#terminal">sección 14</a>).</li>
+    <li>Pulsa <strong>Confirmar Pago</strong>.</li>
+  </ol>
+
+  <h3>Ticket y cierre</h3>
+  <p>Tras confirmar el pago verás el <strong>ticket digital</strong>. Puedes:</p>
+  <ul>
+    <li>Imprimirlo en la impresora térmica configurada.</li>
+    <li>Cerrarlo sin imprimir.</li>
+  </ul>
+
+  <h3>Anular una venta</h3>
+  <p>Si necesitas anular una venta ya procesada (no desde el POS, sino desde el historial):</p>
+  <ol class="steps">
+    <li>Ve a <strong>Ventas</strong>.</li>
+    <li>Encuentra la venta.</li>
+    <li>Pulsa el ícono de anular.</li>
+    <li>Ingresa el <strong>motivo</strong> (obligatorio).</li>
+    <li>El stock se devuelve automáticamente.</li>
+  </ol>
+  <div class="callout warn">
+    <strong>Solo admin puede anular ventas</strong> (configurable en permisos).
+  </div>
+</section>
+
+<section class="chapter" id="caja">
+  <h2>6. Gestión de Caja</h2>
+  <p>La caja registradora controla todo el flujo de efectivo.</p>
+
+  <h3>Abrir caja</h3>
+  <ol class="steps">
+    <li>Ve a <strong>Caja</strong>.</li>
+    <li>Pulsa <strong>Abrir Caja</strong>.</li>
+    <li>Ingresa el <strong>monto de apertura</strong> (el efectivo con el que inicias el día).</li>
+    <li>Pulsa <strong>Abrir Caja</strong> de nuevo.</li>
+  </ol>
+  <div class="callout info">
+    <strong>El monto sugerido</strong> se carga automáticamente desde Configuración → Operación (por defecto $100, editable).
+  </div>
+
+  <h3>Estado de caja abierta</h3>
+  <p>Una vez abierta verás tarjetas de resumen:</p>
+  <ul>
+    <li><strong>Fondo inicial:</strong> efectivo con el que arrancaste.</li>
+    <li><strong>Ventas:</strong> suma de ventas del día (en efectivo).</li>
+    <li><strong>Entradas:</strong> dinero extra que entró (ver movimientos).</li>
+    <li><strong>Salidas:</strong> retiros o gastos.</li>
+    <li><strong>Esperado:</strong> cálculo automático (fondo + ventas + entradas - salidas).</li>
+  </ul>
+
+  <h3>Reporte X (parcial)</h3>
+  <p>Un reporte parcial sin cerrar caja. Útil para supervisores o para imprimir a media tarde.</p>
+  <ol class="steps">
+    <li>Con la caja abierta, pulsa <strong>Reporte X</strong>.</li>
+    <li>Verás el resumen con ventas por método de pago y movimientos.</li>
+    <li>Pulsa <strong>Imprimir</strong> si lo necesitas.</li>
+  </ol>
+
+  <h3>Movimientos de caja</h3>
+  <p>Registra entradas o salidas de efectivo que <strong>no son ventas</strong>:</p>
+  <ul>
+    <li><strong>Entradas</strong>: pagos de deudas, ajustes, dinero extra.</li>
+    <li><strong>Salidas</strong>: gastos menores, retiros.</li>
+  </ul>
+  <ol class="steps">
+    <li>Pulsa <strong>Movimiento</strong>.</li>
+    <li>Selecciona tipo (entrada/salida).</li>
+    <li>Ingresa monto y descripción.</li>
+    <li>Confirma.</li>
+  </ol>
+
+  <h3>Cerrar caja</h3>
+  <ol class="steps">
+    <li>Al final del día, pulsa <strong>Cerrar Caja</strong>.</li>
+    <li>El sistema muestra el <strong>esperado</strong> calculado.</li>
+    <li>Cuenta el efectivo físico e ingresa el <strong>total real</strong>.</li>
+    <li>El sistema calcula la diferencia (sobrante o faltante).</li>
+    <li>Opcional: agrega notas (ej: "Faltante por vuelto mal dado").</li>
+    <li>Pulsa <strong>Cerrar Caja</strong>.</li>
+  </ol>
+
+  <div class="callout tip">
+    <strong>Backup automático</strong>
+    Al cerrar caja, el sistema crea un backup automático de la base de datos (si está habilitado en Configuración).
+  </div>
+
+  <h3>Historial de cajas</h3>
+  <p>Consulta cajas cerradas anteriormente con sus totales y diferencias.</p>
+</section>
+
+<section class="chapter" id="inventario">
+  <h2>7. Inventario y Productos</h2>
+  <p>Gestiona todos los productos que vendes.</p>
+
+  <h3>Lista de productos</h3>
+  <p>Ve a <strong>Inventario</strong> para ver la lista. Cada producto muestra:</p>
+  <ul>
+    <li>Nombre, descripción, código de barras, SKU.</li>
+    <li>Categoría, unidad de medida.</li>
+    <li>Precio de compra, precio de venta, stock, stock mínimo.</li>
+  </ul>
+
+  <h3>Crear un producto</h3>
+  <ol class="steps">
+    <li>Pulsa <strong>Nuevo Producto</strong>.</li>
+    <li>Completa los campos:
+      <ul>
+        <li><strong>Nombre*</strong> (obligatorio).</li>
+        <li><strong>Descripción</strong> (opcional).</li>
+        <li><strong>Código de barras</strong> (para lector USB).</li>
+        <li><strong>SKU</strong> (código interno).</li>
+        <li><strong>Categoría</strong> (creala primero si no existe).</li>
+        <li><strong>Unidad de medida</strong> (unidad, paquete, hoja, servicio, etc.).</li>
+        <li><strong>Precio de compra</strong> y <strong>Precio de venta</strong>.</li>
+        <li><strong>Stock inicial</strong> y <strong>Stock mínimo</strong> (alerta).</li>
+      </ul>
+    </li>
+    <li>Pulsa <strong>Guardar</strong>.</li>
+  </ol>
+
+  <h3>Editar producto</h3>
+  <p>Pulsa el ícono de lápiz sobre un producto. Modifica lo que necesites y guarda.</p>
+
+  <h3>Eliminar producto</h3>
+  <p>TOG Admin usa <strong>borrado lógico</strong>: el producto se marca como inactivo pero permanece en la base de datos para preservar el historial de ventas.</p>
+
+  <h3>Categorías</h3>
+  <p>Crea categorías para organizar productos (ej: "Cuadernos", "Bolígrafos", "Servicios"). Ve a <strong>Inventario → Nueva Categoría</strong>.</p>
+
+  <h3>Unidades de medida</h3>
+  <p>El sistema incluye unidades predefinidas: Unidad, Paquete, Caja, Resma, Rollo, Litro, Galón, Hoja, Metro, Par, Servicio. Puedes crear unidades personalizadas.</p>
+
+  <h3>Ajuste manual de stock</h3>
+  <p>Para corregir el stock (ej: inventario físico, productos dañados):</p>
+  <ol class="steps">
+    <li>Pulsa el ícono de ajuste sobre el producto.</li>
+    <li>Ingresa el <strong>nuevo stock</strong>.</li>
+    <li>Escribe la <strong>justificación</strong> (obligatoria, queda en el historial).</li>
+    <li>Confirma.</li>
+  </ol>
+
+  <h3>Historial de ajustes</h3>
+  <p>Consulta todos los ajustes con usuario, fecha, stock anterior y nuevo, y justificación. Útil para auditoría.</p>
+
+  <h3>Importar / Exportar CSV</h3>
+  <p>Para carga masiva de productos:</p>
+  <ol>
+    <li>Pulsa <strong>Exportar CSV</strong> para descargar la lista actual.</li>
+    <li>Edita el CSV con tu editor favorito.</li>
+    <li>Pulsa <strong>Importar CSV</strong> y selecciona el archivo.</li>
+  </ol>
+
+  <h3>Lector de código de barras en Inventario</h3>
+  <p>Al crear o editar un producto, puedes activar el escáner para llenar el código automáticamente. Funciona igual que en el POS.</p>
+</section>
+
+<section class="chapter" id="compras">
+  <h2>8. Compras a Proveedores</h2>
+  <p>Registra el ingreso de mercancía para mantener el stock actualizado.</p>
+
+  <h3>Registrar una compra</h3>
+  <ol class="steps">
+    <li>Ve a <strong>Compras</strong>.</li>
+    <li>Pulsa <strong>Nueva Compra</strong>.</li>
+    <li>Selecciona el <strong>proveedor</strong> (opcional).</li>
+    <li>Selecciona el <strong>método de pago</strong>.</li>
+    <li>Busca productos por nombre o escanea el código.</li>
+    <li>Para cada producto indica cantidad y costo unitario.</li>
+    <li>Opcional: agrega notas.</li>
+    <li>Pulsa <strong>Registrar Compra</strong>.</li>
+  </ol>
+  <p>El stock se incrementa automáticamente al confirmar.</p>
+
+  <h3>Filtros de fecha</h3>
+  <p>Usa los filtros de fecha en la parte superior para ver compras de un período específico.</p>
+
+  <h3>Detalle de compra</h3>
+  <p>Para ver el detalle de una compra pasada, pulsa sobre la fila en la tabla.</p>
+</section>
+
+<section class="chapter" id="ventas">
+  <h2>9. Ventas e Historial</h2>
+  <p>Consulta todas las ventas realizadas.</p>
+
+  <h3>Lista de ventas</h3>
+  <p>Muestra cada venta con número de ticket, fecha, cajero, método de pago, total y estado.</p>
+
+  <h3>Filtros</h3>
+  <ul>
+    <li><strong>Por rango de fechas</strong> (inicio/fin).</li>
+    <li><strong>Por número de ticket</strong> (búsqueda).</li>
+    <li><strong>Filtros rápidos</strong>: Hoy, últimos 7 días, últimos 30 días.</li>
+  </ul>
+
+  <h3>Detalle de venta</h3>
+  <p>Pulsa sobre una venta para ver:</p>
+  <ul>
+    <li>Productos vendidos con cantidad, precio, descuento.</li>
+    <li>Subtotal, descuentos, impuesto, total.</li>
+    <li>Método de pago, monto pagado, cambio.</li>
+    <li>Notas (si las hay).</li>
+    <li>Datos del cajero.</li>
+  </ul>
+
+  <h3>Re-imprimir ticket</h3>
+  <p>Para reimprimir un ticket de venta anterior, pulsa el ícono de impresora en la fila.</p>
+
+  <h3>Anular venta</h3>
+  <p>Solo para administradores:</p>
+  <ol class="steps">
+    <li>Selecciona la venta (no debe estar ya anulada).</li>
+    <li>Pulsa el ícono de anular.</li>
+    <li>Ingresa el motivo.</li>
+    <li>Confirma.</li>
+  </ol>
+  <p>La venta queda marcada como "anulada" y el stock se devuelve automáticamente.</p>
+</section>
+
+<section class="chapter" id="cotizaciones">
+  <h2>10. Cotizaciones</h2>
+  <p>Crea presupuestos para clientes antes de formalizar la venta.</p>
+
+  <h3>Crear cotización</h3>
+  <ol class="steps">
+    <li>Ve a <strong>Cotizaciones</strong>.</li>
+    <li>Pulsa <strong>Nueva Cotización</strong>.</li>
+    <li>Ingresa los datos del cliente (nombre, email, teléfono, dirección).</li>
+    <li>Agrega productos (por nombre o personalizados).</li>
+    <li>Opcional: fecha de vencimiento.</li>
+    <li>Opcional: notas.</li>
+    <li>Pulsa <strong>Guardar</strong>.</li>
+  </ol>
+
+  <h3>Estados</h3>
+  <ul>
+    <li><strong>Pendiente</strong>: recién creada, aún no decidida.</li>
+    <li><strong>Aprobada</strong>: el cliente aceptó.</li>
+    <li><strong>Rechazada</strong>: el cliente no aceptó.</li>
+    <li><strong>Convertida</strong>: se convirtió en una venta.</li>
+  </ul>
+
+  <h3>Acciones sobre cotizaciones pendientes</h3>
+  <ul>
+    <li><strong>Aprobar</strong>, <strong>Rechazar</strong> o <strong>Convertir a Venta</strong>.</li>
+    <li><strong>Editar</strong> (solo en estado pendiente).</li>
+    <li><strong>Eliminar</strong>.</li>
+    <li><strong>Imprimir</strong> el presupuesto en formato profesional.</li>
+  </ul>
+</section>
+
+<section class="chapter" id="proveedores">
+  <h2>11. Proveedores</h2>
+  <p>Gestiona tu cartera de proveedores.</p>
+
+  <h3>Lista de proveedores</h3>
+  <p>Cada proveedor muestra nombre, EIN/RIF, teléfono, email, dirección.</p>
+
+  <h3>Crear proveedor</h3>
+  <ol class="steps">
+    <li>Ve a <strong>Proveedores</strong>.</li>
+    <li>Pulsa <strong>Nuevo Proveedor</strong>.</li>
+    <li>Completa los datos.</li>
+    <li>Guarda.</li>
+  </ol>
+
+  <h3>Editar y desactivar</h3>
+  <p>Edita cualquier dato. Para "eliminar", desactiva al proveedor — sus compras pasadas se conservan.</p>
+
+  <h3>Búsqueda</h3>
+  <p>Busca por nombre, EIN o teléfono en la barra superior.</p>
+</section>
+
+<section class="chapter" id="reportes">
+  <h2>12. Reportes</h2>
+  <p>Visualiza el rendimiento del negocio con gráficos.</p>
+
+  <h3>Período por defecto</h3>
+  <p>El reporte carga los últimos 30 días. Cambia el rango con los selectores de fecha en la parte superior.</p>
+
+  <h3>Tarjetas de resumen</h3>
+  <ul>
+    <li><strong>Total del período</strong> (suma de ventas).</li>
+    <li><strong>Promedio diario</strong>.</li>
+    <li><strong>Producto más vendido</strong>.</li>
+    <li><strong>Total de tickets</strong>.</li>
+  </ul>
+
+  <h3>Gráficos</h3>
+  <ul>
+    <li><strong>Ventas por día</strong>: línea temporal.</li>
+    <li><strong>Top 10 productos más vendidos</strong>: barras horizontales.</li>
+    <li><strong>Métodos de pago</strong>: torta (pie).</li>
+    <li><strong>Ventas por categoría</strong>: barras horizontales.</li>
+  </ul>
+
+  <h3>Exportar</h3>
+  <ul>
+    <li><strong>CSV</strong>: descarga los datos en formato spreadsheet.</li>
+    <li><strong>Imprimir / PDF</strong>: abre el diálogo de impresión del navegador con un reporte formateado.</li>
+  </ul>
+</section>
+
+<section class="chapter" id="config">
+  <h2>13. Configuración</h2>
+  <p>Solo accesible para administradores. Contiene 5 pestañas.</p>
+
+  <h3>Pestaña: Negocio</h3>
+  <p>Datos que aparecerán en tickets y reportes:</p>
+  <ul>
+    <li><strong>Nombre del negocio</strong> (obligatorio).</li>
+    <li><strong>EIN / RIF</strong>.</li>
+    <li><strong>Dirección y teléfono</strong>.</li>
+    <li><strong>Logo</strong> (PNG/JPG transparente, máx 1 MB).</li>
+    <li><strong>Tasa de impuesto</strong> (%): se aplica automáticamente al total.</li>
+    <li><strong>Símbolo de moneda</strong> (por defecto $).</li>
+    <li><strong>Nombre de impresora</strong> térmica.</li>
+    <li><strong>Fondo inicial de caja</strong> (sugerido al abrir).</li>
+  </ul>
+
+  <h3>Pestaña: Usuarios</h3>
+  <p>Ver <a href="#permisos">sección 16</a>.</p>
+
+  <h3>Pestaña: Terminal</h3>
+  <p>Ver <a href="#terminal">sección 14</a>.</p>
+
+  <h3>Pestaña: Sistema</h3>
+  <p>Ver <a href="#backup">sección 17</a>.</p>
+
+  <h3>Pestaña: Métodos de Pago</h3>
+  <p>Ver <a href="#metodos">sección 15</a>.</p>
+</section>
+
+<section class="chapter" id="terminal">
+  <h2>14. Terminal de Tarjeta VP800</h2>
+  <p>Conecta la terminal de pago Valor VP800 para cobrar con tarjeta de crédito/débito directamente desde el POS.</p>
+
+  <h3>Requisitos</h3>
+  <ul>
+    <li>Terminal Valor VP800 con cable USB.</li>
+    <li>Puerto USB disponible en la PC.</li>
+    <li>Drivers del puerto serial virtual (la mayoría de Windows los instala automáticamente).</li>
+  </ul>
+
+  <h3>Conectar el terminal</h3>
+  <ol class="steps">
+    <li>Conecta el VP800 a la PC por USB.</li>
+    <li>Abre <strong>Administrador de Dispositivos</strong> de Windows → <strong>Puertos (COM y LPT)</strong>.</li>
+    <li>Busca el puerto asignado (ej: <code>COM3</code>, <code>COM4</code>).</li>
+    <li>En TOG Admin ve a <strong>Configuración → Terminal</strong>.</li>
+    <li>Ingresa el puerto (ej: <code>COM3</code>).</li>
+    <li>Baud Rate: <strong>9600</strong> por defecto.</li>
+    <li>Pulsa <strong>Conectar Terminal</strong>.</li>
+    <li>El indicador pasará a verde "Conectado".</li>
+  </ol>
+
+  <h3>Procesar un pago con tarjeta</h3>
+  <ol class="steps">
+    <li>En el POS, agrega productos al carrito.</li>
+    <li>Pulsa <strong>Cobrar</strong>.</li>
+    <li>Selecciona <strong>Tarjeta (VP800)</strong>.</li>
+    <li>Pulsa <strong>Confirmar Pago</strong>.</li>
+    <li>El sistema enviará el monto al terminal.</li>
+    <li>El terminal mostrará "Inserte/Tarjee la tarjeta".</li>
+    <li>El cliente pasa, inserta o tarjea la tarjeta.</li>
+    <li>Si aprobada, la venta se registra con el código de autorización.</li>
+  </ol>
+
+  <h3>Si algo falla</h3>
+  <div class="callout danger">
+    <strong>Terminal no responde</strong>
+    <ol>
+      <li>Verifica que el cable USB esté bien conectado.</li>
+      <li>Comprueba el puerto COM en Configuración → Terminal.</li>
+      <li>Desconecta y vuelve a conectar.</li>
+      <li>Si persiste, reinicia la aplicación.</li>
+    </ol>
+  </div>
+
+  <h3>Información registrada</h3>
+  <p>Cada venta con tarjeta guarda:</p>
+  <ul>
+    <li>Número de referencia bancaria.</li>
+    <li>Código de autorización.</li>
+    <li>Tipo de tarjeta (crédito/débito).</li>
+    <li>Últimos 4 dígitos de la tarjeta.</li>
+  </ul>
+</section>
+
+<section class="chapter" id="metodos">
+  <h2>15. Métodos de Pago</h2>
+  <p>Personaliza qué métodos de pago aparecen en el POS.</p>
+
+  <h3>Métodos predeterminados</h3>
+  <p>Al instalar, el sistema incluye dos métodos preconfigurados:</p>
+  <ul>
+    <li><strong>Efectivo</strong>: cobro tradicional.</li>
+    <li><strong>Tarjeta (VP800)</strong>: marcado como "Requiere Terminal".</li>
+  </ul>
+
+  <h3>Agregar un método nuevo</h3>
+  <ol class="steps">
+    <li>Ve a <strong>Configuración → Métodos de Pago</strong>.</li>
+    <li>Pulsa <strong>Nuevo Método</strong>.</li>
+    <li>Ingresa el nombre (ej: "Zelle", "Crypto", "Cheque").</li>
+    <li>Define la <strong>clave interna</strong> (sin espacios, ej: "zelle").</li>
+    <li>Elige un icono.</li>
+    <li>Marca <strong>Requiere Terminal VP800</strong> si quieres que procese con tarjeta.</li>
+    <li>Pulsa <strong>Crear</strong>.</li>
+  </ol>
+
+  <h3>Activar / Desactivar</h3>
+  <p>No es necesario eliminar un método. Solo desactívalo y dejará de aparecer en el POS. El historial de ventas pasadas se conserva.</p>
+
+  <h3>Editar</h3>
+  <p>Pulsa el ícono de lápiz sobre un método. Puedes cambiar nombre, icono, orden o si requiere terminal.</p>
+
+  <div class="callout info">
+    <strong>Buenas prácticas</strong>
+    Usa métodos personalizados para pagos frecuentes en tu zona (Zelle, Yappy, transferencia bancaria local, etc.). Así el reporte de métodos de pago será exacto.
+  </div>
+</section>
+
+<section class="chapter" id="permisos">
+  <h2>16. Usuarios y Permisos</h2>
+  <p>Solo accesible para administradores.</p>
+
+  <h3>Lista de usuarios</h3>
+  <p>Ve a <strong>Configuración → Usuarios</strong> para ver la lista. Cada usuario tiene:</p>
+  <ul>
+    <li><strong>Nombre de usuario</strong> (único, no editable).</li>
+    <li><strong>Nombre completo</strong>.</li>
+    <li><strong>Rol</strong>: Administrador o Cajero.</li>
+    <li><strong>Estado</strong>: Activo o Inactivo.</li>
+  </ul>
+
+  <h3>Crear usuario</h3>
+  <ol class="steps">
+    <li>Pulsa <strong>Nuevo Usuario</strong>.</li>
+    <li>Ingresa usuario, nombre completo, contraseña y rol.</li>
+    <li>Pulsa <strong>Crear Usuario</strong>.</li>
+  </ol>
+
+  <h3>Permisos granulares</h3>
+  <p>Además del rol, puedes asignar <strong>permisos específicos</strong> a cada usuario (28 permisos en 7 categorías):</p>
+  <table>
+    <tr><th>Categoría</th><th>Permisos</th></tr>
+    <tr><td>🛒 Ventas</td><td>POS, Anular, Descuentos, Editar precio, Venta rápida</td></tr>
+    <tr><td>💰 Caja</td><td>Abrir, Cerrar, Movimientos, Reporte X</td></tr>
+    <tr><td>📦 Inventario</td><td>Acceso, Crear, Editar, Eliminar, Ajustar, Categorías, Unidades</td></tr>
+    <tr><td>🚚 Compras</td><td>Acceso, Registrar, Proveedores</td></tr>
+    <tr><td>📝 Cotizaciones</td><td>Acceso, Crear</td></tr>
+    <tr><td>📊 Reportes</td><td>Ver, Exportar</td></tr>
+    <tr><td>⚙️ Administración</td><td>Config, Terminal, Backups, Reset DB, Usuarios, Asignar permisos</td></tr>
+  </table>
+  <p>Pulsa el ícono de candado en la fila del usuario para abrir el editor de permisos.</p>
+
+  <h3>Desactivar usuario</h3>
+  <p>No se eliminan usuarios (para preservar historial). Solo se desactivan — no podrán iniciar sesión.</p>
+</section>
+
+<section class="chapter" id="backup">
+  <h2>17. Respaldos y Restauración</h2>
+  <p>Protege tu información con backups regulares.</p>
+
+  <h3>Crear un backup</h3>
+  <ol class="steps">
+    <li>Ve a <strong>Configuración → Sistema</strong>.</li>
+    <li>Pulsa <strong>Crear Backup</strong>.</li>
+    <li>Elige dónde guardar el archivo <code>.db</code>.</li>
+  </ol>
+  <div class="callout tip">
+    <strong>Recomendación</strong>
+    Haz backup <strong>a diario</strong>, idealmente antes de cerrar caja. Guarda los backups en un lugar seguro fuera de la PC (USB, nube).
+  </div>
+
+  <h3>Backup automático al cerrar caja</h3>
+  <p>Si está habilitado, el sistema crea un backup automáticamente cada vez que se cierra caja. Verifica esta opción en la sección correspondiente.</p>
+
+  <h3>Restaurar un backup</h3>
+  <div class="callout danger">
+    <strong>Atención</strong>
+    Restaurar reemplaza TODOS los datos actuales. El sistema crea un backup de seguridad automático (<code>.bak</code>) antes de restaurar.
+  </div>
+  <ol class="steps">
+    <li>Ve a <strong>Configuración → Sistema</strong>.</li>
+    <li>Pulsa <strong>Restaurar Backup</strong>.</li>
+    <li>Selecciona el archivo <code>.db</code>.</li>
+    <li>Confirma la operación.</li>
+    <li>La aplicación se reiniciará con los datos restaurados.</li>
+  </ol>
+</section>
+
+<section class="chapter" id="licencia">
+  <h2>18. Licencia</h2>
+  <p>La licencia controla el uso legítimo del software.</p>
+
+  <h3>Ver tu licencia</h3>
+  <p>Ve a <strong>Configuración → Sistema</strong>. Verás:</p>
+  <ul>
+    <li><strong>Estado</strong>: Válida o No válida.</li>
+    <li><strong>Cliente</strong>: nombre asociado.</li>
+    <li><strong>Fecha de expiración</strong>.</li>
+    <li><strong>Días restantes</strong>.</li>
+    <li><strong>ID de máquina</strong> (necesario para renovar).</li>
+  </ul>
+
+  <h3>Importar licencia</h3>
+  <p>Si recibes un nuevo archivo <code>license.key</code>:</p>
+  <ol class="steps">
+    <li>Ve a <strong>Configuración → Sistema</strong>.</li>
+    <li>Pulsa <strong>Importar Nueva Licencia</strong>.</li>
+    <li>Selecciona el archivo.</li>
+    <li>Espera la confirmación.</li>
+  </ol>
+
+  <div class="callout warn">
+    <strong>Importante</strong>
+    Cada licencia está asociada a una <strong>máquina específica</strong> (por su ID). Si cambias de PC, necesitarás una licencia nueva.
+  </div>
+</section>
+
+<section class="chapter" id="actualizaciones">
+  <h2>19. Actualizaciones</h2>
+  <p>TOG Admin incluye un sistema de auto-actualización.</p>
+
+  <h3>Buscar actualizaciones</h3>
+  <p>Al iniciar sesión, el sistema verifica automáticamente si hay actualizaciones. También puedes hacerlo manualmente desde la pantalla de login.</p>
+
+  <h3>Proceso de actualización</h3>
+  <ol class="steps">
+    <li>Si hay una actualización, verás un aviso.</li>
+    <li>Acepta la descarga.</li>
+    <li>Espera a que descargue (verás el progreso).</li>
+    <li>La aplicación se reiniciará automáticamente con la nueva versión.</li>
+    <li>Tus datos están seguros — el instalador los preserva.</li>
+  </ol>
+
+  <h3>Release Notes</h3>
+  <p>Antes de actualizar verás los <strong>Release Notes</strong> (qué hay de nuevo, qué se arregló).</p>
+</section>
+
+<section class="chapter" id="faq">
+  <h2>20. Preguntas Frecuentes</h2>
+
+  <h3>¿Puedo usar TOG Admin en varias PCs?</h3>
+  <p>No con la misma licencia. Cada licencia está asociada a una máquina. Para múltiples PCs necesitas múltiples licencias.</p>
+
+  <h3>¿Qué pasa si se va la luz?</h3>
+  <p>TOG Admin guarda los datos continuamente. Al volver la luz, la aplicación recupera su estado. Si había una venta a medio procesar, se descartará sin afectar el stock.</p>
+
+  <h3>¿Cómo cambio el idioma?</h3>
+  <p>Desde la pantalla de login (esquina superior) o dentro de la app si tienes sesión iniciada (menú de usuario).</p>
+
+  <h3>¿Puedo usar mi propio logo en tickets?</h3>
+  <p>Sí. Configuración → Negocio → Logo. Usa PNG con transparencia, idealmente 400×200 px o 600×300 px.</p>
+
+  <h3>¿Puedo tener varios cajeros al mismo tiempo?</h3>
+  <p>No en la misma PC. Para múltiples cajas simultáneas necesitas múltiples PCs (cada una con su licencia).</p>
+
+  <h3>¿Cómo hago factura?</h3>
+  <p>TOG Admin no genera facturas fiscales (en Latinoamérica eso requiere integración con sistemas de facturación electrónica del país). Genera tickets de venta que puedes usar como comprobantes internos.</p>
+
+  <h3>¿Puedo exportar a Excel?</h3>
+  <p>Sí. En la mayoría de las tablas (Inventario, Reportes, Ventas) hay botones <strong>Exportar CSV</strong> que generan archivos compatibles con Excel.</p>
+
+  <h3>¿La aplicación funciona sin internet?</h3>
+  <p>Sí. TOG Admin es 100% offline. Toda la información se guarda en una base de datos local en tu PC. Solo necesitas internet para verificar actualizaciones.</p>
+
+  <h3>¿Cómo cambio la tasa de impuesto?</h3>
+  <p>Configuración → Negocio → Tasa de Impuesto. Cambia el valor y guarda.</p>
+</section>
+
+<section class="chapter" id="soporte">
+  <h2>21. Soporte</h2>
+
+  <h3>Centro de Ayuda integrado</h3>
+  <p>Dentro de TOG Admin hay un <strong>Centro de Ayuda</strong> (ícono de signo de interrogación) con una guía detallada de cada función y atajos.</p>
+
+  <h3>Tutorial de onboarding</h3>
+  <p>Al iniciar sesión por primera vez verás un tutorial paso a paso. Para reiniciarlo: <strong>Configuración → Sistema → Reiniciar Tutorial</strong>.</p>
+
+  <h3>Reportar un problema</h3>
+  <p>Si encuentras un error:</p>
+  <ol class="steps">
+    <li>Aparece un modal con detalles del error.</li>
+    <li>Pulsa <strong>Copiar Detalles</strong>.</li>
+    <li>Pulsa <strong>Abrir Carpeta de Reportes</strong> — se generan archivos <code>.txt</code> con el detalle técnico.</li>
+    <li>Envía esos archivos al soporte.</li>
+  </ol>
+
+  <h3>Información de contacto</h3>
+  <p>Para licencias, soporte técnico o consultas comerciales, contacta al administrador del sistema que te vendió TOG Admin.</p>
+
+  <div class="callout info">
+    <strong>TOG Admin v1.0.6</strong> — Sistema de Punto de Venta para Papelería
+  </div>
+</section>
+
+<div class="footer">
+  <p>© 2026 TOG Admin. Todos los derechos reservados.</p>
+  <p>Manual del Usuario · Versión 1.0.6 · Agosto 2026</p>
+</div>
+
+</div>
+
+</body>
+</html>
