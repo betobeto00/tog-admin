@@ -24,6 +24,7 @@ import {
 } from './services/crash-reporter'
 import { validateLicense, getLicenseStatus, saveLicense, resetLicenseState } from './services/license'
 import { getLang, setLang, initI18n, t, type SupportedLang } from './i18n'
+import { checkPermission } from './services/permissions'
 
 /**
  * Registra todos los handlers IPC del sistema.
