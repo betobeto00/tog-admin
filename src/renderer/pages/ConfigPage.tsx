@@ -364,7 +364,7 @@ export default function ConfigPage() {
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-1">
                         {has('usuarios_manage_roles') && (
-                          <button onClick={() => setPermissionsUser(u)} className="p-1.5 hover:bg-blue-50 rounded-lg" title="{t('config.permissions')}">
+                          <button onClick={() => setPermissionsUser(u)} className="p-1.5 hover:bg-blue-50 rounded-lg" title={t('config.permissions')}>
                             <Lock className="w-4 h-4 text-blue-500" />
                           </button>
                         )}
