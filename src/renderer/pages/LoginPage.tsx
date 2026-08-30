@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [modalContent, setModalContent] = useState<null | 'copyright' | 'licenses' | 'privacy' | 'terms' | 'releases'>(null)
   const { login, isLoading, error, clearError } = useAuthStore()
   const [appVersion, setAppVersion] = useState('1.0.1')
-  const [updateInfo, setUpdateInfo] = useState<{ available: boolean; version?: string } | null>(null)
+  const [updateInfo, setUpdateInfo] = useState<{ available: boolean; version?: string; currentVersion?: string; error?: string; feedUrl?: string } | null>(null)
   const [checkingUpdate, setCheckingUpdate] = useState(false)
 
   // Obtener versión al montar
@@ -204,6 +204,16 @@ export default function LoginPage() {
                 ) : (
                   <span className="text-gray-400">
                     {t('login.upToDate')}
+                    {updateInfo.currentVersion && updateInfo.version && (
+                      <span className="text-gray-300 ml-1">
+                        (actual: {updateInfo.currentVersion} / latest: {updateInfo.version})
+                      </span>
+                    )}
+                    {updateInfo.error && (
+                      <span className="text-orange-500 ml-1" title={updateInfo.feedUrl || ''}>
+                        ⚠️ {updateInfo.error}
+                      </span>
+                    )}
                   </span>
                 )}
               </span>
