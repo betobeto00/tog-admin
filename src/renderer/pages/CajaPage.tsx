@@ -363,7 +363,7 @@ export default function CajaPage() {
             <input type="text" value={movDesc}
               onChange={(e) => setMovDesc(e.target.value)}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
-              placeholder="{t('caja.descPlaceholder')}" />
+              placeholder={t('caja.descPlaceholder')} />
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <button onClick={() => setMovOpen(false)}
@@ -438,7 +438,7 @@ export default function CajaPage() {
                 <textarea rows={2} value={cierreNotas}
                   onChange={(e) => setCierreNotas(e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
-                  placeholder="{t('caja.closePlaceholder')}" />
+                  placeholder={t('caja.closePlaceholder')} />
               </div>
             </>
           )}
