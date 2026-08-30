@@ -15,24 +15,32 @@ import {
   LogOut,
   HelpCircle,
 } from 'lucide-react'
+import { usePermissions } from '../../hooks/usePermissions'
 
 export default function Sidebar() {
   const { t } = useTranslation()
   const { usuario, logout } = useAuthStore()
+  const { has } = usePermissions()
 
-  const menuItems = [
-    { to: '/', icon: LayoutDashboard, label: t('nav.dashboard') },
-    { to: '/pos', icon: ShoppingCart, label: t('nav.pos') },
-    { to: '/caja', icon: Lock, label: t('nav.cash') },
-    { to: '/inventario', icon: Package, label: t('nav.inventory') },
-    { to: '/ventas', icon: Receipt, label: t('nav.sales') },
-    { to: '/compras', icon: Truck, label: t('nav.purchases') },
-    { to: '/proveedores', icon: Users, label: t('nav.suppliers') },
-    { to: '/cotizaciones', icon: FileText, label: t('nav.quotes') },
-    { to: '/reportes', icon: BarChart3, label: t('nav.reports') },
-    { to: '/configuracion', icon: Settings, label: t('nav.settings') },
-    { to: '/ayuda', icon: HelpCircle, label: t('nav.help') },
+  const allMenuItems = [
+    { to: '/', icon: LayoutDashboard, label: t('nav.dashboard'), permission: null as string | null },
+    { to: '/pos', icon: ShoppingCart, label: t('nav.pos'), permission: 'pos_access' },
+    { to: '/caja', icon: Lock, label: t('nav.cash'), permission: 'caja_access' },
+    { to: '/inventario', icon: Package, label: t('nav.inventory'), permission: 'inventario_access' },
+    { to: '/ventas', icon: Receipt, label: t('nav.sales'), permission: 'pos_access' },
+    { to: '/compras', icon: Truck, label: t('nav.purchases'), permission: 'compras_access' },
+    { to: '/proveedores', icon: Users, label: t('nav.suppliers'), permission: 'compras_suppliers' },
+    { to: '/cotizaciones', icon: FileText, label: t('nav.quotes'), permission: 'quotes_access' },
+    { to: '/reportes', icon: BarChart3, label: t('nav.reports'), permission: 'reportes_access' },
+    { to: '/configuracion', icon: Settings, label: t('nav.settings'), permission: 'config_access' },
+    { to: '/ayuda', icon: HelpCircle, label: t('nav.help'), permission: null as string | null },
   ]
+
+  // Filtrar menú según permisos del usuario
+  const menuItems = allMenuItems.filter((item) => {
+    if (!item.permission) return true // Dashboard y Ayuda siempre visibles
+    return has(item.permission as any)
+  })
 
   return (
     <aside className="w-64 bg-gray-900 text-white flex flex-col">
