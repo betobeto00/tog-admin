@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Settings, Store, CreditCard, Users, Plus, Edit2, Trash2,
   Save, Eye, EyeOff, Shield, User, Download, Upload, GraduationCap, Key, Clock,
@@ -15,6 +16,7 @@ interface Config { clave: string; valor: string; descripcion: string | null }
 interface Usuario { id: number; usuario: string; nombre: string; rol: string; activo: number }
 
 export default function ConfigPage() {
+  const { t } = useTranslation()
   const toast = useToast()
   const [config, setConfig] = useState<Config[]>([])
   const [saving, setSaving] = useState(false)
@@ -33,10 +35,10 @@ export default function ConfigPage() {
   const [deleteUser, setDeleteUser] = useState<number | null>(null)
   const [showPassword, setShowPassword] = useState(false)
 
-  // {t('config.permissions')} de usuario
+  // Permisos de usuario
   const [permissionsUser, setPermissionsUser] = useState<Usuario | null>(null)
 
-  // {t('config.permissions')} del usuario actual
+  // Permisos del usuario actual
   const { has } = usePermissions()
 
   const [tab, setTab] = useState<'negocio' | 'usuarios' | 'terminal' | 'sistema'>('negocio')

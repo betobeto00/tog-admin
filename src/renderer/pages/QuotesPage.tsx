@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../stores/auth.store'
 import {
   Plus, Search, Eye, Edit2, Trash2, FileText, Send, Clock, CheckCircle,
@@ -16,6 +17,7 @@ const STATUS_COLORS: Record<string, string> = { pendiente: 'bg-yellow-100 text-y
 const STATUS_ICONS: Record<string, any> = { pendiente: Clock, aprobada: CheckCircle, rechazada: XCircle, convertida: FileText, vencida: Clock }
 
 export default function QuotesPage() {
+  const { t } = useTranslation()
   const usuario = useAuthStore((s) => s.usuario)
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [productos, setProductos] = useState<Producto[]>([])
