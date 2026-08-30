@@ -129,23 +129,23 @@ export default function ReportesPage() {
             .card p{font-size:12px;color:#6b7280}
             .card span{font-size:18px;font-weight:bold}
           </style></head><body>
-            <h1>TOG Admin — Reporte de Ventas</h1>
+            <h1>TOG Admin — {t('reportes.reportTitle')}</h1>
             <p>Período: ${fechaInicio} al ${fechaFin} | Generado: ${new Date().toLocaleString()}</p>
             <div class="summary">
               <div class="card"><p>Total Período</p><span>$${totalPeriodo.toFixed(2)}</span></div>
-              <div class="card"><p>Total Tickets</p><span>${totalVentasPeriodo}</span></div>
+              <div class="card"><p>{t('reportes.totalTickets')}</p><span>${totalVentasPeriodo}</span></div>
               <div class="card"><p>Promedio Diario</p><span>$${promedioDiario.toFixed(2)}</span></div>
             </div>
-            <h2>Ventas por Día</h2>
-            <table><thead><tr><th>Fecha</th><th>Ventas</th><th>Monto</th></tr></thead><tbody>
+            <h2>{t('reportes.salesByDay')}</h2>
+            <table><thead><tr><th>{t('reportes.date')}</th><th>{t('reportes.salesCount')}</th><th>{t('reportes.amount')}</th></tr></thead><tbody>
               ${ventasDiarias.map(v => `<tr><td>${v.fecha}</td><td>${v.total_ventas}</td><td>$${v.monto_total.toFixed(2)}</td></tr>`).join('')}
             </tbody></table>
-            <h2>Top Productos</h2>
+            <h2>{t('reportes.topProducts')}</h2>
             <table><thead><tr><th>Producto</th><th>Vendidos</th><th>Ingreso</th></tr></thead><tbody>
               ${topProductos.map(p => `<tr><td>${p.nombre}</td><td>${p.total_vendido}</td><td>$${p.total_ingreso.toFixed(2)}</td></tr>`).join('')}
             </tbody></table>
-            <h2>Ventas por Categoría</h2>
-            <table><thead><tr><th>Categoría</th><th>Ventas</th><th>Unidades</th><th>Ingreso</th></tr></thead><tbody>
+            <h2>{t('reportes.salesByCategory')}</h2>
+            <table><thead><tr><th>{t('reportes.category')}</th><th>{t('reportes.salesCount')}</th><th>{t('reportes.units')}</th><th>{t('reportes.income')}</th></tr></thead><tbody>
               ${ventasCategoria.map(c => `<tr><td>${c.categoria}</td><td>${c.total_ventas}</td><td>${c.total_unidades}</td><td>$${c.total_ingreso.toFixed(2)}</td></tr>`).join('')}
             </tbody></table>
             <script>window.onload=()=>{window.print()}</script>

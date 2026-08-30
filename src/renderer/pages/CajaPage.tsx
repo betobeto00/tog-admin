@@ -134,24 +134,24 @@ export default function CajaPage() {
       .center{text-align:center}.right{text-align:right}
       hr{border:none;border-top:1px dashed #000;margin:8px 0}
     </style></head><body>
-      <h2>TOG Admin - Cierre de Caja</h2>
+      <h2>TOG Admin - {t('caja.receiptTitle')}</h2>
       <div class="center">${formatDateTime(new Date().toISOString())}</div>
       <hr>
-      <div>Cajero: <strong>${caja.usuario_nombre}</strong></div>
-      <div>Apertura: ${formatDateTime(caja.fecha_apertura)}</div>
+      <div>{t('caja.receiptCashier')} <strong>${caja.usuario_nombre}</strong></div>
+      <div>{t('caja.receiptOpening')} ${formatDateTime(caja.fecha_apertura)}</div>
       <hr>
       <table>
-        <tr><td>Fondo Inicial</td><td class="right">${formatCurrency(caja.fondo_inicial)}</td></tr>
-        <tr><td>+ Ventas</td><td class="right">${formatCurrency(caja.total_ventas)}</td></tr>
-        <tr><td>+ Entradas</td><td class="right">${formatCurrency(caja.total_entradas)}</td></tr>
-        <tr><td>- Salidas</td><td class="right">${formatCurrency(caja.total_salidas)}</td></tr>
-        <tr><td class="total">Total Esperado</td><td class="right total">${formatCurrency(totalEsperado)}</td></tr>
+        <tr><td>{t('caja.receiptInitialFund')}</td><td class="right">${formatCurrency(caja.fondo_inicial)}</td></tr>
+        <tr><td>{t('caja.receiptSales')}</td><td class="right">${formatCurrency(caja.total_ventas)}</td></tr>
+        <tr><td>{t('caja.receiptEntries')}</td><td class="right">${formatCurrency(caja.total_entradas)}</td></tr>
+        <tr><td>{t('caja.receiptWithdrawals')}</td><td class="right">${formatCurrency(caja.total_salidas)}</td></tr>
+        <tr><td class="total">{t('caja.receiptExpectedTotal')}</td><td class="right total">${formatCurrency(totalEsperado)}</td></tr>
       </table>
       <hr>
-      <div class="total">Conteo Físico: ${formatCurrency(totalEsperado)}</div>
-      <div class="total">Diferencia: $0.00</div>
+      <div class="total">{t('caja.receiptPhysicalCount')} ${formatCurrency(totalEsperado)}</div>
+      <div class="total">{t('caja.receiptDifference')} $0.00</div>
       <hr>
-      <div class="center" style="margin-top:15px;font-size:10px;color:#666">Documento de cierre de caja</div>
+      <div class="center" style="margin-top:15px;font-size:10px;color:#666">{t('caja.receiptDoc')}</div>
     </body></html>`
     const win = window.open('', '_blank', 'width=320,height=600')
     if (win) {
@@ -186,13 +186,13 @@ export default function CajaPage() {
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               view === 'caja' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}>
-            <Lock className="w-4 h-4 inline mr-1" /> {i18n.language === 'en' ? 'Current Register' : 'Caja Actual'}
+            <Lock className="w-4 h-4 inline mr-1" /> {t('caja.currentRegister')}
           </button>
           <button onClick={() => setView('historial')}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               view === 'historial' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}>
-            <History className="w-4 h-4 inline mr-1" /> {i18n.language === 'en' ? 'History' : 'Historial'}
+            <History className="w-4 h-4 inline mr-1" /> {t('caja.historyTab')}
           </button>
         </div>
       </div>
@@ -203,8 +203,8 @@ export default function CajaPage() {
           /* Sin caja abierta */
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <Lock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">{i18n.language === 'en' ? 'No register open' : 'No hay caja abierta'}</h2>
-            <p className="text-gray-500 mb-6">{i18n.language === 'en' ? 'Open the register to start recording today sales' : 'Abre la caja para comenzar a registrar ventas del día'}</p>
+            <h2 className="text-xl font-semibold text-gray-700 mb-2">{t('caja.noCashOpen')}</h2>
+            <p className="text-gray-500 mb-6">{t('caja.noCashOpenDesc')}</p>
             <button onClick={() => { setFondoInicial(fondoDefault || ''); setAperturaOpen(true) }}
               className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors inline-flex items-center gap-2">
               <Unlock className="w-5 h-5" /> {t('caja.open')}
@@ -215,18 +215,18 @@ export default function CajaPage() {
           <div className="space-y-4">
             {/* Tarjetas de resumen */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-              <SummaryCard label={i18n.language === 'en' ? 'Opening Balance' : 'Fondo Inicial'} value={formatCurrency(caja.fondo_inicial)} color="blue" />
-              <SummaryCard label={i18n.language === 'en' ? 'Sales' : 'Ventas'} value={formatCurrency(caja.total_ventas)} color="green" />
-              <SummaryCard label={i18n.language === 'en' ? 'Entries' : 'Entradas'} value={formatCurrency(caja.total_entradas)} color="emerald" />
-              <SummaryCard label={i18n.language === 'en' ? 'Withdrawals' : 'Salidas'} value={formatCurrency(caja.total_salidas)} color="red" />
+              <SummaryCard label={t('caja.openingBalance')} value={formatCurrency(caja.fondo_inicial)} color="blue" />
+              <SummaryCard label={t('caja.totalSales')} value={formatCurrency(caja.total_ventas)} color="green" />
+              <SummaryCard label={t('caja.entries')} value={formatCurrency(caja.total_entradas)} color="emerald" />
+              <SummaryCard label={t('caja.withdrawals')} value={formatCurrency(caja.total_salidas)} color="red" />
               <SummaryCard label={t('caja.expected')} value={formatCurrency(totalEsperado)} color="purple" />
             </div>
 
             {/* Fórmula */}
             <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-600">
               <p className="font-mono">
-                <span className="text-gray-400">Fórmula:</span>{' '}
-                Fondo ({formatCurrency(caja.fondo_inicial)}) + Ventas ({formatCurrency(caja.total_ventas)}) + Entradas ({formatCurrency(caja.total_entradas)}) - Salidas ({formatCurrency(caja.total_salidas)}) = <strong>{formatCurrency(totalEsperado)}</strong>
+                <span className="text-gray-400">{t('caja.formula')}</span>{' '}
+                Fondo ({formatCurrency(caja.fondo_inicial)}) {t('caja.receiptSales')} ({formatCurrency(caja.total_ventas)}) {t('caja.receiptEntries')} ({formatCurrency(caja.total_entradas)}) {t('caja.receiptWithdrawals')} ({formatCurrency(caja.total_salidas)}) = <strong>{formatCurrency(totalEsperado)}</strong>
               </p>
             </div>
 
@@ -234,19 +234,19 @@ export default function CajaPage() {
             <div className="flex gap-3">
               <button onClick={() => { setMovTipo('entrada'); setMovOpen(true) }}
                 className="flex-1 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2 border border-emerald-200">
-                <ArrowUpCircle className="w-5 h-5" /> {i18n.language === 'en' ? 'Record Entry' : 'Registrar Entrada'}
+                <ArrowUpCircle className="w-5 h-5" /> {t('caja.recordEntry')}
               </button>
               <button onClick={() => { setMovTipo('salida'); setMovOpen(true) }}
                 className="flex-1 py-3 bg-red-50 hover:bg-red-100 text-red-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2 border border-red-200">
-                <ArrowDownCircle className="w-5 h-5" /> {i18n.language === 'en' ? 'Record Withdrawal' : 'Registrar Salida'}
+                <ArrowDownCircle className="w-5 h-5" /> {t('caja.recordWithdrawal')}
               </button>
               <button onClick={verReporteX}
                 className="flex-1 py-3 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2 border border-yellow-200">
-                <Calculator className="w-5 h-5" /> {i18n.language === 'en' ? 'X Report' : 'Reporte X'}
+                <Calculator className="w-5 h-5" /> {t('caja.xReportShort')}
               </button>
               <button onClick={() => setTotalReal(String(Math.round(totalEsperado)))}
                 className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
-                <Calculator className="w-5 h-5" /> {i18n.language === 'en' ? 'Auto-fill' : 'Auto-llenar'}
+                <Calculator className="w-5 h-5" /> {t('caja.autoFill')}
               </button>
               <button onClick={imprimirCierre}
                 className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
@@ -265,13 +265,13 @@ export default function CajaPage() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Opening' : 'Apertura'}</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Closing' : 'Cierre'}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.opening')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.closing')}</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.cashier')}</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Fund' : 'Fondo'}</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Sales' : 'Ventas'}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.fund')}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.totalSales')}</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.expected')}</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Actual' : 'Real'}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.actual')}</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.difference')}</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('common.status')}</th>
               </tr>
@@ -281,7 +281,7 @@ export default function CajaPage() {
                 <tr>
                   <td colSpan={9} className="text-center py-12 text-gray-400">
                     <History className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>{i18n.language === 'en' ? 'No cash register history' : 'No hay historial de cajas'}</p>
+                    <p>{t('caja.noHistoryDesc')}</p>
                   </td>
                 </tr>
               ) : (
@@ -319,7 +319,7 @@ export default function CajaPage() {
       <Modal open={aperturaOpen} onClose={() => setAperturaOpen(false)} title={t('caja.open')}>
         <div className="space-y-4">
           <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700">
-            <p>{i18n.language === 'en' ? 'Enter the ' : 'Ingresa el '}<strong>{i18n.language === 'en' ? 'opening balance' : 'fondo inicial'}</strong>{i18n.language === 'en' ? ' to start the register today. This amount will be added to the expected total at closing.' : ' con el que abres la caja hoy. Este monto se sumará al total esperado al cierre.'}</p>
+            <p>{{t('caja.openingBalanceDesc').split('**')[0]}<strong>{t('caja.openingBalance')}</strong>{t('caja.openingBalanceDesc').split('**')[1] || ''}}<strong>{i18n.language === 'en' ? 'opening balance' : 'fondo inicial'}</strong>{i18n.language === 'en' ? ' to start the register today. This amount will be added to the expected total at closing.' : ' con el que abres la caja hoy. Este monto se sumará al total esperado al cierre.'}</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('caja.openAmount')} *</label>
@@ -342,7 +342,7 @@ export default function CajaPage() {
 
       {/* ======== MODAL MOVIMIENTO ======== */}
       <Modal open={movOpen} onClose={() => setMovOpen(false)}
-        title={movTipo === 'entrada' ? (i18n.language === 'en' ? 'Record Entry' : 'Registrar Entrada') : (i18n.language === 'en' ? 'Record Withdrawal' : 'Registrar Salida')}>
+        title={movTipo === 'entrada' ? (t('caja.recordEntry')) : (t('caja.recordWithdrawal'))}>
         <div className="space-y-4">
           <div className={`rounded-xl p-4 text-sm ${
             movTipo === 'entrada' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
@@ -363,7 +363,7 @@ export default function CajaPage() {
             <input type="text" value={movDesc}
               onChange={(e) => setMovDesc(e.target.value)}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
-              placeholder="Ej: Retiro para cambio, Compra de artículos..." />
+              placeholder="{t('caja.descPlaceholder')}" />
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <button onClick={() => setMovOpen(false)}
@@ -386,19 +386,19 @@ export default function CajaPage() {
           {caja && (
             <>
               <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-gray-500">Fondo Inicial</span><span className="font-medium">{formatCurrency(caja.fondo_inicial)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">+ Ventas</span><span className="font-medium">{formatCurrency(caja.total_ventas)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">+ Entradas</span><span className="font-medium">{formatCurrency(caja.total_entradas)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">- Salidas</span><span className="font-medium">{formatCurrency(caja.total_salidas)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">{t('caja.receiptInitialFund')}</span><span className="font-medium">{formatCurrency(caja.fondo_inicial)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">{t('caja.receiptSales')}</span><span className="font-medium">{formatCurrency(caja.total_ventas)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">{t('caja.receiptEntries')}</span><span className="font-medium">{formatCurrency(caja.total_entradas)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">{t('caja.receiptWithdrawals')}</span><span className="font-medium">{formatCurrency(caja.total_salidas)}</span></div>
                 <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200">
-                  <span>Total Esperado</span>
+                  <span>{t('caja.receiptExpectedTotal')}</span>
                   <span className="text-blue-600">{formatCurrency(totalEsperado)}</span>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ¿Cuánto dinero tienes physicalmente? *
+                  {t('caja.howMuchMoney')} *
                 </label>
                 <input type="number" step="0.01" min="0" value={totalReal}
                   onChange={(e) => setTotalReal(e.target.value)}
@@ -419,26 +419,26 @@ export default function CajaPage() {
                       : parseFloat(totalReal) > totalEsperado ? 'text-blue-600' : 'text-red-600'
                   }`}>
                     {parseFloat(totalReal) === totalEsperado
-                      ? '✅ La cuadra perfectamente'
+                      ? t('caja.balances')
                       : parseFloat(totalReal) > totalEsperado
-                        ? `📈 Sobran ${formatCurrency(parseFloat(totalReal) - totalEsperado)}`
-                        : `📉 Faltan ${formatCurrency(totalEsperado - parseFloat(totalReal))}`}
+                        ? `t('caja.over') + ' ' ${formatCurrency(parseFloat(totalReal) - totalEsperado)}`
+                        : `t('caja.short') + ' ' ${formatCurrency(totalEsperado - parseFloat(totalReal))}`}
                   </p>
                   <p className={`text-2xl font-bold mt-1 ${
                     parseFloat(totalReal) === totalEsperado ? 'text-green-700'
                       : parseFloat(totalReal) > totalEsperado ? 'text-blue-700' : 'text-red-700'
                   }`}>
-                    Diferencia: {parseFloat(totalReal) >= totalEsperado ? '+' : ''}{formatCurrency(parseFloat(totalReal) - totalEsperado)}
+                    {t('caja.difference')}: {parseFloat(totalReal) >= totalEsperado ? '+' : ''}{formatCurrency(parseFloat(totalReal) - totalEsperado)}
                   </p>
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.notes')} ({i18n.language === 'en' ? 'optional' : 'opcional'})</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.notes')} ({t('caja.closeOptional')})</label>
                 <textarea rows={2} value={cierreNotas}
                   onChange={(e) => setCierreNotas(e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
-                  placeholder="Ej: Falta $5 por cambio mal dado..." />
+                  placeholder="{t('caja.closePlaceholder')}" />
               </div>
             </>
           )}
@@ -459,20 +459,20 @@ export default function CajaPage() {
         {reporteX && (
           <div className="space-y-4">
             <div className="bg-yellow-50 rounded-xl p-4 text-center">
-              <p className="text-sm text-yellow-700">{i18n.language === 'en' ? 'Partial report — Register does NOT close' : 'Reporte parcial — La caja NO se cierra'}</p>
+              <p className="text-sm text-yellow-700">{t('caja.xReportPartial')}</p>
               <p className="text-xs text-yellow-600 mt-1">Generado: {new Date().toLocaleString()}</p>
             </div>
             <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-gray-500">{t('caja.cashier')}</span><span className="font-medium">{reporteX.caja.usuario_nombre}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">{i18n.language === 'en' ? 'Opening' : 'Apertura'}</span><span className="font-medium">{formatDateTime(reporteX.caja.fecha_apertura)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{t('caja.opening')}</span><span className="font-medium">{formatDateTime(reporteX.caja.fecha_apertura)}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">{t('caja.openAmount')}</span><span className="font-medium">{formatCurrency(reporteX.caja.fondo_inicial)}</span></div>
               <div className="flex justify-between font-bold pt-2 border-t border-gray-200">
-                <span>Total Esperado</span>
+                <span>{t('caja.receiptExpectedTotal')}</span>
                 <span className="text-blue-600">{formatCurrency(reporteX.totalEsperado)}</span>
               </div>
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">{i18n.language === 'en' ? 'Sales by Payment Method' : 'Ventas por Método de Pago'}</h4>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">{t('caja.salesByMethod')}</h4>
               <div className="space-y-1">
                 {reporteX.ventasPorMetodo?.map((v: any, i: number) => (
                   <div key={i} className="flex justify-between text-sm bg-white rounded-lg p-2">
@@ -481,13 +481,13 @@ export default function CajaPage() {
                   </div>
                 ))}
                 {(!reporteX.ventasPorMetodo || reporteX.ventasPorMetodo.length === 0) && (
-                  <p className="text-sm text-gray-400 text-center py-2">{i18n.language === 'en' ? 'No sales recorded' : 'No hay ventas registradas'}</p>
+                  <p className="text-sm text-gray-400 text-center py-2">{t('caja.noSalesRecorded')}</p>
                 )}
               </div>
             </div>
             {reporteX.movimientos?.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">{i18n.language === 'en' ? 'Movements' : 'Movimientos'}</h4>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">{t('caja.movements')}</h4>
                 <div className="space-y-1">
                   {reporteX.movimientos.map((m: any, i: number) => (
                     <div key={i} className="flex justify-between text-sm bg-white rounded-lg p-2">
