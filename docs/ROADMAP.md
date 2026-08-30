@@ -1,24 +1,23 @@
 # Roadmap — TOG Admin
 
-## Visión General (Actualizado: 28-Ago-2026)
+## Visión General (Actualizado: 30-Ago-2026)
 
 ```
-FASE 0 ✅   FASE 1 ✅   FASE 2 ✅   FASE 2.5 ✅  FASE 2.7 ✅  FASE 2.8 ✅  FASE 3 🟡
-CRÍTICOS    CORE        SEGURIDAD   P0+P1+P2     i18n        TESTS+ASSETS PREMIUM
+FASE 0 ✅   FASE 1 ✅   FASE 2 ✅   FASE 2.5 ✅  FASE 2.7 ✅  FASE 2.8 ✅  FASE 3 ✅   FASE 4 ✅
+CRÍTICOS    CORE        SEGURIDAD   P0+P1+P2     i18n        TESTS+ASSETS PREMIUM    DEPLOY+AUTOUPDATE
             +UX
-─────────   ─────────   ─────────   ──────────   ─────────   ─────────   ─────────
-✅ Stock    ✅ Zod      ✅ Timeout  ✅ Precio    ✅ ES/EN     ✅ Vitest    🟡 Touch
-✅ Backup   ✅ Dctos    ✅ Rate     ✅ Venta     ✅ 500+keys  ✅ 50 tests  🟡 Crédito
-✅ Passwd   ✅ Subcomp  ✅ VP800    ✅ Reporte X ✅ HelpPage  ✅ Favicons  ✅ Etiquetas
-✅ Toast    ✅ Dash     ✅ License  ✅ CSV I/O   ✅ POSPage   ✅ public/   🟡 Quotes→Venta
-            ✅ Ajuste   ✅ Help     ✅ Hist.Ajuste ✅ Config   ✅ jest-dom  🟡 Cat Reports
-                        ✅ Tutorial ✅ Stock Bajo ✅ Tutorial ✅ jsdom
-                        ✅ Alerts   ✅ Backup auto ✅ AllPages ✅ setup
-                        ✅ TermCfg  ✅ Printer/Fondo ✅ Backend
+─────────   ─────────   ─────────   ──────────   ─────────   ─────────   ─────────   ─────────
+✅ Stock    ✅ Zod      ✅ Timeout  ✅ Precio    ✅ ES/EN     ✅ Vitest    ✅ Touch    ✅ Auto-update
+✅ Backup   ✅ Dctos    ✅ Rate     ✅ Venta     ✅ 500+keys  ✅ 50 tests  ✅ Crédito  ✅ Hero-bg
+✅ Passwd   ✅ Subcomp  ✅ VP800    ✅ Reporte X ✅ HelpPage  ✅ Favicons  ✅ Etiquetas ✅ Logo real
+✅ Toast    ✅ Dash     ✅ License  ✅ CSV I/O   ✅ POSPage   ✅ public/   ✅ Quotes→Venta ✅ Icono transparente
+            ✅ Ajuste   ✅ Help     ✅ Hist.Ajuste ✅ Config  ✅ jest-dom  ✅ Cat Reports ✅ i18n fixes
+                        ✅ Tutorial ✅ Stock Bajo ✅ Tutorial ✅ jsdom                     ✅ NSIS language fix
+                        ✅ Alerts   ✅ Backup auto ✅ AllPages ✅ setup                     ✅ Release Notes
+                        ✅ TermCfg  ✅ Printer/Fondo ✅ Backend                             ✅ Developer Guide
 ```
 
-**Estado actual del proyecto:** ~98% completo (Fase 0, 1, 2, 2.5, 2.7 y 2.8 completadas)
-**Estimación restante:** 2-3 días (Fase 3: Premium)
+**Estado actual del proyecto:** 100% completo (Fase 0, 1, 2, 2.5, 2.7, 2.8, 3 y 4 completadas)
 
 ---
 
@@ -113,51 +112,51 @@ CRÍTICOS    CORE        SEGURIDAD   P0+P1+P2     i18n        TESTS+ASSETS PREMI
 
 ---
 
-## ✅ EMPAQUETADO: INSTALADOR NSIS — CONFIGURADO
+## ✅ EMPAQUETADO: INSTALADOR NSIS — COMPLETADO
 
 | # | Tarea | Estado | Archivos |
 |---|-------|--------|----------|
 | E1 | Configurar electron-builder NSIS | ✅ | `package.json` (build:installer) |
 | E2 | Instalador con acceso directo | ✅ | Escritorio + Menú Inicio |
-| E3 | Idioma español | ✅ | NSIS languages config |
+| E3 | Idioma automático del sistema | ✅ | `installer.nsh` (auto-detect Windows locale) |
 | E4 | Desinstalador | ✅ | Panel de Control |
 | E5 | Matar procesos pre/post install | ✅ | taskkill automático |
-
-**Comando para generar el instalador:**
-```bash
-npm run build:installer
-# → Genera release/TOG-Admin-Setup-1.0.0.exe
-```
+| E6 | Icono de la empresa en instalador | ✅ | `resources/icon.ico`, `resources/icon.png` |
+| E7 | Icono transparente (sin fondo blanco) | ✅ | Generado con Python/Pillow |
 
 ---
 
-## 🟡 FASE 3: PREMIUM — PENDIENTE
+## ✅ FASE 3: PREMIUM — COMPLETADA
 
-> **Objetivo:** Features avanzadas para competitividad.
+| # | Tarea | Estado | Archivos |
+|---|-------|--------|----------|
+| 3.1 | Modo touch | ✅ | `POSPage.tsx` |
+| 3.2 | Imprimir etiquetas | ✅ | `InventarioPage.tsx` |
+| 3.3 | Venta a crédito/fiado | ✅ | `VentasPage.tsx` |
+| 3.4 | Convertir quote a venta | ✅ | `QuotesPage.tsx` |
+| 3.5 | Reportes avanzados | ✅ | `ReportesPage.tsx` |
+| 3.6 | WiFi para VP800 | ✅ | `services/valorTerminal.ts` |
 
-### Tarea 3.1: Modo touch 🟢
-- [ ] Botones grandes para pantalla táctil
-- [ ] Layout adaptado para tablets
+---
 
-### Tarea 3.2: Imprimir etiquetas 🟢
-- [ ] Generar etiquetas con código de barras (JsBarcode)
+## ✅ FASE 4: DEPLOY + AUTO-UPDATE — COMPLETADA
 
-### Tarea 3.3: Venta a crédito/fiado 🟡
-- [ ] Tabla `creditos` con saldo pendiente
-- [ ] Registro de abonos
-- [ ] Reporte de cartera
-
-### Tarea 3.4: Convertir quote a venta 🟡
-- [ ] Botón "Convertir a venta" en QuotesPage
-- [ ] Pre-cargar carrito con items de la cotización
-
-### Tarea 3.5: Reportes avanzados 🟡
-- [x] Ventas por categoría ✅
-- [ ] Margen de ganancia real vs esperada
-
-### Tarea 3.6: WiFi para VP800 🟡
-- [ ] Conexión via HTTP API (Valor Connect)
-- [ ] Fallback automático USB → WiFi
+| # | Tarea | Estado | Archivos |
+|---|-------|--------|----------|
+| 4.1 | Sistema de auto-actualizaciones | ✅ | `services/updater.ts`, `preload.ts`, `ipc-handlers.ts` |
+| 4.2 | Configuración publish en GitHub | ✅ | `package.json` (publish config) |
+| 4.3 | Check for updates en login | ✅ | `LoginPage.tsx` |
+| 4.4 | Hero-bg.jpg en login | ✅ | `LoginPage.tsx`, `public/hero-bg.jpg` |
+| 4.5 | Logo real en Login y Sidebar | ✅ | `LoginPage.tsx`, `Sidebar.tsx` |
+| 4.6 | Release Notes en login | ✅ | `LoginPage.tsx` |
+| 4.7 | Corregido error 't is not defined' en Inventario | ✅ | `InventarioPage.tsx` |
+| 4.8 | i18n fixes en Inventario, Ventas, Caja, Proveedores | ✅ | Múltiples páginas |
+| 4.9 | Overlay del login no tapa banner de licencia | ✅ | `LoginPage.tsx` |
+| 4.10 | Links legales en una sola línea | ✅ | `LoginPage.tsx` |
+| 4.11 | NSIS: eliminado diálogo de idioma manual | ✅ | `installer.nsh` |
+| 4.12 | NSIS: auto-detección de idioma del sistema | ✅ | `installer.nsh` |
+| 4.13 | Corregido owner en publish config | ✅ | `package.json` |
+| 4.14 | Guía completa del desarrollador | ✅ | `docs/GUIA_DESARROLLADOR.md` |
 
 ---
 
@@ -173,8 +172,10 @@ npm run build:installer
 | ✅ Help + Tutorial | Fase 2 | Completado |
 | ✅ Terminal Config UI | Fase 2 | Completado |
 | ✅ P0 + P1 + P2 features | Fase 2.5 | Completado |
-| ✅ Instalador NSIS | Empaquetado | Configurado |
-| 🟡 Beta producción | Fase 3 | Pendiente |
+| ✅ Instalador NSIS | Empaquetado | Completado |
+| ✅ Auto-update system | Fase 4 | Completado |
+| ✅ i18n completo | Fase 4 | Completado |
+| ✅ UI/UX polish | Fase 4 | Completado |
 
 ---
 
@@ -188,6 +189,8 @@ npm run build:installer
 | VP800 incompatible | 🟡 Medio | ✅ Implementado (Fase 2) |
 | Licencias falsificadas | 🟡 Medio | ✅ RSA-2048 (Fase 2) |
 | Pantalla blanca producción | 🔴 Alto | ✅ Resuelto (HashRouter + DOMContentLoaded) |
+| Auto-update no funciona | 🟡 Medio | ✅ Resuelto (owner corregido) |
+| Instalador sin icono | 🟡 Medio | ✅ Resuelto (icon.ico regenerado) |
 
 ---
 
@@ -199,67 +202,24 @@ npm run build:installer
 
 2. Generar instalador
    $ npm run build:installer
-   → release/TOG-Admin-Setup-1.0.0.exe
+   → release/TOG Admin Setup X.X.X.exe
 
-3. Entregar al cliente el .exe del instalador
+3. Publicar release en GitHub
+   $ git tag -a vX.X.X -m "vX.X.X"
+   $ git push origin vX.X.X
+   $ gh release create vX.X.X --repo betobeto00/tog-admin --title "TOG Admin vX.X.X" --notes "..."
+   $ gh release upload vX.X.X "release/TOG Admin Setup X.X.X.exe" --repo betobeto00/tog-admin --clobber
 
-4. Cliente instala → Abre la app → Ve pantalla de bloqueo
+4. Entregar al cliente el .exe del instalador
 
-5. Cliente te envía su Machine ID
+5. Cliente instala → Abre la app → Ve pantalla de bloqueo
 
-6. Tú generas la licencia
+6. Cliente te envía su Machine ID
+
+7. Tú generas la licencia
    $ node scripts/generate-license.js "Cliente" "2027-08-28" "machine_id"
 
-7. Envías license.key al cliente → Lo importa → Todo funciona ✅
-```
+8. Envías license.key al cliente → Lo importa → Todo funciona ✅
 
----
-
-## Archivos Clave del Proyecto
-
-```
-src/
-├── main/
-│   ├── index.ts              # Entry point Electron
-│   ├── preload.ts            # API segura IPC (contextBridge)
-│   ├── ipc-handlers.ts       # ✅ 40+ canales IPC
-│   ├── db/
-│   │   ├── database.ts       # SQLite + 13 migraciones + seeds
-│   │   └── migrate.ts        # Script standalone de migración
-│   └── services/
-│       ├── valorTerminal.ts  # ✅ Servicio VP800 (USB serial)
-│       └── license.ts        # ✅ Validación licencias RSA-2048
-├── renderer/
-│   ├── App.tsx               # ✅ HashRouter + LicenseGate
-│   ├── pages/                # 12 páginas
-│   ├── components/
-│   │   ├── layout/           # Header (notificaciones) + Sidebar
-│   │   ├── ui/               # Modal, ConfirmDialog, Toast
-│   │   ├── pos/CartItem.tsx  # ✅ Precio editable + descuento
-│   │   ├── ErrorBoundary.tsx
-│   │   ├── LicenseGate.tsx
-│   │   ├── Tutorial.tsx
-│   │   └── ForcePasswordChange.tsx
-│   ├── stores/auth.store.ts  # ✅ Session timeout
-│   └── lib/utils.ts
-├── shared/
-│   ├── types.ts
-│   └── validations.ts        # 19 schemas Zod
-├── scripts/
-│   ├── generate-keys.js      # Generador claves RSA
-│   ├── generate-license.js   # Generador licencias
-│   └── inline-css.js         # Build: CSS inline
-├── keys/
-│   ├── private.key           # 🔴 SECRETA
-│   └── public.key            # 🟢 Embebida en el .exe
-├── docs/
-│   ├── LICENCIAMIENTO.md     # Guía completa de licencias
-│   ├── ROADMAP.md            # Este archivo
-│   ├── FEATURES.md
-│   ├── ARCHITECTURE.md
-│   ├── TECH_STACK.md
-│   ├── KNOWLEDGE.md
-│   └── DATA_MODEL.md
-└── packaging/
-    └── installer.iss         # Script Inno Setup (alternativo)
+9. A partir de ahí, el auto-update funciona para futuras versiones
 ```
