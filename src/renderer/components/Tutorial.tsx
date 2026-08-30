@@ -7,6 +7,7 @@ interface TutorialStep {
   titleKey: string
   descKey: string
   tipKey: string
+  tip?: boolean
   color: string
 }
 
