@@ -32,6 +32,8 @@ contextBridge.exposeInMainWorld('api', {
     delete: (id: number) => ipcRenderer.invoke('usuarios:delete', { id }),
     changePassword: (data: { usuario_id: number; contrasena_actual: string; contrasena_nueva: string }) =>
       ipcRenderer.invoke('usuarios:change-password', data),
+    getPermissions: (id: number) => ipcRenderer.invoke('usuarios:getPermissions', { id }),
+    setPermissions: (id: number, permisos: string[]) => ipcRenderer.invoke('usuarios:setPermissions', { id, permisos }),
   },
 
   // Categorías
@@ -197,6 +199,8 @@ export interface PapeleriaAPI {
     update: (id: number, data: unknown) => Promise<any>
     delete: (id: number) => Promise<any>
     changePassword: (data: { usuario_id: number; contrasena_actual: string; contrasena_nueva: string }) => Promise<any>
+    getPermissions: (id: number) => Promise<{ success: boolean; permisos?: string[]; rol?: string; error?: string }>
+    setPermissions: (id: number, permisos: string[]) => Promise<{ success: boolean; message?: string; error?: string }>
   }
   categorias: {
     list: () => Promise<any[]>

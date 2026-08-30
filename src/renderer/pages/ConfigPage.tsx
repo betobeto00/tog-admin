@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import {
   Settings, Store, CreditCard, Users, Plus, Edit2, Trash2,
   Save, Eye, EyeOff, Shield, User, Download, Upload, GraduationCap, Key, Clock,
-  Wifi, WifiOff, Plug, Unplug
+  Wifi, WifiOff, Plug, Unplug, Lock
 } from 'lucide-react'
 import { resetTutorial } from '../components/Tutorial'
 import { useToast } from '../components/ui/Toast'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import PermissionsModal from '../components/ui/PermissionsModal'
 
 interface Config { clave: string; valor: string; descripcion: string | null }
 interface Usuario { id: number; usuario: string; nombre: string; rol: string; activo: number }
@@ -31,6 +32,9 @@ export default function ConfigPage() {
   const [deleteUser, setDeleteUser] = useState<number | null>(null)
   const [showPassword, setShowPassword] = useState(false)
 
+  // Permisos de usuario
+  const [permissionsUser, setPermissionsUser] = useState<Usuario | null>(null)
+
   const [tab, setTab] = useState<'negocio' | 'usuarios' | 'terminal' | 'sistema'>('negocio')
   const [backupLoading, setBackupLoading] = useState(false)
 
@@ -50,6 +54,11 @@ export default function ConfigPage() {
   const [fondoDefault, setFondoDefault] = useState('')
 
   useEffect(() => { loadData() }, [])
+
+  const loadUsuarios = async () => {
+    const users = await window.api.usuarios.list()
+    setUsuarios(users)
+  }
 
   const loadData = async () => {
     const [cfg, users] = await Promise.all([
@@ -348,6 +357,9 @@ export default function ConfigPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-1">
+                        <button onClick={() => setPermissionsUser(u)} className="p-1.5 hover:bg-blue-50 rounded-lg" title="Permisos">
+                          <Lock className="w-4 h-4 text-blue-500" />
+                        </button>
                         <button onClick={() => openEditUser(u)} className="p-1.5 hover:bg-gray-100 rounded-lg">
                           <Edit2 className="w-4 h-4 text-gray-500" />
                         </button>
@@ -423,6 +435,18 @@ export default function ConfigPage() {
         onConfirm={() => { if (deleteUser) deleteUser_(deleteUser) }}
         title="Delete user" message="This user will be deactivated. They won't be able to log in anymore."
         confirmText="Deactivate" danger />
+
+      {/* ======== MODAL PERMISOS ======== */}
+      {permissionsUser && (
+        <PermissionsModal
+          open={!!permissionsUser}
+          onClose={() => setPermissionsUser(null)}
+          userId={permissionsUser.id}
+          userName={permissionsUser.nombre}
+          userRole={permissionsUser.rol}
+          onSave={loadUsuarios}
+        />
+      )}
 
       {/* ======== TAB TERMINAL VP800 ======== */}
       {tab === 'terminal' && (

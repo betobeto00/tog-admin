@@ -12,6 +12,7 @@ import {
   cajaAbrirSchema, cajaCerrarSchema, movimientoCajaSchema,
   quoteCreateSchema,
 } from '../shared/validations'
+import { ROLE_DEFAULTS, type PermissionKey } from '../shared/permissions'
 import { getTerminalService } from './services/valorTerminal'
 import {
   saveCrashReport,
@@ -247,6 +248,40 @@ function registerUsuariosHandlers(): void {
   ipcMain.handle('usuarios:delete', async (_event, data: { id: number }) => {
     const db = getDatabase()
     db.prepare('UPDATE usuarios SET activo = 0, actualizado_en = datetime("now") WHERE id = ?').run(data.id)
+    return { success: true }
+  })
+
+  // Obtener permisos de un usuario
+  ipcMain.handle('usuarios:getPermissions', async (_event, data: { id: number }) => {
+    const db = getDatabase()
+    const user = db.prepare('SELECT id, usuario, nombre, rol, permisos FROM usuarios WHERE id = ?').get(data.id) as any
+    if (!user) return { success: false, error: 'Usuario no encontrado' }
+
+    let permisos: string[] = []
+    if (user.rol === 'admin') {
+      permisos = Object.keys(ROLE_DEFAULTS.admin)
+    } else if (user.permisos) {
+      try { permisos = JSON.parse(user.permisos) } catch { permisos = ROLE_DEFAULTS[user.rol] || [] }
+    } else {
+      permisos = ROLE_DEFAULTS[user.rol] || []
+    }
+
+    return { success: true, permisos, rol: user.rol }
+  })
+
+  // Establecer permisos de un usuario
+  ipcMain.handle('usuarios:setPermissions', async (_event, data: { id: number; permisos: PermissionKey[] }) => {
+    const db = getDatabase()
+    const user = db.prepare('SELECT id, rol FROM usuarios WHERE id = ?').get(data.id) as any
+    if (!user) return { success: false, error: 'Usuario no encontrado' }
+
+    // Admin siempre tiene todos los permisos
+    if (user.rol === 'admin') {
+      return { success: true, message: 'Admin tiene todos los permisos automáticamente' }
+    }
+
+    const permisosJson = JSON.stringify(data.permisos)
+    db.prepare('UPDATE usuarios SET permisos = ?, actualizado_en = datetime("now") WHERE id = ?').run(permisosJson, data.id)
     return { success: true }
   })
 }

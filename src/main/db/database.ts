@@ -360,6 +360,12 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
         CREATE INDEX IF NOT EXISTS idx_ajustes_fecha ON ajustes_inventario(fecha);
       `,
     },
+    {
+      nombre: '013_usuario_permisos',
+      sql: `
+        ALTER TABLE usuarios ADD COLUMN permisos TEXT;
+      `,
+    },
   ]
 }
 
