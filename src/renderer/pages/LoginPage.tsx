@@ -69,10 +69,10 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
+      className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat relative"
       style={{ backgroundImage: `url('./hero-bg.jpg')` }}
     >
-      <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-white/30" />
       <div className="w-full max-w-md relative z-10">
         {/* Logo / Header */}
         <div className="text-center mb-8">
@@ -229,7 +229,7 @@ export default function LoginPage() {
         </div>
 
         {/* Links legales */}
-        <div className="flex items-center justify-center gap-4 mt-4 text-xs">
+        <div className="flex items-center justify-center gap-3 mt-4 text-xs whitespace-nowrap">
           <button onClick={() => setModalContent('copyright')} className="text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2">
             Copyright
           </button>
@@ -239,15 +239,15 @@ export default function LoginPage() {
           </button>
           <span className="text-gray-300">•</span>
           <button onClick={() => setModalContent('privacy')} className="text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2">
-            {t('login.privacy')}
+            {i18n.language === 'en' ? 'Privacy' : 'Privacidad'}
           </button>
           <span className="text-gray-300">•</span>
           <button onClick={() => setModalContent('terms')} className="text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2">
-            {t('login.terms')}
+            {i18n.language === 'en' ? 'Terms' : 'Términos'}
           </button>
           <span className="text-gray-300">•</span>
           <button onClick={() => setModalContent('releases')} className="text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2">
-            Release Notes
+            Releases
           </button>
         </div>
 
