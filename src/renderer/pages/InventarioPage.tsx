@@ -9,6 +9,7 @@ import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { formatCurrency } from '../lib/utils'
 import { useToast } from '../components/ui/Toast'
+import { usePermissions } from '../hooks/usePermissions'
 
 interface Producto {
   id: number; codigo_barras: string | null; sku: string | null
@@ -29,6 +30,7 @@ const emptyProduct = {
 export default function InventarioPage() {
   const { t, i18n } = useTranslation()
   const usuario = useAuthStore((s) => s.usuario)
+  const { has } = usePermissions()
   const [productos, setProductos] = useState<Producto[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [unidades, setUnidades] = useState<UnidadMedida[]>([])
@@ -389,12 +391,14 @@ export default function InventarioPage() {
             className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50">
             <Upload className="w-4 h-4" /> {importing ? t('common.loading') : t('common.import')}
           </button>
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4" /> {t('inventario.newProduct')}
-          </button>
+          {has('inventario_create') && (
+            <button
+              onClick={openCreate}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4" /> {t('inventario.newProduct')}
+            </button>
+          )}
         </div>
       </div>
 
@@ -403,9 +407,11 @@ export default function InventarioPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-gray-800">{i18n.language === 'en' ? 'Categories' : 'Categorías'}</h3>
-            <button onClick={openCreateCat} className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
-              <Plus className="w-4 h-4" /> {i18n.language === 'en' ? 'Add' : 'Agregar'}
-            </button>
+            {has('inventario_categories') && (
+              <button onClick={openCreateCat} className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                <Plus className="w-4 h-4" /> {i18n.language === 'en' ? 'Add' : 'Agregar'}
+              </button>
+            )}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {categorias.map((c) => (
@@ -430,9 +436,11 @@ export default function InventarioPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-gray-800">{i18n.language === 'en' ? 'Units of Measure' : 'Unidades de Medida'}</h3>
-            <button onClick={openCreateUnid} className="text-sm text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
-              <Plus className="w-4 h-4" /> {i18n.language === 'en' ? 'Add Unit' : 'Agregar Unidad'}
-            </button>
+            {has('inventario_units') && (
+              <button onClick={openCreateUnid} className="text-sm text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                <Plus className="w-4 h-4" /> {i18n.language === 'en' ? 'Add Unit' : 'Agregar Unidad'}
+              </button>
+            )}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
             {unidades.map((u) => (
@@ -532,15 +540,21 @@ export default function InventarioPage() {
                   <td className="px-4 py-3 text-sm text-gray-500 text-center capitalize">{p.unidad}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <button onClick={() => openAjuste(p)} className="p-1.5 hover:bg-blue-50 rounded-lg" title={i18n.language === 'en' ? 'Adjust stock' : 'Ajustar stock'}>
-                        <Package className="w-4 h-4 text-blue-500" />
-                      </button>
-                      <button onClick={() => openEdit(p)} className="p-1.5 hover:bg-gray-100 rounded-lg" title={t('common.edit')}>
-                        <Edit2 className="w-4 h-4 text-gray-500" />
-                      </button>
-                      <button onClick={() => setDeleteTarget({ type: 'producto', id: p.id })} className="p-1.5 hover:bg-red-50 rounded-lg" title={t('common.delete')}>
-                        <Trash2 className="w-4 h-4 text-red-400" />
-                      </button>
+                      {has('inventario_adjust') && (
+                        <button onClick={() => openAjuste(p)} className="p-1.5 hover:bg-blue-50 rounded-lg" title={i18n.language === 'en' ? 'Adjust stock' : 'Ajustar stock'}>
+                          <Package className="w-4 h-4 text-blue-500" />
+                        </button>
+                      )}
+                      {has('inventario_edit') && (
+                        <button onClick={() => openEdit(p)} className="p-1.5 hover:bg-gray-100 rounded-lg" title={t('common.edit')}>
+                          <Edit2 className="w-4 h-4 text-gray-500" />
+                        </button>
+                      )}
+                      {has('inventario_delete') && (
+                        <button onClick={() => setDeleteTarget({ type: 'producto', id: p.id })} className="p-1.5 hover:bg-red-50 rounded-lg" title={t('common.delete')}>
+                          <Trash2 className="w-4 h-4 text-red-400" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

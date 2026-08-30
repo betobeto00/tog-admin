@@ -7,6 +7,7 @@ import {
 import Modal from '../components/ui/Modal'
 import { formatCurrency, formatDateTime } from '../lib/utils'
 import { useToast } from '../components/ui/Toast'
+import { usePermissions } from '../hooks/usePermissions'
 
 interface Producto {
   id: number; nombre: string; precio_compra: number; stock: number; unidad: string
@@ -24,6 +25,7 @@ interface CompraRecord {
 export default function ComprasPage() {
   const { t } = useTranslation()
   const usuario = useAuthStore((s) => s.usuario)
+  const { has } = usePermissions()
   const [compras, setCompras] = useState<CompraRecord[]>([])
   const [productos, setProductos] = useState<Producto[]>([])
   const [proveedores, setProveedores] = useState<Proveedor[]>([])
@@ -192,10 +194,12 @@ export default function ComprasPage() {
           <h1 className="text-2xl font-bold text-gray-900">{t('compras.title')}</h1>
           <p className="text-sm text-gray-500">{t('caja.purchasesInPeriod', { count: compras.length })}</p>
         </div>
-        <button onClick={() => { setItems([]); setNuevaOpen(true) }}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-          <Plus className="w-4 h-4" /> {t('compras.newPurchase')}
-        </button>
+        {has('compras_create') && (
+          <button onClick={() => { setItems([]); setNuevaOpen(true) }}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+            <Plus className="w-4 h-4" /> {t('compras.newPurchase')}
+          </button>
+        )}
       </div>
 
       {/* Filtros */}
