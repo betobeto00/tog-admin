@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Settings, Store, CreditCard, Users, Plus, Edit2, Trash2,
   Save, Eye, EyeOff, Shield, User, Download, Upload, GraduationCap, Key, Clock,
-  Wifi, WifiOff, Plug, Unplug, Lock
+  Wifi, WifiOff, Plug, Unplug, Lock, Wallet, Power, Banknote
 } from 'lucide-react'
 import { resetTutorial } from '../components/Tutorial'
 import { useToast } from '../components/ui/Toast'
@@ -44,7 +44,7 @@ export default function ConfigPage() {
   // Permisos del usuario actual
   const { has } = usePermissions()
 
-  const [tab, setTab] = useState<'negocio' | 'usuarios' | 'terminal' | 'sistema'>('negocio')
+  const [tab, setTab] = useState<'negocio' | 'usuarios' | 'terminal' | 'sistema' | 'metodos'>('negocio')
   const [backupLoading, setBackupLoading] = useState(false)
 
   // Licencia
@@ -61,6 +61,12 @@ export default function ConfigPage() {
   // Config sistema
   const [printerName, setPrinterName] = useState('')
   const [fondoDefault, setFondoDefault] = useState('')
+
+  // Métodos de pago personalizables
+  const [metodosPago, setMetodosPago] = useState<any[]>([])
+  const [metodoModalOpen, setMetodoModalOpen] = useState(false)
+  const [editingMetodo, setEditingMetodo] = useState<any | null>(null)
+  const [metodoForm, setMetodoForm] = useState({ clave: '', nombre: '', icono: 'DollarSign', requiere_terminal: false, orden: 99 })
 
   useEffect(() => { loadData() }, [])
 
@@ -189,6 +195,61 @@ export default function ConfigPage() {
     await loadData()
   }
 
+  // ======== MÉTODOS DE PAGO ========
+  const loadMetodosPago = async () => {
+    try {
+      const metodos = await window.api.metodosPago.list(false)
+      setMetodosPago(metodos || [])
+    } catch {}
+  }
+
+  useEffect(() => { loadMetodosPago() }, [])
+
+  const openCreateMetodo = () => {
+    setEditingMetodo(null)
+    setMetodoForm({ clave: '', nombre: '', icono: 'DollarSign', requiere_terminal: false, orden: 99 })
+    setMetodoModalOpen(true)
+  }
+
+  const openEditMetodo = (m: any) => {
+    setEditingMetodo(m)
+    setMetodoForm({
+      clave: m.clave,
+      nombre: m.nombre,
+      icono: m.icono,
+      requiere_terminal: !!m.requiere_terminal,
+      orden: m.orden,
+    })
+    setMetodoModalOpen(true)
+  }
+
+  const saveMetodo = async () => {
+    if (!metodoForm.nombre.trim()) return
+    if (editingMetodo) {
+      await window.api.metodosPago.update(editingMetodo.id, {
+        nombre: metodoForm.nombre,
+        icono: metodoForm.icono,
+        requiere_terminal: metodoForm.requiere_terminal,
+        orden: metodoForm.orden,
+      })
+    } else {
+      await window.api.metodosPago.create({
+        clave: metodoForm.clave || metodoForm.nombre.toLowerCase().replace(/\s+/g, '_'),
+        nombre: metodoForm.nombre,
+        icono: metodoForm.icono,
+        requiere_terminal: metodoForm.requiere_terminal,
+        orden: metodoForm.orden,
+      })
+    }
+    setMetodoModalOpen(false)
+    await loadMetodosPago()
+  }
+
+  const toggleMetodoActivo = async (m: any) => {
+    await window.api.metodosPago.update(m.id, { activo: !m.activo })
+    await loadMetodosPago()
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -221,6 +282,12 @@ export default function ConfigPage() {
             tab === 'sistema' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}>
           <Settings className="w-4 h-4 inline mr-1.5" /> {t('config.systemTab')}
+        </button>
+        <button onClick={() => setTab('metodos')}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            tab === 'metodos' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}>
+          <Wallet className="w-4 h-4 inline mr-1.5" /> {t('config.paymentMethodsTab') || 'Métodos de Pago'}
         </button>
       </div>
 
@@ -903,7 +970,139 @@ export default function ConfigPage() {
               <Trash2 className="w-4 h-4" /> {t('config.resetDbButton')}
               {!has('config_db_reset') && <span className="text-xs opacity-70">{t('config.noPermission')}</span>}
             </button>
+</div>
           </div>
+        )}
+      {/* ======== TAB MÉTODOS DE PAGO ======== */}
+      {tab === 'metodos' && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5 max-w-2xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-blue-600" /> Métodos de Pago
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Personaliza los métodos que aparecerán en el POS. Activa/desactiva, agrega o edita los que uses.
+              </p>
+            </div>
+            {has('config_access') && (
+              <button onClick={openCreateMetodo}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <Plus className="w-4 h-4" /> Nuevo Método
+              </button>
+            )}
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Nombre</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Clave</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Terminal</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Estado</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {metodosPago.map((m) => (
+                  <tr key={m.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{m.nombre}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500 font-mono">{m.clave}</td>
+                    <td className="px-4 py-3 text-center">
+                      {m.requiere_terminal ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                          <CreditCard className="w-3 h-3" /> VP800
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => toggleMetodoActivo(m)}
+                        className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
+                          m.activo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                        }`}
+                      >
+                        <Power className="w-3 h-3" /> {m.activo ? 'Activo' : 'Inactivo'}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button onClick={() => openEditMetodo(m)} className="p-1.5 hover:bg-gray-100 rounded-lg">
+                        <Edit2 className="w-4 h-4 text-gray-500" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700">
+            <p className="font-medium mb-1">💡 Cómo funciona</p>
+            <ul className="list-disc list-inside space-y-1 text-xs">
+              <li>Los métodos activos aparecen como opciones en el POS al cobrar.</li>
+              <li>Si marcas "Requiere Terminal", el POS enviará el cobro al VP800 cuando el cliente lo elija.</li>
+              <li>Puedes desactivar un método sin eliminarlo (el histórico de ventas se conserva).</li>
+            </ul>
+          </div>
+
+          <Modal open={metodoModalOpen} onClose={() => setMetodoModalOpen(false)}
+            title={editingMetodo ? 'Editar Método' : 'Nuevo Método de Pago'}>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+                <input value={metodoForm.nombre}
+                  onChange={(e) => setMetodoForm({ ...metodoForm, nombre: e.target.value, clave: editingMetodo ? metodoForm.clave : e.target.value.toLowerCase().replace(/\s+/g, '_') })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                  placeholder="Ej: Zelle, Crypto, Cheque" />
+              </div>
+              {!editingMetodo && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Clave (interna)</label>
+                  <input value={metodoForm.clave}
+                    onChange={(e) => setMetodoForm({ ...metodoForm, clave: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500"
+                    placeholder="zelle, crypto, cheque" />
+                  <p className="text-xs text-gray-400 mt-1">Sin espacios. Se usa internamente para identificar el método.</p>
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Icono</label>
+                <select value={metodoForm.icono}
+                  onChange={(e) => setMetodoForm({ ...metodoForm, icono: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                  <option value="DollarSign">💵 Efectivo (DollarSign)</option>
+                  <option value="CreditCard">💳 Tarjeta (CreditCard)</option>
+                  <option value="Smartphone">📱 Móvil (Smartphone)</option>
+                  <option value="Wallet">👛 Billetera (Wallet)</option>
+                  <option value="Banknote">💵 Billete (Banknote)</option>
+                  <option value="Globe">🌐 Online (Globe)</option>
+                </select>
+              </div>
+              <div>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={metodoForm.requiere_terminal}
+                    onChange={(e) => setMetodoForm({ ...metodoForm, requiere_terminal: e.target.checked })}
+                    className="rounded border-gray-300" />
+                  <span>Requiere Terminal VP800 (procesa con tarjeta)</span>
+                </label>
+                <p className="text-xs text-gray-400 mt-1">
+                  Si está activo, el POS esperará que el cliente pase/tarjee la tarjeta antes de registrar la venta.
+                </p>
+              </div>
+              <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+                <button onClick={() => setMetodoModalOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
+                <button onClick={saveMetodo}
+                  disabled={!metodoForm.nombre.trim() || (!editingMetodo && !metodoForm.clave.trim())}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300">
+                  {editingMetodo ? 'Guardar' : 'Crear'}
+                </button>
+              </div>
+            </div>
+          </Modal>
         </div>
       )}
     </div>

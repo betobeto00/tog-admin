@@ -4,7 +4,7 @@ import { useAuthStore } from '../stores/auth.store'
 import {
   Search, ShoppingCart, Plus, Minus, Trash2, X,
   DollarSign, CreditCard, Smartphone, Check, Printer,
-  Package, AlertTriangle, ScanBarcode
+  Package, AlertTriangle, ScanBarcode, Wallet, Banknote, Globe
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import CartItem from '../components/pos/CartItem'
@@ -24,7 +24,18 @@ interface CartItem {
   descuento: number  // descuento por item (0-100 %)
 }
 
-type MetodoPago = 'efectivo' | 'transferencia' | 'pago_movil' | 'mixto'
+interface MetodoPagoDB {
+  id: number
+  clave: string
+  nombre: string
+  icono: string
+  requiere_terminal: number
+  activo: number
+}
+
+const ICON_MAP: Record<string, any> = {
+  DollarSign, CreditCard, Smartphone, Wallet, Banknote, Globe,
+}
 
 export default function POSPage() {
   const { t } = useTranslation()
@@ -46,9 +57,11 @@ export default function POSPage() {
 
   // Cobro
   const [cobrarOpen, setCobrarOpen] = useState(false)
-  const [metodoPago, setMetodoPago] = useState<MetodoPago>('efectivo')
+  const [metodosPago, setMetodosPago] = useState<MetodoPagoDB[]>([])
+  const [metodoPago, setMetodoPago] = useState<string>('efectivo')
   const [montoPagado, setMontoPagado] = useState('')
   const [procesando, setProcesando] = useState(false)
+  const [esperandoTarjeta, setEsperandoTarjeta] = useState(false)
 
   // Ticket
   const [ticketOpen, setTicketOpen] = useState(false)
@@ -78,6 +91,23 @@ export default function POSPage() {
     const prods = await window.api.productos.list()
     setProductos(prods.filter((p: Producto) => p.stock > 0 || p.unidad === 'servicio'))
   }
+
+  const loadMetodosPago = async () => {
+    try {
+      const metodos = await window.api.metodosPago.list(true)
+      setMetodosPago(metodos || [])
+      if (metodos && metodos.length > 0 && !metodos.find((m: any) => m.clave === metodoPago)) {
+        setMetodoPago(metodos[0].clave)
+      }
+    } catch (err) {
+      console.error('Error cargando métodos de pago:', err)
+    }
+  }
+
+  useEffect(() => {
+    loadProducts()
+    loadMetodosPago()
+  }, [])
 
   // Handler para escaneo de codigo de barras
   const handleBarcodeScan = async (barcode: string) => {
@@ -229,6 +259,22 @@ export default function POSPage() {
     setProcesando(true)
 
     try {
+      // Si el método requiere terminal (ej. tarjeta/VP800), procesar primero
+      const metodo = metodosPago.find((m) => m.clave === metodoPago)
+      let datosTarjeta: any = null
+      if (metodo?.requiere_terminal) {
+        setEsperandoTarjeta(true)
+        const resp = await window.api.metodosPago.procesarTarjeta(total)
+        setEsperandoTarjeta(false)
+        if (!resp.success) {
+          toast.error(resp.error || 'Error procesando pago con tarjeta')
+          setProcesando(false)
+          return
+        }
+        datosTarjeta = resp
+        toast.success(`Pago aprobado${resp.maskedPan ? ` •••• ${resp.maskedPan}` : ''}`)
+      }
+
       const result = await window.api.ventas.create({
         usuario_id: usuario!.id,
         subtotal: subtotalConGlobal,
@@ -256,7 +302,7 @@ export default function POSPage() {
         return
       }
 
-      setUltimoTicket({ ...result, items: [...cart], total, metodo_pago: metodoPago })
+      setUltimoTicket({ ...result, items: [...cart], total, metodo_pago: metodoPago, datosTarjeta })
       setCobrarOpen(false)
       setTicketOpen(true)
       setCart([])
@@ -267,6 +313,7 @@ export default function POSPage() {
       toast.error(t('errors.processSaleError'))
     } finally {
       setProcesando(false)
+      setEsperandoTarjeta(false)
     }
   }
 
@@ -511,25 +558,32 @@ export default function POSPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t('pos.paymentMethodLabel')}</label>
             <div className="grid grid-cols-2 gap-2">
-              {([
-                { key: 'efectivo', label: t('pos.cash'), icon: DollarSign },
-                { key: 'transferencia', label: t('pos.transfer'), icon: CreditCard },
-                { key: 'pago_movil', label: t('pos.mobile'), icon: Smartphone },
-                { key: 'mixto', label: t('pos.mixed'), icon: DollarSign },
-              ] as const).map(({ key, label, icon: Icon }) => (
-                <button
-                  key={key}
-                  onClick={() => setMetodoPago(key)}
-                  className={`flex items-center gap-2 p-3 rounded-xl border-2 text-sm font-medium transition-colors ${
-                    metodoPago === key
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" /> {label}
-                </button>
-              ))}
+              {metodosPago.length === 0 ? (
+                <p className="col-span-2 text-sm text-gray-400 text-center py-2">
+                  {t('config.noPaymentMethods') || 'Sin métodos de pago configurados'}
+                </p>
+              ) : metodosPago.map((m) => {
+                const Icon = ICON_MAP[m.icono] || DollarSign
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => setMetodoPago(m.clave)}
+                    className={`flex items-center gap-2 p-3 rounded-xl border-2 text-sm font-medium transition-colors ${
+                      metodoPago === m.clave
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" /> {m.nombre}
+                  </button>
+                )
+              })}
             </div>
+            {metodosPago.find((m) => m.clave === metodoPago)?.requiere_terminal && esperandoTarjeta && (
+              <p className="text-xs text-blue-600 mt-2 text-center animate-pulse">
+                ⏳ {t('pos.waitingForCard') || 'Esperando tarjeta en VP800...'}
+              </p>
+            )}
           </div>
 
           {/* Monto pagado (solo efectivo) */}

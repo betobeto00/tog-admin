@@ -271,6 +271,36 @@ export interface Configuracion {
   actualizado_en: string
 }
 
+// --- Métodos de Pago ---
+export interface MetodoPago {
+  id: number
+  clave: string
+  nombre: string
+  icono: string
+  requiere_terminal: number
+  activo: number
+  orden: number
+  creado_en: string
+  actualizado_en: string
+}
+
+export interface MetodoPagoCreate {
+  clave: string
+  nombre: string
+  icono?: string
+  requiere_terminal?: number
+  activo?: number
+  orden?: number
+}
+
+export interface MetodoPagoUpdate {
+  nombre?: string
+  icono?: string
+  requiere_terminal?: number
+  activo?: number
+  orden?: number
+}
+
 // --- IPC Channels ---
 export interface IpcChannels {
   // Auth
@@ -332,4 +362,11 @@ export interface IpcChannels {
   // Config
   'config:get': void
   'config:set': { clave: string; valor: string }
+
+  // Métodos de pago
+  'metodos-pago:list': { activoOnly?: boolean }
+  'metodos-pago:create': MetodoPagoCreate
+  'metodos-pago:update': { id: number; data: MetodoPagoUpdate }
+  'metodos-pago:delete': { id: number }
+  'metodos-pago:procesar-tarjeta': { monto: number }
 }
