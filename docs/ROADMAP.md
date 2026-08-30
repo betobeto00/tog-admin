@@ -140,6 +140,42 @@ CRÍTICOS    CORE        SEGURIDAD   P0+P1+P2     i18n        TESTS+ASSETS PREMI
 
 ---
 
+## 🟡 RECOMENDACIONES V3 — MIGRADAS
+
+| # | Tarea | Estado | Origen |
+|---|-------|--------|--------|
+| V3.1 | Cobertura de tests al 80% (actualmente ~104 tests, V3 P0#1) | ⏳ | V3 P0 #1 |
+| V3.2 | Logging estructurado (winston en main, V3 P0#2) | ⏳ | V3 P0 #2 |
+| V3.3 | Optimizar queries SQL — cache de productos (V3 P0#3) | ⏳ | V3 P0 #3 |
+| V3.4 | Integration tests (V3 P1#6) | ⏳ | V3 P1 #6 |
+| V3.5 | Expansión multi-plataforma (Mac/Linux, V3 P1#4) | ⏳ | V3 P1 #4 |
+
+### Detalle Técnico
+
+**V3.2 — Logging estructurado (winston):**
+```typescript
+// src/main/services/logger.ts
+import winston from 'winston'
+
+export const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.json(),
+  transports: [
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' }),
+  ],
+})
+```
+**Esfuerzo estimado:** 1 semana · **Impacto:** Alta trazabilidad de errores.
+
+**V3.3 — Cache de productos:**
+Cachear `productos:list` con invalidación en `productos:create/update/delete` y en handlers de stock (ventas, compras, ajustes). Migración simple desde `configCache.ts` (ya implementado).
+
+**V3.4 — Integration tests:**
+Tests end-to-end con better-sqlite3 in-memory para flujos completos (login → venta → cierre caja → backup).
+
+---
+
 ## ✅ FASE 3.7: INTEGRACIÓN LECTOR CÓDIGOS DE BARRAS (USB HID) — COMPLETADA
 
 | # | Tarea | Estado | Archivos |
@@ -254,6 +290,25 @@ CRÍTICOS    CORE        SEGURIDAD   P0+P1+P2     i18n        TESTS+ASSETS PREMI
 | 📝 Cotizaciones | Acceso, Crear |
 | 📊 Reportes | Ver, Exportar |
 | ⚙️ Administración | Config, Terminal, Backups, Reset DB, Usuarios, Asignar permisos |
+
+---
+
+## 🔒 SEGURIDAD ADICIONAL (post-V2) — PENDIENTE
+
+| # | Tarea | Estado | Prioridad |
+|---|-------|--------|-----------|
+| S1 | Implementar CSP headers (meta tag) | ⏳ | 🟢 Baja |
+| S2 | Validar origen en IPC handlers (webContents.getURL) | ⏳ | 🟢 Baja |
+
+---
+
+## 🎬 MARKETING / LANDING — PENDIENTE
+
+| # | Tarea | Estado | Origen |
+|---|-------|--------|--------|
+| M1 | Video demostrativo de 1-2 min para landing | ⏳ | Benchmarking §3.1 |
+| M2 | Testimonios de clientes reales | ⏳ | Benchmarking §3.1 |
+| M3 | Tutorial en video + casos de éxito | ⏳ | Benchmarking §5 |
 
 ---
 

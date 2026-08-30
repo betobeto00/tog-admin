@@ -27,3 +27,6 @@ licenses/*.key
 !licenses/.gitkeep
 *.png
 license.key
+
+# Graphify (knowledge graph artifacts)
+graphify-out/
