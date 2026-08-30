@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Plus, Search, Edit2, Trash2, Truck, Phone, Mail, MapPin } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
@@ -12,6 +13,7 @@ interface Proveedor {
 const emptyForm = { nombre: '', ein: '', telefono: '', email: '', direccion: '', notas: '' }
 
 export default function ProveedoresPage() {
+  const { t, i18n } = useTranslation()
   const [proveedores, setProveedores] = useState<Proveedor[]>([])
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
@@ -57,18 +59,18 @@ export default function ProveedoresPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Proveedores</h1>
-          <p className="text-sm text-gray-500">{proveedores.length} proveedores registrados</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('proveedores.title')}</h1>
+          <p className="text-sm text-gray-500">{proveedores.length} {i18n.language === 'en' ? 'registered suppliers' : 'proveedores registrados'}</p>
         </div>
         <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-          <Plus className="w-4 h-4" /> Nuevo Proveedor
+          <Plus className="w-4 h-4" /> {i18n.language === 'en' ? 'New Supplier' : 'Nuevo Proveedor'}
         </button>
       </div>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nombre, EIN o teléfono..."
+          placeholder={i18n.language === 'en' ? 'Search by name, EIN or phone...' : 'Buscar por nombre, EIN o teléfono...'}
           className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500" />
       </div>
 
@@ -76,7 +78,7 @@ export default function ProveedoresPage() {
         {filtered.length === 0 ? (
           <div className="col-span-full text-center py-12 text-gray-400">
             <Truck className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>No se encontraron proveedores</p>
+            <p>{i18n.language === 'en' ? 'No suppliers found' : 'No se encontraron proveedores'}</p>
           </div>
         ) : filtered.map((p) => (
           <div key={p.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
@@ -99,45 +101,45 @@ export default function ProveedoresPage() {
         ))}
       </div>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Editar Proveedor' : 'Nuevo Proveedor'} wide>
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? t('proveedores.edit') : t('proveedores.new')} wide>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.name')} *</label>
               <input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">EIN</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('proveedores.taxId')}</label>
               <input value={form.ein} onChange={(e) => setForm({ ...form, ein: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('proveedores.phone')}</label>
               <input value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('proveedores.email')}</label>
               <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('proveedores.address')}</label>
               <input value={form.direccion} onChange={(e) => setForm({ ...form, direccion: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.notes')}</label>
               <textarea rows={2} value={form.notas} onChange={(e) => setForm({ ...form, notas: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-            <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
+            <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{t('common.cancel')}</button>
             <button onClick={save} disabled={saving || !form.nombre.trim()}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300">
-              {saving ? 'Guardando...' : editing ? 'Guardar' : 'Crear'}
+              {saving ? t('common.saving') : editing ? t('common.save') : t('common.create')}
             </button>
           </div>
         </div>
@@ -145,8 +147,8 @@ export default function ProveedoresPage() {
 
       <ConfirmDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}
         onConfirm={() => { if (deleteTarget) remove(deleteTarget) }}
-        title="Eliminar proveedor" message="¿Estás seguro? Esta acción no se puede deshacer."
-        confirmText="Eliminar" danger />
+        title={i18n.language === 'en' ? 'Delete supplier' : 'Eliminar proveedor'} message={i18n.language === 'en' ? 'Are you sure? This action cannot be undone.' : '¿Estás seguro? Esta acción no se puede deshacer.'}
+        confirmText={t('common.delete')} danger />
     </div>
   )
 }
