@@ -47,18 +47,64 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 24px 28px;
+    padding: 16px 20px;
     margin-bottom: 32px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.04);
     position: sticky;
     top: 16px;
     z-index: 100;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+    transition: transform 0.25s ease, opacity 0.25s ease;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
   }
-  nav.toc h2 { font-size: 16px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 16px; font-weight: 700; }
-  nav.toc ol { columns: 2; column-gap: 28px; }
-  nav.toc li { margin-bottom: 6px; break-inside: avoid; }
-  nav.toc a { color: var(--primary); text-decoration: none; font-size: 14px; }
-  nav.toc a:hover { text-decoration: underline; }
+  nav.toc.hidden {
+    transform: translateY(-120%);
+    opacity: 0;
+    pointer-events: none;
+  }
+  nav.toc h2 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--bg-card);
+    padding-bottom: 8px;
+  }
+  nav.toc h2 button {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  nav.toc h2 button:hover {
+    background: var(--bg);
+    color: var(--primary);
+  }
+  nav.toc ol { columns: 1; column-gap: 0; }
+  nav.toc li { margin-bottom: 4px; break-inside: avoid; }
+  nav.toc a {
+    color: var(--primary);
+    text-decoration: none;
+    font-size: 13px;
+    display: block;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.15s;
+  }
+  nav.toc a:hover { background: #eff6ff; text-decoration: none; }
   section.chapter {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -196,10 +242,26 @@
     section.chapter h2 { font-size: 24px; }
   }
   @media print {
+    @page {
+      margin: 1.5cm 1.5cm 2cm 1.5cm;
+      @bottom-center {
+        content: "TOG Admin · Manual del Usuario · Página " counter(page) " de " counter(pages);
+        font-family: -apple-system, sans-serif;
+        font-size: 10px;
+        color: #64748b;
+      }
+    }
     .cover { min-height: auto; padding: 60px 20px; }
-    nav.toc { page-break-after: always; position: static; }
+    nav.toc { page-break-after: always; position: static; transform: none !important; opacity: 1 !important; box-shadow: none; }
+    nav.toc h2 button { display: none; }
     section.chapter { box-shadow: none; page-break-inside: avoid; }
     .callout { page-break-inside: avoid; }
+    .card { box-shadow: none; }
+    .step-image { border: 1px solid var(--border); }
+    #toc-toggle, #pdf-btn { display: none !important; }
+    section.chapter h2 { page-break-after: avoid; }
+    section.chapter h3, section.chapter h4 { page-break-after: avoid; }
+    table { page-break-inside: avoid; }
   }
 </style>
 </head>
@@ -216,7 +278,7 @@
 <div class="container">
 
 <nav class="toc">
-  <h2>Contenido</h2>
+  <h2>Contenido <button>Ocultar</button></h2>
   <ol>
     <li><a href="#intro">1. Introducción</a></li>
     <li><a href="#inicio">2. Primer Inicio</a></li>
@@ -241,6 +303,11 @@
     <li><a href="#soporte">21. Soporte</a></li>
   </ol>
 </nav>
+
+<div class="callout tip" style="text-align:center">
+  <strong>💡 Cómo leer este manual</strong>
+  Usa el botón <strong>☰</strong> (esquina superior izquierda) para mostrar u ocultar este índice. Para guardar como PDF, pulsa el botón verde <strong>📄 Guardar PDF</strong> (esquina inferior derecha) y elige "Guardar como PDF" en el diálogo de impresión.
+</div>
 
 <section class="chapter" id="intro">
   <h2>1. Introducción</h2>
@@ -1090,6 +1157,55 @@
 </div>
 
 </div>
+
+<!-- Boton flotante: mostrar/ocultar TOC -->
+<button id="toc-toggle" title="Mostrar/Ocultar índice" aria-label="Mostrar/Ocultar índice"
+  style="position:fixed;left:20px;top:20px;z-index:200;width:44px;height:44px;border-radius:50%;background:var(--primary);color:#fff;border:none;box-shadow:0 4px 12px rgba(0,0,0,0.15);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;transition:transform 0.2s;"
+  onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+  ☰
+</button>
+
+<!-- Boton flotante: PDF -->
+<button id="pdf-btn" title="Guardar como PDF"
+  style="position:fixed;right:20px;bottom:20px;z-index:200;padding:12px 20px;border-radius:30px;background:var(--accent);color:#fff;border:none;box-shadow:0 4px 12px rgba(0,0,0,0.2);cursor:pointer;font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px;transition:transform 0.2s;"
+  onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"
+  onclick="window.print()">
+  <span style="font-size:18px">📄</span> Guardar PDF
+</button>
+
+<style>
+  @media print {
+    #toc-toggle, #pdf-btn { display: none !important; }
+  }
+</style>
+
+<script>
+  (function() {
+    var toc = document.querySelector('nav.toc');
+    var btn = document.getElementById('toc-toggle');
+    if (!toc || !btn) return;
+
+    // Botón "Ocultar" dentro del header del TOC
+    var tocTitle = toc.querySelector('h2');
+    var hideBtn = document.createElement('button');
+    hideBtn.textContent = 'Ocultar';
+    hideBtn.title = 'Ocultar índice';
+    hideBtn.onclick = function() { toc.classList.add('hidden'); };
+    tocTitle.appendChild(hideBtn);
+
+    // Click en el botón flotante: alternar visibilidad
+    btn.onclick = function() {
+      toc.classList.toggle('hidden');
+    };
+
+    // Tecla Escape para mostrar el TOC si está oculto
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && toc.classList.contains('hidden')) {
+        toc.classList.remove('hidden');
+      }
+    });
+  })();
+</script>
 
 </body>
 </html>
