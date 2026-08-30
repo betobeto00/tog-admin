@@ -4,12 +4,13 @@ import { useAuthStore } from '../stores/auth.store'
 import {
   Search, ShoppingCart, Plus, Minus, Trash2, X,
   DollarSign, CreditCard, Smartphone, Check, Printer,
-  Package, AlertTriangle
+  Package, AlertTriangle, ScanBarcode
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import CartItem from '../components/pos/CartItem'
 import { formatCurrency, formatTicketNumber } from '../lib/utils'
 import { useToast } from '../components/ui/Toast'
+import { useBarcodeScanner } from '../hooks/useBarcodeScanner'
 
 interface Producto {
   id: number; nombre: string; codigo_barras: string | null
@@ -36,6 +37,9 @@ export default function POSPage() {
   const searchRef = useRef<HTMLInputElement>(null)
   const [cajaAbierta, setCajaAbierta] = useState<any>(null)
   const [cajaLoading, setCajaLoading] = useState(true)
+
+  // Escaneo de codigo de barras
+  const [scannerEnabled, setScannerEnabled] = useState(true)
 
   // Descuento global
   const [descuentoGlobal, setDescuentoGlobal] = useState(0)  // % global
@@ -74,6 +78,33 @@ export default function POSPage() {
     const prods = await window.api.productos.list()
     setProductos(prods.filter((p: Producto) => p.stock > 0 || p.unidad === 'servicio'))
   }
+
+  // Handler para escaneo de codigo de barras
+  const handleBarcodeScan = async (barcode: string) => {
+    try {
+      const producto = await window.api.productos.buscarPorCodigo(barcode)
+      if (producto && (producto.stock > 0 || producto.unidad === 'servicio')) {
+        addToCart(producto)
+        toast.success(`${producto.nombre} - ${formatCurrency(producto.precio_venta)}`)
+      } else if (producto) {
+        toast.warning(t('pos.productOutOfStock') || `"${producto.nombre}" sin stock`)
+      } else {
+        toast.warning(t('pos.productNotFound') || `Codigo no encontrado: ${barcode}`)
+        setSearch(barcode)
+        setFocusSearch(true)
+      }
+    } catch (err) {
+      console.error('Error escaneando codigo:', err)
+      toast.error(t('errors.barcodeScanError') || 'Error al escanear codigo')
+    }
+  }
+
+  // Hook de escaneo de codigos de barras
+  useBarcodeScanner({
+    onScan: handleBarcodeScan,
+    timeout: 50,
+    enabled: scannerEnabled && !cobrarOpen && !ticketOpen && !quickSaleOpen,
+  })
 
   // Filtrado de productos
   const filtered = useMemo(() => {
@@ -275,8 +306,31 @@ export default function POSPage() {
     <div className="flex h-[calc(100vh-8rem)] gap-4">
       {/* Columna izquierda: Búsqueda + Productos */}
       <div className="flex-1 flex flex-col">
-        {/* Búsqueda */}
+        {/* Búsqueda + Scanner status */}
         <div className="mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <button
+              onClick={() => setScannerEnabled(!scannerEnabled)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+                scannerEnabled
+                  ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                  : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+              }`}
+              title={scannerEnabled ? t('pos.scannerEnabled') : t('pos.scannerDisabled')}
+            >
+              <ScanBarcode className="w-4 h-4" />
+              {scannerEnabled
+                ? (t('pos.scannerActive') || 'Escáner activo')
+                : (t('pos.scannerInactive') || 'Escáner inactivo')
+              }
+            </button>
+            {scannerEnabled && (
+              <span className="text-xs text-green-600 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                {t('pos.scannerReady') || 'Listo para escanear'}
+              </span>
+            )}
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input

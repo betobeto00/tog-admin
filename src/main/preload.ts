@@ -62,6 +62,7 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.invoke('productos:ajustar', data),
     ajustesHistorial: (data?: { producto_id?: number; limite?: number }) =>
       ipcRenderer.invoke('productos:ajustes-historial', data),
+    buscarPorCodigo: (codigo: string) => ipcRenderer.invoke('productos:buscar-por-codigo', { codigo }),
     exportCsv: () => ipcRenderer.invoke('productos:export-csv'),
     importCsv: (filePath: string) => ipcRenderer.invoke('productos:import-csv', filePath),
   },
@@ -218,6 +219,7 @@ export interface PapeleriaAPI {
     lowStock: () => Promise<any[]>
     ajustar: (data: { producto_id: number; stock_nuevo: number; justificacion: string; usuario_id: number }) => Promise<any>
     ajustesHistorial: (data?: { producto_id?: number; limite?: number }) => Promise<any[]>
+    buscarPorCodigo: (codigo: string) => Promise<any>
     exportCsv: () => Promise<any>
     importCsv: (filePath: string) => Promise<any>
   }
