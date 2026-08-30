@@ -104,8 +104,8 @@ export default function VentasPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">{t('ventas.title')}</h1>
         <p className="text-sm text-gray-500">
-          {totales.count} {i18n.language === 'en' ? 'sales' : 'ventas'} • {formatCurrency(totales.total)} {i18n.language === 'en' ? 'total' : 'total'}
-          {totales.anuladas > 0 && ` • ${totales.anuladas} ${i18n.language === 'en' ? 'voided' : 'anuladas'}`}
+          {totales.count} {t('ventas.sales')} • {formatCurrency(totales.total)} {t('ventas.total')}
+          {totales.anuladas > 0 && ` • ${totales.anuladas} ${t('ventas.voided')}`}
         </p>
       </div>
 
@@ -144,11 +144,11 @@ export default function VentasPage() {
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('ventas.ticket')}</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('ventas.date')}</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('ventas.cashier')}</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Method' : 'Método'}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('ventas.method')}</th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('common.subtotal')}</th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('common.tax')}</th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('common.total')}</th>
-              <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Status' : 'Estado'}</th>
+              <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('ventas.status')}</th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('common.actions')}</th>
             </tr>
           </thead>
@@ -160,7 +160,7 @@ export default function VentasPage() {
             ) : filtered.length === 0 ? (
               <tr><td colSpan={9} className="text-center py-12 text-gray-400">
                 <Receipt className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>{i18n.language === 'en' ? 'No sales found' : 'No se encontraron ventas'}</p>
+                <p>{t('ventas.noSales')}</p>
               </td></tr>
             ) : (
               filtered.map((v) => (
@@ -184,13 +184,13 @@ export default function VentasPage() {
                     <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
                       v.estado === 'completada' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                     }`}>
-                      {v.estado === 'completada' ? `✓ ${i18n.language === 'en' ? 'Completed' : 'Completada'}` : `✕ ${i18n.language === 'en' ? 'Voided' : 'Anulada'}`}
+                      {v.estado === 'completada' ? `✓ ${t('ventas.completed')}` : `✕ ${t('ventas.voidedStatus')}`}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
                       <button onClick={() => openDetalle(v)}
-                        className="p-1.5 hover:bg-gray-100 rounded-lg" title={i18n.language === 'en' ? 'View detail' : 'Ver detalle'}>
+                        className="p-1.5 hover:bg-gray-100 rounded-lg" title={t('ventas.viewDetail')}>
                         <Eye className="w-4 h-4 text-gray-500" />
                       </button>
                       {v.estado === 'completada' && (
@@ -205,11 +205,11 @@ export default function VentasPage() {
                               }
                             }
                           })}
-                            className="p-1.5 hover:bg-gray-100 rounded-lg" title={i18n.language === 'en' ? 'Reprint' : 'Re-imprimir'}>
+                            className="p-1.5 hover:bg-gray-100 rounded-lg" title={t('ventas.reprint')}>
                             <Printer className="w-4 h-4 text-gray-500" />
                           </button>
                           <button onClick={() => setAnularTarget(v)}
-                            className="p-1.5 hover:bg-red-50 rounded-lg" title={i18n.language === 'en' ? 'Void' : 'Anular'}>
+                            className="p-1.5 hover:bg-red-50 rounded-lg" title={t('ventas.void')}>
                             <XCircle className="w-4 h-4 text-red-400" />
                           </button>
                         </>
@@ -239,11 +239,11 @@ export default function VentasPage() {
                 <p className="font-medium">{detalleVenta.usuario_nombre}</p>
               </div>
               <div>
-                <p className="text-gray-500">{i18n.language === 'en' ? 'Payment method' : 'Método de pago'}</p>
+                <p className="text-gray-500">{t('ventas.paymentMethod')}</p>
                 <p className="font-medium">{metodoLabel[detalleVenta.metodo_pago] || detalleVenta.metodo_pago}</p>
               </div>
               <div>
-                <p className="text-gray-500">{i18n.language === 'en' ? 'Status' : 'Estado'}</p>
+                <p className="text-gray-500">{t('ventas.status')}</p>
                 <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
                   detalleVenta.estado === 'completada' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                 }`}>
@@ -254,14 +254,14 @@ export default function VentasPage() {
 
             {/* Items */}
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">{i18n.language === 'en' ? 'Products' : 'Productos'}</h4>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">{t('ventas.products')}</h4>
               <div className="bg-gray-50 rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-100">
                     <tr>
-                      <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">{i18n.language === 'en' ? 'Product' : 'Producto'}</th>
-                      <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500">{i18n.language === 'en' ? 'Price' : 'Precio'}</th>
-                      <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500">{i18n.language === 'en' ? 'Qty' : 'Cant.'}</th>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">{t('ventas.product')}</th>
+                      <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500">{t('ventas.price')}</th>
+                      <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500">{t('ventas.qty')}</th>
                       <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500">Subtotal</th>
                     </tr>
                   </thead>
@@ -320,7 +320,7 @@ export default function VentasPage() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Void reason *' : 'Motivo de anulación *'}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('ventas.voidReason')}</label>
             <textarea rows={2} value={anularMotivo}
               onChange={(e) => setAnularMotivo(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"

@@ -193,7 +193,7 @@ export default function LoginPage() {
               ) : (
                 <Download className="w-3.5 h-3.5" />
               )}
-              {checkingUpdate ? (i18n.language === 'en' ? 'Checking...' : 'Buscando...') : (i18n.language === 'en' ? 'Check for updates' : 'Buscar actualizaciones')}
+              {checkingUpdate ? (t('login.checking')) : (t('login.checkUpdates'))}
             </button>
             {updateInfo && (
               <span className="text-xs">
@@ -203,7 +203,7 @@ export default function LoginPage() {
                   </span>
                 ) : (
                   <span className="text-gray-400">
-                    {i18n.language === 'en' ? 'Up to date' : 'Al día'}
+                    {t('login.upToDate'}
                   </span>
                 )}
               </span>
@@ -235,15 +235,15 @@ export default function LoginPage() {
           </button>
           <span className="text-gray-300">•</span>
           <button onClick={() => setModalContent('licenses')} className="text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2">
-            {i18n.language === 'en' ? 'Licenses' : 'Licencias'}
+            {t('login.licenses')}
           </button>
           <span className="text-gray-300">•</span>
           <button onClick={() => setModalContent('privacy')} className="text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2">
-            {i18n.language === 'en' ? 'Privacy' : 'Privacidad'}
+            {t('login.privacy')}
           </button>
           <span className="text-gray-300">•</span>
           <button onClick={() => setModalContent('terms')} className="text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2">
-            {i18n.language === 'en' ? 'Terms' : 'Términos'}
+            {t('login.terms')}
           </button>
           <span className="text-gray-300">•</span>
           <button onClick={() => setModalContent('releases')} className="text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2">
@@ -282,15 +282,9 @@ export default function LoginPage() {
       <Modal open={modalContent === 'copyright'} onClose={() => setModalContent(null)} title="Copyright">
         <div className="space-y-4 text-sm text-gray-600">
           <p><strong>TOG Admin v1.0.1</strong></p>
-          <p>© {new Date().getFullYear()} TOG Admin. {i18n.language === 'en' ? 'All rights reserved.' : 'Todos los derechos reservados.'}</p>
-          <p>{i18n.language === 'en'
-            ? 'This software is the exclusive property of TOG Admin. Reproduction, distribution or modification without prior written authorization is prohibited.'
-            : 'Este software es propiedad exclusiva de TOG Admin. Queda prohibida su reproducción, distribución o modificación sin autorización previa por escrito.'}
-          </p>
-          <p>{i18n.language === 'en'
-            ? 'The source code is protected and is not publicly accessible.'
-            : 'El código fuente está protegido y no es de acceso público.'}
-          </p>
+          <p>© {new Date().getFullYear()} TOG Admin. {t('login.allRights')}</p>
+          <p>{t('login.proprietaryIntro')}</p>
+          <p>{t('login.sourceProtected')}</p>
           <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500">
             <p>License: Proprietary</p>
             <p>Version: 1.0.1</p>
@@ -299,9 +293,9 @@ export default function LoginPage() {
         </div>
       </Modal>
 
-      <Modal open={modalContent === 'licenses'} onClose={() => setModalContent(null)} title={i18n.language === 'en' ? 'Open Source Licenses' : 'Licencias de Código Abierto'}>
+      <Modal open={modalContent === 'licenses'} onClose={() => setModalContent(null)} title={t('login.licensesTitle')}>
         <div className="space-y-4 text-sm text-gray-600 max-h-96 overflow-y-auto">
-          <p>{i18n.language === 'en' ? 'This software uses the following open source libraries:' : 'Este software utiliza las siguientes librerías de código abierto:'}</p>
+          <p>{t('login.openSourceIntro')}</p>
           <div className="space-y-3">
             {['React', 'Electron', 'SQLite (better-sqlite3)', 'Tailwind CSS', 'Zustand', 'Zod', 'Recharts', 'Lucide React', 'bcryptjs', 'SerialPort'].map((lib) => (
               <div key={lib} className="bg-gray-50 rounded-lg p-3">
@@ -313,16 +307,14 @@ export default function LoginPage() {
         </div>
       </Modal>
 
-      <Modal open={modalContent === 'privacy'} onClose={() => setModalContent(null)} title={i18n.language === 'en' ? 'Privacy Policy' : 'Política de Privacidad'}>
-        <div className="space-y-4 text-sm text-gray-600">
-          <h4 className="font-semibold text-gray-800">{i18n.language === 'en' ? '1. Data collected' : '1. Datos que recopila TOG Admin'}</h4>
+      <Modal open={modalContent === 'privacy'} onClose={() => setModalContent(null)} title={t('login.privacyPolicy')}>
+        <div className="space-y-4 text-sm text-gray-600">              <h4 className="font-semibold text-gray-800">{t('login.privacyDataCollected')}</h4>
           <ul className="list-disc list-inside space-y-1 text-xs">
             <li><strong>{i18n.language === 'en' ? 'Business data:' : 'Datos del negocio:'}</strong> {i18n.language === 'en' ? 'Name, address, phone, Tax ID' : 'Nombre, dirección, teléfono, EIN'}</li>
             <li><strong>{i18n.language === 'en' ? 'User data:' : 'Datos de usuarios:'}</strong> {i18n.language === 'en' ? 'Names, username, hashed password, role' : 'Nombres, usuario, contraseña hasheada, rol'}</li>
             <li><strong>{i18n.language === 'en' ? 'Product data:' : 'Datos de productos:'}</strong> {i18n.language === 'en' ? 'Names, prices, stock, categories' : 'Nombres, precios, stock, categorías'}</li>
             <li><strong>{i18n.language === 'en' ? 'Sales data:' : 'Datos de ventas:'}</strong> {i18n.language === 'en' ? 'Transactions, amounts, payment methods' : 'Transacciones, montos, métodos de pago'}</li>
-          </ul>
-          <h4 className="font-semibold text-gray-800">{i18n.language === 'en' ? '2. Storage' : '2. Cómo se almacenan los datos'}</h4>
+          </ul>              <h4 className="font-semibold text-gray-800">{t('login.privacyStorage')}</h4>
           <ul className="list-disc list-inside space-y-1 text-xs">
             <li>{i18n.language === 'en' ? 'All data is stored locally on your PC' : 'Todos los datos se almacenan localmente en tu PC'}</li>
             <li>{i18n.language === 'en' ? 'SQLite database on your hard drive' : 'Base de datos SQLite cifrada en tu disco duro'}</li>
@@ -332,18 +324,15 @@ export default function LoginPage() {
         </div>
       </Modal>
 
-      <Modal open={modalContent === 'terms'} onClose={() => setModalContent(null)} title={i18n.language === 'en' ? 'Terms and Conditions' : 'Términos y Condiciones'}>
-        <div className="space-y-4 text-sm text-gray-600 max-h-96 overflow-y-auto">
-          <h4 className="font-semibold text-gray-800">{i18n.language === 'en' ? '1. Software Use' : '1. Uso del Software'}</h4>
+      <Modal open={modalContent === 'terms'} onClose={() => setModalContent(null)} title={t('login.termsTitle')}>
+        <div className="space-y-4 text-sm text-gray-600 max-h-96 overflow-y-auto">              <h4 className="font-semibold text-gray-800">{t('login.termsUse')}</h4>
           <p className="text-xs">{i18n.language === 'en'
             ? 'TOG Admin is a point-of-sale software designed for commercial use in stationery stores, copy centers and printing shops. The user is responsible for proper use of the software and the accuracy of entered data.'
             : 'TOG Admin es un software de punto de venta diseñado para uso comercial en negocios de papelería, centros de copiado e impresión. El usuario es responsable del uso adecuado del software y de la exactitud de los datos ingresados.'}
-          </p>
-          <h4 className="font-semibold text-gray-800">{i18n.language === 'en' ? '2. Liability' : '2. Responsabilidad'}</h4>
+          </p>              <h4 className="font-semibold text-gray-800">{t('login.termsLiability')}</h4>
           <ul className="list-disc list-inside space-y-1 text-xs">
-            <li>{i18n.language === 'en' ? 'The software is provided "as is" without warranties' : 'El software se ofrece "tal cual" sin garantías de idoneidad para un propósito particular'}</li>
-            <li>{i18n.language === 'en' ? 'The user is responsible for regular backups' : 'El usuario es responsable de hacer backups regulares de sus datos'}</li>
-            <li>{i18n.language === 'en' ? 'The developer is not liable for data loss from misuse' : 'El desarrollador no es responsable por pérdidas de datos derivadas del mal uso'}</li>
+            <li>{i18n.language === 'en' ? 'The software is provided "as is" without warranties' : 'El software se ofrece "tal cual" sin garantías de idoneidad para un propósito particular'}</li>                <li>{t('login.termsBackup')}</li>
+                <li>{t('login.termsNotLiable')}</li>
           </ul>
         </div>
       </Modal>
