@@ -154,7 +154,10 @@ export default function ComprasPage() {
   useEffect(() => {
     window.api.config.get().then((cfg: any[]) => {
       const rate = cfg.find((c: any) => c.clave === 'sales_tax_rate')
-      if (rate) setTaxRate(parseFloat(rate.valor) / 100)
+      if (rate && rate.valor) {
+        const parsed = parseFloat(rate.valor)
+        if (!isNaN(parsed)) setTaxRate(parsed / 100)
+      }
     })
   }, [])
   const impuesto = subtotal * taxRate

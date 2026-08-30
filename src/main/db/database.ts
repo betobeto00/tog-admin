@@ -429,6 +429,8 @@ function seedDatabase(db: Database.Database): void {
       // Configuración inicial (solo defaults mínimos)
       const configs = [
         ['currency_symbol', '$', 'Currency symbol (USD)'],
+        ['sales_tax_rate', '0', 'Sales tax rate (%)'],
+        ['fondo_inicial_default', '100', 'Default opening amount for cash register'],
         ['ticket_numero_venta', '0', 'Número secuencial de la última venta'],
         ['ticket_numero_compra', '0', 'Número secuencial de la última compra'],
       ]
