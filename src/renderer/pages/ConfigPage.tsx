@@ -634,9 +634,9 @@ export default function ConfigPage() {
                 }}
                 disabled={backupLoading || !has('config_backup')}
                 className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                title={!has('config_backup') ? '{t('config.noPermBackup')}' : ''}
+                title={!has('config_backup') ? t('config.noPermBackup') : ''}
               >
-                <Download className="w-4 h-4" /> {backupLoading ? '{t('caja.creatingBackup')}' : '{t('config.createBackupTitle')} Ahora'}
+                <Download className="w-4 h-4" /> {backupLoading ? t('caja.creatingBackup') : t('config.createBackupTitle')}
                 {!has('config_backup') && <span className="text-xs opacity-70">{t('config.noPermission')}</span>}
               </button>
             </div>

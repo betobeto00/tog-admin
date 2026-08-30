@@ -203,7 +203,7 @@ export default function LoginPage() {
                   </span>
                 ) : (
                   <span className="text-gray-400">
-                    {t('login.upToDate'}
+                    {t('login.upToDate')}
                   </span>
                 )}
               </span>

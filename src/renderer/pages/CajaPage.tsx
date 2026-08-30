@@ -319,7 +319,7 @@ export default function CajaPage() {
       <Modal open={aperturaOpen} onClose={() => setAperturaOpen(false)} title={t('caja.open')}>
         <div className="space-y-4">
           <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700">
-            <p>{{t('caja.openingBalanceDesc').split('**')[0]}<strong>{t('caja.openingBalance')}</strong>{t('caja.openingBalanceDesc').split('**')[1] || ''}}<strong>{i18n.language === 'en' ? 'opening balance' : 'fondo inicial'}</strong>{i18n.language === 'en' ? ' to start the register today. This amount will be added to the expected total at closing.' : ' con el que abres la caja hoy. Este monto se sumará al total esperado al cierre.'}</p>
+            <p>{t('caja.openingBalanceDesc')}</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('caja.openAmount')} *</label>
