@@ -63,7 +63,7 @@ export default function ProveedoresPage() {
           <p className="text-sm text-gray-500">{proveedores.length} {i18n.language === 'en' ? 'registered suppliers' : 'proveedores registrados'}</p>
         </div>
         <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-          <Plus className="w-4 h-4" /> {i18n.language === 'en' ? 'New Supplier' : 'Nuevo Proveedor'}
+          <Plus className="w-4 h-4" /> {t('proveedores.new')}
         </button>
       </div>
 

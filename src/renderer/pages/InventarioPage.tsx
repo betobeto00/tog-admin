@@ -370,7 +370,7 @@ export default function InventarioPage() {
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
               showCat ? 'bg-purple-50 border-purple-300 text-purple-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}>
-            <Tag className="w-4 h-4" /> {i18n.language === 'en' ? 'Categories' : 'Categorías'}
+            <Tag className="w-4 h-4" /> {t('inventario.categories')}
           </button>
           <button
             onClick={() => { setShowUnid(!showUnid); setShowCat(false) }}
@@ -406,7 +406,7 @@ export default function InventarioPage() {
       {showCat && (
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-gray-800">{i18n.language === 'en' ? 'Categories' : 'Categorías'}</h3>
+            <h3 className="font-semibold text-gray-800">{t('inventario.categories')}</h3>
             {has('inventario_categories') && (
               <button onClick={openCreateCat} className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
                 <Plus className="w-4 h-4" /> {i18n.language === 'en' ? 'Add' : 'Agregar'}
@@ -491,7 +491,7 @@ export default function InventarioPage() {
             filterSinStock ? 'bg-orange-50 border-orange-300 text-orange-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
           }`}
         >
-          <EyeOff className="w-4 h-4" /> {i18n.language === 'en' ? 'Low Stock' : 'Stock Bajo'}
+          <EyeOff className="w-4 h-4" /> {t('inventario.lowStock')}
         </button>
       </div>
 
@@ -501,9 +501,9 @@ export default function InventarioPage() {
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Product' : 'Producto'}</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Category' : 'Categoría'}</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Cost' : 'Compra'}</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Sale' : 'Venta'}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('inventario.category')}</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('inventario.cost')}</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('inventario.sale')}</th>
               <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('inventario.currentStock')}</th>
               <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Unit' : 'Unidad'}</th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('common.actions')}</th>
@@ -593,7 +593,7 @@ export default function InventarioPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Category' : 'Categoría'}</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventario.category')}</label>
               <select value={form.categoria_id} onChange={(e) => setForm({ ...form, categoria_id: Number(e.target.value) })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
                 <option value={0}>{i18n.language === 'en' ? 'No category' : 'Sin categoría'}</option>
@@ -635,13 +635,13 @@ export default function InventarioPage() {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Cost Price' : 'Precio Compra'}</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventario.costPrice')}</label>
               <input type="number" step="0.01" min="0" value={form.precio_compra}
                 onChange={(e) => setForm({ ...form, precio_compra: Number(e.target.value) })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Sale Price' : 'Precio Venta'} *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventario.salePrice')} *</label>
               <input type="number" step="0.01" min="0" value={form.precio_venta}
                 onChange={(e) => setForm({ ...form, precio_venta: Number(e.target.value) })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
@@ -677,7 +677,7 @@ export default function InventarioPage() {
       </Modal>
 
       {/* Modal Categoría */}
-      <Modal open={catModalOpen} onClose={() => setCatModalOpen(false)} title={editingCat ? t('inventario.editProduct') + ' ' + (i18n.language === 'en' ? 'Category' : 'Categoría') : i18n.language === 'en' ? 'New Category' : 'Nueva Categoría'}>
+      <Modal open={catModalOpen} onClose={() => setCatModalOpen(false)} title={editingCat ? t('inventario.editProduct') + ' ' + (t('inventario.category')) : t('inventario.newCategory')}>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
@@ -729,16 +729,16 @@ export default function InventarioPage() {
       </Modal>
 
       {/* Modal Ajuste de Inventario */}
-      <Modal open={ajusteOpen} onClose={() => setAjusteOpen(false)} title={i18n.language === 'en' ? 'Adjust Stock' : 'Ajustar Stock'}>
+      <Modal open={ajusteOpen} onClose={() => setAjusteOpen(false)} title={t('inventario.adjustStock')}>
         <div className="space-y-4">
           {ajusteTarget && (
             <div className="bg-blue-50 rounded-xl p-4">
               <p className="text-sm font-medium text-gray-900">{ajusteTarget.nombre}</p>
-              <p className="text-xs text-gray-500 mt-1">Stock actual: <strong>{ajusteTarget.stock}</strong> {ajusteTarget.unidad}</p>
+              <p className="text-xs text-gray-500 mt-1">{t('inventario.currentStockInfo')} <strong>{ajusteTarget.stock}</strong> {ajusteTarget.unidad}</p>
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'New Stock' : 'Nuevo Stock'} *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventario.newStock')} *</label>
             <input type="number" min="0" value={ajusteStock}
               onChange={(e) => setAjusteStock(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl text-2xl font-bold text-center focus:ring-2 focus:ring-blue-500"
@@ -749,7 +749,7 @@ export default function InventarioPage() {
                 Number(ajusteStock) < ajusteTarget.stock ? 'text-red-600' : 'text-gray-500'
               }`}>
                 {Number(ajusteStock) > ajusteTarget.stock ? `+${Number(ajusteStock) - ajusteTarget.stock} unidades` :
-                 Number(ajusteStock) < ajusteTarget.stock ? `${Number(ajusteStock) - ajusteTarget.stock} unidades` : 'Sin cambio'}
+                 Number(ajusteStock) < ajusteTarget.stock ? `${Number(ajusteStock) - ajusteTarget.stock} unidades` : t('inventario.noChange')}
               </p>
             )}
           </div>
@@ -766,7 +766,7 @@ export default function InventarioPage() {
             <button onClick={ajustarStock}
               disabled={!ajusteJustificacion.trim() || ajustando || ajusteStock === '' || Number(ajusteStock) < 0}
               className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 flex items-center gap-2">
-              {ajustando ? (i18n.language === 'en' ? 'Adjusting...' : 'Ajustando...') : (i18n.language === 'en' ? 'Adjust Stock' : 'Ajustar Stock')}
+              {ajustando ? (t('inventario.adjusting')) : (t('inventario.adjustStock'))}
             </button>
           </div>
         </div>

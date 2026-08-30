@@ -316,7 +316,7 @@ export default function ComprasPage() {
                   <button key={p.id} onClick={() => addItem(p)}
                     className="w-full flex items-center justify-between px-3 py-2 hover:bg-blue-50 text-left text-sm">
                     <span>{p.nombre}</span>
-                    <span className="text-gray-400">Stock: {p.stock}</span>
+                    <span className="text-gray-400">{t('compras.stock')}: {p.stock}</span>
                   </button>
                 ))}
               </div>

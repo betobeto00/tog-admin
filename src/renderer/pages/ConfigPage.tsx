@@ -33,10 +33,10 @@ export default function ConfigPage() {
   const [deleteUser, setDeleteUser] = useState<number | null>(null)
   const [showPassword, setShowPassword] = useState(false)
 
-  // Permisos de usuario
+  // {t('config.permissions')} de usuario
   const [permissionsUser, setPermissionsUser] = useState<Usuario | null>(null)
 
-  // Permisos del usuario actual
+  // {t('config.permissions')} del usuario actual
   const { has } = usePermissions()
 
   const [tab, setTab] = useState<'negocio' | 'usuarios' | 'terminal' | 'sistema'>('negocio')
@@ -221,7 +221,7 @@ export default function ConfigPage() {
         /* ======== DATOS DEL NEGOCIO ======== */
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5 max-w-2xl">
           <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-            <Store className="w-5 h-5 text-blue-600" /> Información del Negocio
+            <Store className="w-5 h-5 text-blue-600" /> {t('config.businessInfo')}
           </h3>
 
           <div className="grid grid-cols-2 gap-4">
@@ -286,7 +286,7 @@ export default function ConfigPage() {
                 onChange={(e) => setPrinterName(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                 placeholder="Ej: Thermal Printer, default printer" />
-              <p className="text-xs text-gray-400 mt-1">Nombre de la impresora térmica (vacío = impresora default)</p>
+              <p className="text-xs text-gray-400 mt-1">{t('config.printerHint')}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Fondo Inicial Default</label>
@@ -364,7 +364,7 @@ export default function ConfigPage() {
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-1">
                         {has('usuarios_manage_roles') && (
-                          <button onClick={() => setPermissionsUser(u)} className="p-1.5 hover:bg-blue-50 rounded-lg" title="Permisos">
+                          <button onClick={() => setPermissionsUser(u)} className="p-1.5 hover:bg-blue-50 rounded-lg" title="{t('config.permissions')}">
                             <Lock className="w-4 h-4 text-blue-500" />
                           </button>
                         )}
@@ -600,7 +600,7 @@ export default function ConfigPage() {
             <Settings className="w-5 h-5 text-blue-600" /> Backup & Restore
           </h3>
           <p className="text-sm text-gray-500">
-            Crea copias de seguridad de tu base de datos o restaura desde un backup anterior.
+            {t('config.backupDesc')}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -611,12 +611,12 @@ export default function ConfigPage() {
                   <Download className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-900">Crear Backup</h4>
-                  <p className="text-xs text-gray-500">Exportar base de datos actual</p>
+                  <h4 className="font-semibold text-gray-900">{t('config.createBackupTitle')}</h4>
+                  <p className="text-xs text-gray-500">{t('config.exportDatabase')}</p>
                 </div>
               </div>
               <p className="text-sm text-gray-600 mb-4">
-                Guarda una copia de toda tu información (productos, ventas, caja, etc.) en un archivo .db
+                {t('config.backupDesc')}
               </p>
               <button
                 onClick={async () => {
@@ -624,7 +624,7 @@ export default function ConfigPage() {
                   try {
                     const result = await window.api.backup.create()
                     if (result?.success) {
-                      toast.success(`Backup creado exitosamente`) 
+                      toast.success(`{t('caja.backupCreated')}`) 
                     } else if (result?.error !== 'Operación cancelada.') {
                       toast.error(`Error: ${result?.error}`)
                     }
@@ -634,10 +634,10 @@ export default function ConfigPage() {
                 }}
                 disabled={backupLoading || !has('config_backup')}
                 className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                title={!has('config_backup') ? 'No tienes permiso para crear backups' : ''}
+                title={!has('config_backup') ? '{t('config.noPermBackup')}' : ''}
               >
-                <Download className="w-4 h-4" /> {backupLoading ? 'Creando backup...' : 'Crear Backup Ahora'}
-                {!has('config_backup') && <span className="text-xs opacity-70">(Sin permiso)</span>}
+                <Download className="w-4 h-4" /> {backupLoading ? '{t('caja.creatingBackup')}' : '{t('config.createBackupTitle')} Ahora'}
+                {!has('config_backup') && <span className="text-xs opacity-70">{t('config.noPermission')}</span>}
               </button>
             </div>
 
@@ -648,22 +648,22 @@ export default function ConfigPage() {
                   <Upload className="w-5 h-5 text-orange-600" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-900">Restaurar Backup</h4>
-                  <p className="text-xs text-gray-500">Cargar archivo de respaldo</p>
+                  <h4 className="font-semibold text-gray-900">{t('config.restoreBackupTitle')}</h4>
+                  <p className="text-xs text-gray-500">{t('config.loadBackupFile')}</p>
                 </div>
               </div>
               <p className="text-sm text-gray-600 mb-4">
-                Reemplaza la base de datos actual con un backup anterior. Se creará un respaldo automático antes de restaurar.
+                {t('config.restoreDesc')}
               </p>
               <button
                 onClick={async () => {
-                  const confirm = window.confirm('¿Estás seguro? Se reemplazará la base de datos actual con el backup seleccionado.')
+                  const confirm = window.confirm(t('caja.restoreConfirm'))
                   if (!confirm) return
                   setBackupLoading(true)
                   try {
                     const result = await window.api.backup.restore()
                     if (result?.success) {
-                      toast.success('Backup restaurado exitosamente')
+                      toast.success('{t('caja.backupRestored')}')
                       setTimeout(() => window.location.reload(), 1500)
                     } else if (result?.error !== 'Operación cancelada.') {
                       toast.error(`Error: ${result?.error}`)
@@ -674,10 +674,10 @@ export default function ConfigPage() {
                 }}
                 disabled={backupLoading || !has('config_backup')}
                 className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-orange-500 rounded-lg hover:bg-orange-600 disabled:bg-orange-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                title={!has('config_backup') ? 'No tienes permiso para restaurar backups' : ''}
+                title={!has('config_backup') ? '{t('config.noPermRestore')}' : ''}
               >
-                <Upload className="w-4 h-4" /> {backupLoading ? 'Restaurando...' : 'Restaurar desde Archivo'}
-                {!has('config_backup') && <span className="text-xs opacity-70">(Sin permiso)</span>}
+                <Upload className="w-4 h-4" /> {backupLoading ? '{t('caja.restoring')}' : '{t('caja.restoreFromFile')}'}
+                {!has('config_backup') && <span className="text-xs opacity-70">{t('config.noPermission')}</span>}
               </button>
             </div>
           </div>
@@ -800,53 +800,50 @@ export default function ConfigPage() {
                 </button>
               </div>
             ) : (
-              <p className="text-sm text-gray-500">No se pudo cargar el estado de la licencia.</p>
+              <p className="text-sm text-gray-500">{t('config.noLicenseStatus')}</p>
             )}
           </div>
 
-          {/* Zona de Peligro */}
+          {/* {t('config.dangerZone')} */}
           <div className="bg-red-50 rounded-xl p-5 border border-red-200">
             <div className="flex items-center gap-3 mb-3">
               <div className="p-2 bg-red-100 rounded-lg">
                 <Trash2 className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <h4 className="font-semibold text-red-900">Zona de Peligro</h4>
-                <p className="text-xs text-red-500">Acciones irreversibles</p>
+                <h4 className="font-semibold text-red-900">{t('config.dangerZone')}</h4>
+                <p className="text-xs text-red-500">{t('config.irreversibleActions')}</p>
               </div>
             </div>
             <p className="text-sm text-red-700 mb-4">
-              <strong>Resetear Base de Datos:</strong> Elimina TODOS los datos (productos, ventas, caja, historial, usuarios) y empieza de cero.
-              Esta acción NO se puede deshacer.
+              <strong>{t('config.resetDbButton')}:</strong> {t('config.resetDbFullDesc')}
+              
             </p>
             <button
               onClick={async () => {
                 // Triple confirmación
-                const step1 = window.confirm(
-                  '⚠️ PELIGRO: Esto eliminará TODA la base de datos.\n\n¿Estás ABSOLUTAMENTE seguro?'
-                )
+                const step1 = window.confirm(t('config.resetDbWarning'))
                 if (!step1) return
 
-                const step2 = window.confirm(
-                  '🔴 ÚLTIMA OPORTUNIDAD:\n\nSe eliminarán:\n• Todos los productos\n• Todo el historial de ventas\n• Todos los datos de caja\n• Todos los usuarios (excepto admin)\n\n¿Confirmas?'
+                const step2 = window.confirm(t('config.resetDbLastChance'))\n\n¿Confirmas?'
                 )
                 if (!step2) return
 
                 const confirmText = window.prompt(
-                  'Escribe RESET para confirmar:'
+                  t('config.resetDbConfirm')
                 )
                 if (confirmText !== 'RESET') {
-                  toast.error('Confirmación incorrecta. Operación cancelada.')
+                  toast.error(t('config.resetDbIncorrect'))
                   return
                 }
 
                 try {
                   const result = await window.api.db.reset()
                   if (result?.success) {
-                    toast.success('Base de datos reseteada. Reiniciando...')
+                    toast.success(t('config.resetDbSuccessMsg'))
                     setTimeout(() => window.location.reload(), 2000)
                   } else {
-                    toast.error(result?.error || 'Error reseteando la DB')
+                    toast.error(result?.error || t('config.resetDbErrorMsg'))
                   }
                 } catch (err: any) {
                   toast.error('Error: ' + err.message)
@@ -854,10 +851,10 @@ export default function ConfigPage() {
               }}
               disabled={!has('config_db_reset')}
               className="px-4 py-2.5 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:bg-red-300 disabled:cursor-not-allowed flex items-center gap-2"
-              title={!has('config_db_reset') ? 'No tienes permiso para resetear la base de datos' : ''}
+              title={!has('config_db_reset') ? '{t('config.noPermReset')}' : ''}
             >
-              <Trash2 className="w-4 h-4" /> Resetear Base de Datos
-              {!has('config_db_reset') && <span className="text-xs opacity-70">(Sin permiso)</span>}
+              <Trash2 className="w-4 h-4" /> {t('config.resetDbButton')}
+              {!has('config_db_reset') && <span className="text-xs opacity-70">{t('config.noPermission')}</span>}
             </button>
           </div>
         </div>
