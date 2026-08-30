@@ -8,15 +8,16 @@ CRÍTICOS    CORE        SEGURIDAD   P0+P1+P2     i18n        TESTS+ASSETS PREMI
              +UX
 ─────────   ─────────   ─────────   ──────────   ─────────   ─────────   ────────────   ─────────
 ✅ Stock    ✅ Zod      ✅ Timeout  ✅ Precio    ✅ ES/EN     ✅ Vitest    ⏳ Touch      ✅ Auto-update
-✅ Backup   ✅ Dctos    ✅ Rate     ✅ Venta     ✅ 500+keys  ✅ 50 tests  ⏳ Crédito    ✅ Hero-bg
+✅ Backup   ✅ Dctos    ✅ Rate     ✅ Venta     ✅ 630+keys  ✅ 104 tests ⏳ Crédito    ✅ Hero-bg
 ✅ Passwd   ✅ Subcomp  ✅ VP800    ✅ Reporte X ✅ HelpPage  ✅ Favicons  ⏳ Etiquetas  ✅ Logo real
 ✅ Toast    ✅ Ajuste   ✅ License  ✅ CSV I/O   ✅ Config  ✅ jest-dom  ✅ **Barcode** ✅ Icono transparente
                          ✅ Help     ✅ Hist.Ajuste ✅ Tutorial ✅ jsdom    ⏳ VP800 WiFi  ✅ NSIS language fix
                          ✅ Alerts   ✅ Backup auto ✅ AllPages ✅ setup    ⏳ Adv Reports ✅ Release Notes
                          ✅ TermCfg  ✅ Printer/Fondo ✅ Backend  ✅ **Permisos**  ✅ Developer Guide
+                                                         ✅ **i18n full**
 ```
 
-**Estado actual del proyecto:** Fases 0, 1, 2, 2.5, 2.7, 2.8, 4 completadas — Fase 3 parcialmente completada (Barcode ✅, Permisos ✅, Touch ⏳, Crédito ⏳, Etiquetas ⏳)
+**Estado actual del proyecto:** Fases 0, 1, 2, 2.5, 2.7, 2.8, 4 completadas — Fase 3 parcialmente completada (Barcode ✅, Permisos ✅, i18n full ✅, Touch ⏳, Crédito ⏳, Etiquetas ⏳)
 
 ---
 
@@ -199,6 +200,32 @@ CRÍTICOS    CORE        SEGURIDAD   P0+P1+P2     i18n        TESTS+ASSETS PREMI
 
 ---
 
+## ✅ FASE 2.7-i18n: INTERNACIONALIZACIÓN COMPLETA — COMPLETADA (30-Ago-2026)
+
+| # | Tarea | Estado | Archivos |
+|---|-------|--------|----------|
+| I1 | Fix `datetime("now")` SQLite bug (4 ubicaciones en ipc-handlers.ts) | ✅ | `src/main/ipc-handlers.ts` |
+| I2 | Fix TDZ: `quickSaleOpen` antes de declaración en POSPage | ✅ | `src/renderer/pages/POSPage.tsx` |
+| I3 | Fix TDZ: `addItem` antes de declaración en ComprasPage | ✅ | `src/renderer/pages/ComprasPage.tsx` |
+| I4 | Fix TDZ: `i18n` no desestructurado en ComprasPage | ✅ | `src/renderer/pages/ComprasPage.tsx` |
+| I5 | Reemplazar `i18n.language === 'en'` con `t()` en CajaPage (43 reemplazos) | ✅ | `src/renderer/pages/CajaPage.tsx` |
+| I6 | Reemplazar `i18n.language === 'en'` con `t()` en ConfigPage (32+ reemplazos) | ✅ | `src/renderer/pages/ConfigPage.tsx` |
+| I7 | Reemplazar `i18n.language === 'en'` con `t()` en InventarioPage (13 reemplazos) | ✅ | `src/renderer/pages/InventarioPage.tsx` |
+| I8 | Reemplazar `i18n.language === 'en'` con `t()` en ReportesPage (7+ reemplazos) | ✅ | `src/renderer/pages/ReportesPage.tsx` |
+| I9 | Reemplazar `i18n.language === 'en'` con `t()` en VentasPage (17 reemplazos) | ✅ | `src/renderer/pages/VentasPage.tsx` |
+| I10 | Reemplazar `i18n.language === 'en'` con `t()` en LoginPage (11+ reemplazos) | ✅ | `src/renderer/pages/LoginPage.tsx` |
+| I11 | Reemplazar `i18n.language === 'en'` con `t()` en QuotesPage (5 reemplazos) | ✅ | `src/renderer/pages/QuotesPage.tsx` |
+| I12 | Agregar 130+ keys de traducción a ambos locale files | ✅ | `i18n/locales/es/translation.json`, `en/translation.json` |
+| I13 | Agregar `useTranslation` a QuotesPage y ConfigPage | ✅ | `QuotesPage.tsx`, `ConfigPage.tsx` |
+
+### Resumen i18n
+
+- **Antes:** ~500 keys, muchos strings hardcoded con `i18n.language === 'en'`
+- **Ahora:** ~630 keys, todos los componentes usan `t()` calls
+- **Archivos modificados:** 10 páginas + 2 locale files = 12 archivos
+
+---
+
 ## ✅ SISTEMA DE PERMISOS — COMPLETADO (30-Ago-2026)
 
 | # | Tarea | Estado | Archivos |
@@ -248,6 +275,7 @@ CRÍTICOS    CORE        SEGURIDAD   P0+P1+P2     i18n        TESTS+ASSETS PREMI
 | ✅ UI/UX polish | Fase 4 | Completado |
 | ✅ Lector códigos de barras (USB HID) | Fase 3.7 | Completado |
 | ✅ Sistema de permisos por usuario | 30-Ago-2026 | Completado |
+| ✅ i18n completo (todos los componentes) | 30-Ago-2026 | Completado |
 
 ---
 
