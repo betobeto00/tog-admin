@@ -14,7 +14,7 @@ interface Section {
   content: {
     title: string
     description: string
-    features: string[]
+    features?: string[]
     tips?: string[]
     shortcuts?: string[]
   }[]
@@ -181,7 +181,7 @@ function getSections(t: (key: string) => string): Section[] {
       ],
     },
     {
-      id: 'seguridad', icon: Shield, title: 'Security', color: 'bg-red-600',
+      id: 'seguridad', icon: Shield, title: t('help.security'), color: 'bg-red-600',
       content: [
         { title: t('help.securityAuth'), description: t('help.securityAuthDesc'),
           features: [t('help.securityAuthF1'), t('help.securityAuthF2'), t('help.securityAuthF3'), t('help.securityAuthF4'), t('help.securityAuthF5')] },
@@ -192,14 +192,14 @@ function getSections(t: (key: string) => string): Section[] {
       ],
     },
     {
-      id: 'atajos', icon: Keyboard, title: 'Shortcuts', color: 'bg-slate-600',
+      id: 'atajos', icon: Keyboard, title: t('help.shortcuts'), color: 'bg-slate-600',
       content: [
         { title: t('help.shortcutsGeneral'), description: t('help.shortcutsGeneralDesc'),
           shortcuts: [t('help.shortcutF1'), t('help.shortcutF2'), t('help.shortcutF3')] },
       ],
     },
     {
-      id: 'notificaciones', icon: Bell, title: 'Notifications', color: 'bg-rose-500',
+      id: 'notificaciones', icon: Bell, title: t('help.notifications'), color: 'bg-rose-500',
       content: [
         { title: t('help.notifBell'), description: t('help.notifBellDesc'),
           features: [t('help.notifBellF1'), t('help.notifBellF2'), t('help.notifBellF3'), t('help.notifBellF4'), t('help.notifBellF5')],

@@ -8,10 +8,8 @@ import Modal from '../components/ui/Modal'
 import { formatCurrency, formatDateTime } from '../lib/utils'
 import { useToast } from '../components/ui/Toast'
 import { usePermissions } from '../hooks/usePermissions'
+import type { Producto as ProductoFull } from '../../shared/types'
 
-interface Producto {
-  id: number; nombre: string; precio_compra: number; stock: number; unidad: string
-}
 interface Proveedor { id: number; nombre: string }
 interface CompraItem {
   producto_id: number; nombre: string; cantidad: number; costo_unitario: number; subtotal: number
@@ -27,7 +25,7 @@ export default function ComprasPage() {
   const usuario = useAuthStore((s) => s.usuario)
   const { has } = usePermissions()
   const [compras, setCompras] = useState<CompraRecord[]>([])
-  const [productos, setProductos] = useState<Producto[]>([])
+  const [productos, setProductos] = useState<ProductoFull[]>([])
   const [proveedores, setProveedores] = useState<Proveedor[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -52,7 +50,7 @@ export default function ComprasPage() {
 
   useEffect(() => { loadData() }, [fechaInicio, fechaFin])
 
-  const addItem = (producto: Producto) => {
+  const addItem = (producto: ProductoFull) => {
     const existente = items.find((i) => i.producto_id === producto.id)
     if (existente) {
       setItems(items.map((i) => i.producto_id === producto.id ? { ...i, cantidad: i.cantidad + 1, subtotal: (i.cantidad + 1) * i.costo_unitario } : i))

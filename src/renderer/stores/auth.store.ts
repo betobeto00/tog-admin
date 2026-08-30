@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+import { create, type StateCreator } from 'zustand'
 
 interface Usuario {
   id: number
@@ -20,7 +20,7 @@ interface AuthState {
   changePassword: (contrasenaActual: string, contrasenaNueva: string) => Promise<{ success: boolean; error?: string }>
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+const authCreator: StateCreator<AuthState> = (set) => ({
   usuario: null,
   isAuthenticated: false,
   isLoading: false,
@@ -82,7 +82,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   clearError: () => set({ error: null }),
-}))
+})
+
+export const useAuthStore = create<AuthState>(authCreator)
 
 // NO restaurar sesión — siempre pedir login
 localStorage.removeItem('tog_user')

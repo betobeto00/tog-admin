@@ -21,7 +21,7 @@ beforeEach(() => {
   mockSave.mockResolvedValue({ success: true, path: '/tmp/crash-test.txt' })
 })
 
-function ThrowingComponent() {
+function ThrowingComponent(): React.ReactElement {
   throw new Error('Test error')
 }
 

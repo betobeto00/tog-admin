@@ -18,7 +18,7 @@ export default function LoginPage() {
 
   // Obtener versión al montar
   useEffect(() => {
-    window.api.app.getVersion().then((v) => setAppVersion(v || '1.0.1')).catch(() => {})
+    window.api.app.getVersion().then((v: string | null) => setAppVersion(v || '1.0.1')).catch(() => {})
   }, [])
 
   const handleCheckUpdate = async () => {

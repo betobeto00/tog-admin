@@ -330,11 +330,11 @@ export default function CajaPage() {
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <button onClick={() => setAperturaOpen(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{t('common.cancel')}</button>
             <button onClick={abrirCaja}
               disabled={!fondoInicial || parseFloat(fondoInicial) < 0}
               className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 flex items-center gap-2">
-              <Unlock className="w-4 h-4" /> Abrir Caja
+              <Unlock className="w-4 h-4" /> {t('caja.openCaja')}
             </button>
           </div>
         </div>
@@ -347,9 +347,7 @@ export default function CajaPage() {
           <div className={`rounded-xl p-4 text-sm ${
             movTipo === 'entrada' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
           }`}>
-            {movTipo === 'entrada'
-              ? (i18n.language === 'en' ? 'Record extra money entering the register (e.g.: debt payment, adjustment).' : 'Registra dinero extra que ingresa a la caja (ej: pago de deuda, ajuste).')
-              : (i18n.language === 'en' ? 'Record a withdrawal or expense from the register (e.g.: minor purchase, cash withdrawal).' : 'Registra un retiro o gasto de la caja (ej: compra menor, retiro de efectivo).')}
+            {movTipo === 'entrada' ? t('caja.recordEntryDesc') : t('caja.recordWithdrawalDesc')}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('caja.amount')} *</label>
@@ -367,14 +365,14 @@ export default function CajaPage() {
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <button onClick={() => setMovOpen(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{t('common.cancel')}</button>
             <button onClick={registrarMovimiento}
               disabled={!movMonto || parseFloat(movMonto) <= 0 || !movDesc.trim()}
               className={`px-4 py-2 text-sm font-semibold text-white rounded-lg disabled:bg-gray-300 flex items-center gap-2 ${
                 movTipo === 'entrada' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'
               }`}>
               {movTipo === 'entrada' ? <ArrowUpCircle className="w-4 h-4" /> : <ArrowDownCircle className="w-4 h-4" />}
-              {i18n.language === 'en' ? 'Record ' : 'Registrar '}{movTipo === 'entrada' ? (i18n.language === 'en' ? 'Entry' : 'Entrada') : (i18n.language === 'en' ? 'Withdrawal' : 'Salida')}
+              {movTipo === 'entrada' ? t('caja.registerEntry') : t('caja.registerWithdrawal')}
             </button>
           </div>
         </div>
@@ -421,8 +419,8 @@ export default function CajaPage() {
                     {parseFloat(totalReal) === totalEsperado
                       ? t('caja.balances')
                       : parseFloat(totalReal) > totalEsperado
-                        ? `t('caja.over') + ' ' ${formatCurrency(parseFloat(totalReal) - totalEsperado)}`
-                        : `t('caja.short') + ' ' ${formatCurrency(totalEsperado - parseFloat(totalReal))}`}
+                        ? `${t('caja.over')} ${formatCurrency(parseFloat(totalReal) - totalEsperado)}`
+                        : `${t('caja.short')} ${formatCurrency(totalEsperado - parseFloat(totalReal))}`}
                   </p>
                   <p className={`text-2xl font-bold mt-1 ${
                     parseFloat(totalReal) === totalEsperado ? 'text-green-700'
@@ -445,17 +443,17 @@ export default function CajaPage() {
 
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <button onClick={() => setCierreOpen(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{t('common.cancel')}</button>
             <button onClick={cerrarCaja}
               disabled={!totalReal || isNaN(parseFloat(totalReal))}
               className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 rounded-lg hover:bg-orange-600 disabled:bg-gray-300 flex items-center gap-2">
-              <Lock className="w-4 h-4" /> Cerrar Caja
+              <Lock className="w-4 h-4" /> {t('caja.closeCaja')}
             </button>
           </div>
         </div>
       </Modal>
       {/* ======== MODAL REPORTE X ======== */}
-      <Modal open={reporteXOpen} onClose={() => setReporteXOpen(false)} title={i18n.language === 'en' ? 'X Report (Partial)' : 'Reporte X (Parcial)'}>
+      <Modal open={reporteXOpen} onClose={() => setReporteXOpen(false)} title={t('caja.xReportTitle')}>
         {reporteX && (
           <div className="space-y-4">
             <div className="bg-yellow-50 rounded-xl p-4 text-center">
