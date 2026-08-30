@@ -41,6 +41,9 @@
 | P14 | Tarjeta (VP800) | 🟡 | ✅ | Integración con terminal Valor VP800 |
 | P15 | Componente CartItem | 🟢 | ✅ | Subcomponente extraído para reutilización |
 | P16 | POS bloqueado sin caja | 🔴 | ✅ | No funciona si no hay caja abierta |
+| P17 | **Escáner código de barras USB** | 🟡 | ✅ | Hook useBarcodeScanner, scan → buscar → agregar al carrito |
+| P18 | **Escáner en creación de producto** | 🟡 | ✅ | Escanear código al crear producto, auto-fill campo código barras |
+| P19 | **Escáner en compras** | 🟡 | ✅ | Escanear código para agregar producto a la compra |
 
 ---
 
@@ -150,6 +153,8 @@
 | CF9 | Configurar impresora | 🟡 | ✅ | Campo de nombre de impresora en Config |
 | CF10 | Configurar terminal VP800 | 🔴 | ✅ | Puerto COM, baud rate, conectar/desconectar |
 | CF11 | Reiniciar tutorial | 🟡 | ✅ | Botón para mostrar onboarding a nuevos usuarios |
+| CF12 | **Gestión de permisos por usuario** | 🟡 | ✅ | Modal con toggles de permisos agrupados por categoría |
+| CF13 | **Botón permisos por usuario** | 🟡 | ✅ | Icono Lock en tabla de usuarios para abrir PermissionsModal |
 
 ---
 
@@ -205,6 +210,9 @@
 | S8 | Crash reports automáticos | 🟡 | ✅ | Reportes de error con info del sistema |
 | S9 | Internacionalización (i18n) | 🟡 | ✅ | 2 idiomas (ES/EN), ~500 keys |
 | S10 | Tests automatizados | 🟡 | ✅ | 50 tests (validaciones + componentes) |
+| S11 | **Sistema de permisos por usuario** | 🟡 | ✅ | 28 permisos en 7 categorías, admin tiene todos, cajero tiene defaults |
+| S12 | **Sidebar filtrado por permisos** | 🟡 | ✅ | Ocultar módulos según permisos del usuario |
+| S13 | **Botones protegidos por permisos** | 🟡 | ✅ | Inventario, Compras, Config protegidos con checks de permisos |
 
 ---
 
@@ -225,6 +233,6 @@
 | Prioridad | Implementadas | Pendientes |
 |-----------|---------------|------------|
 | 🔴 P0 (MVP) | ~45 | ~0 |
-| 🟡 P1 | ~34 | ~3 |
+| 🟡 P1 | ~37 | ~3 |
 | 🟢 P2 | ~4 | ~2 |
-| **Total** | **~83** | **~5** |
+| **Total** | **~86** | **~5** |

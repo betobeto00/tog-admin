@@ -3,21 +3,20 @@
 ## Visión General (Actualizado: 30-Ago-2026)
 
 ```
-FASE 0 ✅   FASE 1 ✅   FASE 2 ✅   FASE 2.5 ✅  FASE 2.7 ✅  FASE 2.8 ✅  FASE 3 ✅   FASE 4 ✅
-CRÍTICOS    CORE        SEGURIDAD   P0+P1+P2     i18n        TESTS+ASSETS PREMIUM    DEPLOY+AUTOUPDATE
-            +UX
-─────────   ─────────   ─────────   ──────────   ─────────   ─────────   ─────────   ─────────
-✅ Stock    ✅ Zod      ✅ Timeout  ✅ Precio    ✅ ES/EN     ✅ Vitest    ✅ Touch    ✅ Auto-update
-✅ Backup   ✅ Dctos    ✅ Rate     ✅ Venta     ✅ 500+keys  ✅ 50 tests  ✅ Crédito  ✅ Hero-bg
-✅ Passwd   ✅ Subcomp  ✅ VP800    ✅ Reporte X ✅ HelpPage  ✅ Favicons  ✅ Etiquetas ✅ Logo real
-✅ Toast    ✅ Dash     ✅ License  ✅ CSV I/O   ✅ POSPage   ✅ public/   ✅ Quotes→Venta ✅ Icono transparente
-            ✅ Ajuste   ✅ Help     ✅ Hist.Ajuste ✅ Config  ✅ jest-dom  ✅ Cat Reports ✅ i18n fixes
-                        ✅ Tutorial ✅ Stock Bajo ✅ Tutorial ✅ jsdom                     ✅ NSIS language fix
-                        ✅ Alerts   ✅ Backup auto ✅ AllPages ✅ setup                     ✅ Release Notes
-                        ✅ TermCfg  ✅ Printer/Fondo ✅ Backend                             ✅ Developer Guide
+FASE 0 ✅   FASE 1 ✅   FASE 2 ✅   FASE 2.5 ✅  FASE 2.7 ✅  FASE 2.8 ✅  FASE 3 (🟡)    FASE 4 ✅
+CRÍTICOS    CORE        SEGURIDAD   P0+P1+P2     i18n        TESTS+ASSETS PREMIUM+BC    DEPLOY+AUTOUPDATE
+             +UX
+─────────   ─────────   ─────────   ──────────   ─────────   ─────────   ────────────   ─────────
+✅ Stock    ✅ Zod      ✅ Timeout  ✅ Precio    ✅ ES/EN     ✅ Vitest    ⏳ Touch      ✅ Auto-update
+✅ Backup   ✅ Dctos    ✅ Rate     ✅ Venta     ✅ 500+keys  ✅ 50 tests  ⏳ Crédito    ✅ Hero-bg
+✅ Passwd   ✅ Subcomp  ✅ VP800    ✅ Reporte X ✅ HelpPage  ✅ Favicons  ⏳ Etiquetas  ✅ Logo real
+✅ Toast    ✅ Ajuste   ✅ License  ✅ CSV I/O   ✅ Config  ✅ jest-dom  ✅ **Barcode** ✅ Icono transparente
+                         ✅ Help     ✅ Hist.Ajuste ✅ Tutorial ✅ jsdom    ⏳ VP800 WiFi  ✅ NSIS language fix
+                         ✅ Alerts   ✅ Backup auto ✅ AllPages ✅ setup    ⏳ Adv Reports ✅ Release Notes
+                         ✅ TermCfg  ✅ Printer/Fondo ✅ Backend  ✅ **Permisos**  ✅ Developer Guide
 ```
 
-**Estado actual del proyecto:** 100% completo (Fase 0, 1, 2, 2.5, 2.7, 2.8, 3 y 4 completadas)
+**Estado actual del proyecto:** Fases 0, 1, 2, 2.5, 2.7, 2.8, 4 completadas — Fase 3 parcialmente completada (Barcode ✅, Permisos ✅, Touch ⏳, Crédito ⏳, Etiquetas ⏳)
 
 ---
 
@@ -126,16 +125,56 @@ CRÍTICOS    CORE        SEGURIDAD   P0+P1+P2     i18n        TESTS+ASSETS PREMI
 
 ---
 
-## ✅ FASE 3: PREMIUM — COMPLETADA
+## 🟡 FASE 3: PREMIUM — PARCIALMENTE COMPLETADA
 
 | # | Tarea | Estado | Archivos |
 |---|-------|--------|----------|
-| 3.1 | Modo touch | ✅ | `POSPage.tsx` |
-| 3.2 | Imprimir etiquetas | ✅ | `InventarioPage.tsx` |
-| 3.3 | Venta a crédito/fiado | ✅ | `VentasPage.tsx` |
-| 3.4 | Convertir quote a venta | ✅ | `QuotesPage.tsx` |
-| 3.5 | Reportes avanzados | ✅ | `ReportesPage.tsx` |
-| 3.6 | WiFi para VP800 | ✅ | `services/valorTerminal.ts` |
+| 3.1 | Modo touch | ⏳ | `POSPage.tsx` |
+| 3.2 | Imprimir etiquetas | ⏳ | `InventarioPage.tsx` |
+| 3.3 | Venta a crédito/fiado | ⏳ | `VentasPage.tsx` |
+| 3.4 | Convertir quote a venta | ⏳ | `QuotesPage.tsx` |
+| 3.5 | Reportes avanzados | ⏳ | `ReportesPage.tsx` |
+| 3.6 | WiFi para VP800 | ⏳ | `services/valorTerminal.ts` |
+| 3.7 | **Integración Lector Códigos de Barras (USB HID)** | ✅ | `hooks/useBarcodeScanner.ts`, `POSPage.tsx`, `ipc-handlers.ts`, `preload.ts` |
+
+---
+
+## ✅ FASE 3.7: INTEGRACIÓN LECTOR CÓDIGOS DE BARRAS (USB HID) — COMPLETADA
+
+| # | Tarea | Estado | Archivos |
+|---|-------|--------|----------|
+| 3.7.1 | Hook `useBarcodeScanner` (captura global keydown, buffer + timeout 50ms, Enter = procesar) | ✅ | `src/renderer/hooks/useBarcodeScanner.ts` |
+| 3.7.2 | Handler IPC `productos:buscar-por-codigo` (busca por código_barras y SKU) | ✅ | `src/main/ipc-handlers.ts` |
+| 3.7.3 | Exponer API en preload `productos.buscarPorCodigo(codigo)` | ✅ | `src/main/preload.ts` |
+| 3.7.4 | Integración en `POSPage.tsx` - escáner global, scan → buscar → agregar al carrito | ✅ | `src/renderer/pages/POSPage.tsx` |
+| 3.7.5 | Escáner en formulario de creación de producto (InventarioPage) | ✅ | `src/renderer/pages/InventarioPage.tsx` |
+| 3.7.6 | Escáner en módulo de compras (ComprasPage) | ✅ | `src/renderer/pages/ComprasPage.tsx` |
+| 3.7.7 | Indicadores visuales: toggle button, dot verde parpadeante, badge "Escanea ahora" | ✅ | POSPage, InventarioPage, ComprasPage |
+| 3.7.8 | i18n keys para scanner en ES/EN | ✅ | `i18n/locales/es/translation.json`, `en/translation.json` |
+
+### Detalle Técnico (basado en `Sistema-COD-BARRAS.md`)
+
+**Arquitectura:**
+- Los lectores USB HID actúan como teclado → envían caracteres + Enter
+- Hook `useBarcodeScanner` escucha `keydown` global (window)
+- Buffer acumula caracteres; timeout 50ms distingue escaneo vs tipeo manual
+- Al recibir `Enter` con buffer > 0 → dispara callback `onScan(barcode)`
+- Ignora eventos si foco está en `<input>` o `<textarea>`
+
+**IPC Handler (main):**
+```typescript
+// productos:buscar-por-codigo
+// 1. Buscar por codigo_barras exacto
+// 2. Fallback: buscar por SKU
+// 3. Retornar producto o null
+```
+
+**Integración POS:**
+- `useBarcodeScanner({ onScan: handleBarcodeScan, timeout: 50, enabled: true })`
+- `handleBarcodeScan`: busca producto → si existe `addToCart()` + toast success
+- Si no existe → setSearchQuery(barcode) + toast warning "Producto no encontrado"
+
+**Estimación:** 4-5 horas (hook 1-2h, integración POS 1h, IPC/DB 0.5h, edge cases 1h, testing 0.5-1h)
 
 ---
 
@@ -160,6 +199,37 @@ CRÍTICOS    CORE        SEGURIDAD   P0+P1+P2     i18n        TESTS+ASSETS PREMI
 
 ---
 
+## ✅ SISTEMA DE PERMISOS — COMPLETADO (30-Ago-2026)
+
+| # | Tarea | Estado | Archivos |
+|---|-------|--------|----------|
+| RP1 | Definición de 28 permisos en 7 categorías | ✅ | `src/shared/permissions.ts` |
+| RP2 | Migración DB: campo `permisos` en tabla usuarios | ✅ | `src/main/db/database.ts` (migración 013) |
+| RP3 | IPC handlers: `getPermissions` / `setPermissions` | ✅ | `src/main/ipc-handlers.ts` |
+| RP4 | Preload API: `usuarios.getPermissions` / `setPermissions` | ✅ | `src/main/preload.ts` |
+| RP5 | Hook `usePermissions` (has, hasAny, hasAll) | ✅ | `src/renderer/hooks/usePermissions.ts` |
+| RP6 | Modal de permisos (toggles por categoría) | ✅ | `src/renderer/components/ui/PermissionsModal.tsx` |
+| RP7 | Sidebar: ocultar módulos según permisos | ✅ | `src/renderer/components/layout/Sidebar.tsx` |
+| RP8 | ConfigPage: proteger botones Backup/Reset/Usuarios | ✅ | `src/renderer/pages/ConfigPage.tsx` |
+| RP9 | InventarioPage: proteger crear/editar/eliminar/ajustar | ✅ | `src/renderer/pages/InventarioPage.tsx` |
+| RP10 | ComprasPage: proteger nueva compra | ✅ | `src/renderer/pages/ComprasPage.tsx` |
+| RP11 | Empleada de prueba "maria" con permisos limitados | ✅ | `src/main/db/database.ts` (seed) |
+| RP12 | Backend service: `getUserPermissions` / `checkPermission` | ✅ | `src/main/services/permissions.ts` |
+
+### Categorías de permisos
+
+| Categoría | Permisos |
+|-----------|----------|
+| 🛒 Ventas | POS, Anular, Descuentos, Editar precio, Venta rápida |
+| 💰 Caja | Abrir, Cerrar, Movimientos, Reporte X |
+| 📦 Inventario | Acceso, Crear, Editar, Eliminar, Ajustar, Categorías, Unidades |
+| 🚚 Compras | Acceso, Registrar, Proveedores |
+| 📝 Cotizaciones | Acceso, Crear |
+| 📊 Reportes | Ver, Exportar |
+| ⚙️ Administración | Config, Terminal, Backups, Reset DB, Usuarios, Asignar permisos |
+
+---
+
 ## Hitos de Decisión
 
 | Hito | Cuándo | Estado |
@@ -176,6 +246,8 @@ CRÍTICOS    CORE        SEGURIDAD   P0+P1+P2     i18n        TESTS+ASSETS PREMI
 | ✅ Auto-update system | Fase 4 | Completado |
 | ✅ i18n completo | Fase 4 | Completado |
 | ✅ UI/UX polish | Fase 4 | Completado |
+| ✅ Lector códigos de barras (USB HID) | Fase 3.7 | Completado |
+| ✅ Sistema de permisos por usuario | 30-Ago-2026 | Completado |
 
 ---
 
