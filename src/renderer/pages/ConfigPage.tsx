@@ -9,6 +9,7 @@ import { useToast } from '../components/ui/Toast'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import PermissionsModal from '../components/ui/PermissionsModal'
+import { usePermissions } from '../hooks/usePermissions'
 
 interface Config { clave: string; valor: string; descripcion: string | null }
 interface Usuario { id: number; usuario: string; nombre: string; rol: string; activo: number }
@@ -34,6 +35,9 @@ export default function ConfigPage() {
 
   // Permisos de usuario
   const [permissionsUser, setPermissionsUser] = useState<Usuario | null>(null)
+
+  // Permisos del usuario actual
+  const { has } = usePermissions()
 
   const [tab, setTab] = useState<'negocio' | 'usuarios' | 'terminal' | 'sistema'>('negocio')
   const [backupLoading, setBackupLoading] = useState(false)
@@ -312,10 +316,12 @@ export default function ConfigPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500">{usuarios.length} users registered</p>
-            <button onClick={openCreateUser}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-              <Plus className="w-4 h-4" /> New User
-            </button>
+            {has('usuarios_access') && (
+              <button onClick={openCreateUser}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <Plus className="w-4 h-4" /> New User
+              </button>
+            )}
           </div>
 
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -357,15 +363,21 @@ export default function ConfigPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-1">
-                        <button onClick={() => setPermissionsUser(u)} className="p-1.5 hover:bg-blue-50 rounded-lg" title="Permisos">
-                          <Lock className="w-4 h-4 text-blue-500" />
-                        </button>
-                        <button onClick={() => openEditUser(u)} className="p-1.5 hover:bg-gray-100 rounded-lg">
-                          <Edit2 className="w-4 h-4 text-gray-500" />
-                        </button>
-                        <button onClick={() => setDeleteUser(u.id)} className="p-1.5 hover:bg-red-50 rounded-lg">
-                          <Trash2 className="w-4 h-4 text-red-400" />
-                        </button>
+                        {has('usuarios_manage_roles') && (
+                          <button onClick={() => setPermissionsUser(u)} className="p-1.5 hover:bg-blue-50 rounded-lg" title="Permisos">
+                            <Lock className="w-4 h-4 text-blue-500" />
+                          </button>
+                        )}
+                        {has('usuarios_access') && (
+                          <button onClick={() => openEditUser(u)} className="p-1.5 hover:bg-gray-100 rounded-lg">
+                            <Edit2 className="w-4 h-4 text-gray-500" />
+                          </button>
+                        )}
+                        {has('usuarios_access') && (
+                          <button onClick={() => setDeleteUser(u.id)} className="p-1.5 hover:bg-red-50 rounded-lg">
+                            <Trash2 className="w-4 h-4 text-red-400" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -620,10 +632,12 @@ export default function ConfigPage() {
                     setBackupLoading(false)
                   }
                 }}
-                disabled={backupLoading}
-                className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 flex items-center justify-center gap-2"
+                disabled={backupLoading || !has('config_backup')}
+                className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                title={!has('config_backup') ? 'No tienes permiso para crear backups' : ''}
               >
                 <Download className="w-4 h-4" /> {backupLoading ? 'Creando backup...' : 'Crear Backup Ahora'}
+                {!has('config_backup') && <span className="text-xs opacity-70">(Sin permiso)</span>}
               </button>
             </div>
 
@@ -658,10 +672,12 @@ export default function ConfigPage() {
                     setBackupLoading(false)
                   }
                 }}
-                disabled={backupLoading}
-                className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-orange-500 rounded-lg hover:bg-orange-600 disabled:bg-orange-300 flex items-center justify-center gap-2"
+                disabled={backupLoading || !has('config_backup')}
+                className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-orange-500 rounded-lg hover:bg-orange-600 disabled:bg-orange-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                title={!has('config_backup') ? 'No tienes permiso para restaurar backups' : ''}
               >
                 <Upload className="w-4 h-4" /> {backupLoading ? 'Restaurando...' : 'Restaurar desde Archivo'}
+                {!has('config_backup') && <span className="text-xs opacity-70">(Sin permiso)</span>}
               </button>
             </div>
           </div>
@@ -836,9 +852,12 @@ export default function ConfigPage() {
                   toast.error('Error: ' + err.message)
                 }
               }}
-              className="px-4 py-2.5 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 flex items-center gap-2"
+              disabled={!has('config_db_reset')}
+              className="px-4 py-2.5 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:bg-red-300 disabled:cursor-not-allowed flex items-center gap-2"
+              title={!has('config_db_reset') ? 'No tienes permiso para resetear la base de datos' : ''}
             >
               <Trash2 className="w-4 h-4" /> Resetear Base de Datos
+              {!has('config_db_reset') && <span className="text-xs opacity-70">(Sin permiso)</span>}
             </button>
           </div>
         </div>
