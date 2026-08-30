@@ -25,6 +25,7 @@ import {
 import { validateLicense, getLicenseStatus, saveLicense, resetLicenseState } from './services/license'
 import { getLang, setLang, initI18n, t, type SupportedLang } from './i18n'
 import { checkPermission } from './services/permissions'
+import { getConfigMap, invalidateConfigCache } from './services/configCache'
 
 /**
  * Registra todos los handlers IPC del sistema.
@@ -586,12 +587,12 @@ function registerVentasHandlers(): void {
     const params: any[] = []
 
     if (filters?.fecha_inicio) {
-      sql += ` AND DATE(v.fecha) >= ?`
+      sql += ` AND v.fecha >= ?`
       params.push(filters.fecha_inicio)
     }
     if (filters?.fecha_fin) {
-      sql += ` AND DATE(v.fecha) <= ?`
-      params.push(filters.fecha_fin)
+      sql += ` AND v.fecha <= ?`
+      params.push(filters.fecha_fin + ' 23:59:59')
     }
 
     sql += ` ORDER BY v.fecha DESC`
@@ -702,6 +703,7 @@ function registerVentasHandlers(): void {
       db!.prepare(
         "UPDATE configuracion SET valor = ? WHERE clave = 'ticket_numero_venta'"
       ).run(String(numeroVenta))
+      invalidateConfigCache()
 
       return { id: ventaId, numero_venta: numeroVenta }
     })
@@ -1105,8 +1107,10 @@ function getDbPath(): string {
 
 function registerConfigHandlers(): void {
   ipcMain.handle('config:get', async () => {
-    const db = getDatabase()
-    return db.prepare('SELECT * FROM configuracion ORDER BY clave').all()
+    const map = getConfigMap()
+    return Array.from(map, ([clave, valor]) => ({ clave, valor })).sort((a, b) =>
+      a.clave.localeCompare(b.clave)
+    )
   })
 
   ipcMain.handle('config:set', async (_event, data: { clave: string; valor: string }) => {
@@ -1114,6 +1118,7 @@ function registerConfigHandlers(): void {
     db.prepare(
       "INSERT OR REPLACE INTO configuracion (clave, valor, actualizado_en) VALUES (?, ?, datetime('now'))"
     ).run(data.clave, data.valor)
+    invalidateConfigCache()
     return { success: true }
   })
 }

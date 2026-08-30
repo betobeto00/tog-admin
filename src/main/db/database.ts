@@ -45,7 +45,7 @@ export function initializeDatabase(): Database.Database {
   // Configuraciones de rendimiento
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
-  db.pragma('busy_timeout = 5000')
+  db.pragma('busy_timeout = 1000')
 
   // Ejecutar migraciones
   runMigrations(db)
