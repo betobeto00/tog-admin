@@ -386,6 +386,21 @@ function seedDatabase(db: Database.Database): void {
         VALUES (?, ?, ?, ?, 1)
       `).run('admin', hash, 'Administrador', 'admin')
 
+      // Empleada de prueba: solo puede ver inventario y procesar compras
+      // (contraseña: empleado123)
+      const hashEmpleado = bcrypt.hashSync('empleado123', 10)
+      const permisosEmpleado = JSON.stringify([
+        'pos_access', 'pos_discount', 'pos_edit_price', 'pos_quick_sale',
+        'caja_access', 'caja_open', 'caja_close', 'caja_movement',
+        'inventario_access', 'inventario_create', 'inventario_edit',
+        'compras_access', 'compras_create',
+        'quotes_access', 'quotes_create',
+      ])
+      db!.prepare(`
+        INSERT INTO usuarios (usuario, contrasena, nombre, rol, permisos)
+        VALUES (?, ?, ?, ?, ?)
+      `).run('maria', hashEmpleado, 'María (Prueba)', 'cajero', permisosEmpleado)
+
       // Nota: categorías NO se seedean — el cliente crea las suyas
       // Solo se insertan unidades de medida genéricas
 
