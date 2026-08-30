@@ -116,7 +116,7 @@ export default function ReportesPage() {
         <button onClick={() => {
           const win = window.open('', '_blank', 'width=800,height=600')
           if (!win) return
-          win.document.write(`<html><head><title>Reporte TOG Admin</title><style>
+win.document.write(`<html><head><title>${t('reportes.reportTitle')} - TOG Admin</title><style>
             body{font-family:Arial,sans-serif;padding:20px;color:#333}
             h1{font-size:20px;border-bottom:2px solid #3b82f6;padding-bottom:8px}
             h2{font-size:16px;margin-top:20px;color:#1e40af}
@@ -129,23 +129,23 @@ export default function ReportesPage() {
             .card p{font-size:12px;color:#6b7280}
             .card span{font-size:18px;font-weight:bold}
           </style></head><body>
-            <h1>TOG Admin — {t('reportes.reportTitle')}</h1>
+            <h1>TOG Admin — ${t('reportes.reportTitle')}</h1>
             <p>${t('reportes.periodLabel')} ${fechaInicio} - ${fechaFin} | ${t('reportes.generated')} ${new Date().toLocaleString()}</p>
             <div class="summary">
               <div class="card"><p>${t('reportes.totalPeriod')}</p><span>$${totalPeriodo.toFixed(2)}</span></div>
-              <div class="card"><p>{t('reportes.totalTickets')}</p><span>${totalVentasPeriodo}</span></div>
+              <div class="card"><p>${t('reportes.totalTickets')}</p><span>${totalVentasPeriodo}</span></div>
               <div class="card"><p>${t('reportes.dailyAvg')}</p><span>$${promedioDiario.toFixed(2)}</span></div>
             </div>
-            <h2>{t('reportes.salesByDay')}</h2>
-            <table><thead><tr><th>{t('reportes.date')}</th><th>{t('reportes.salesCount')}</th><th>{t('reportes.amount')}</th></tr></thead><tbody>
+            <h2>${t('reportes.salesByDay')}</h2>
+            <table><thead><tr><th>${t('reportes.date')}</th><th>${t('reportes.salesCount')}</th><th>${t('reportes.amount')}</th></tr></thead><tbody>
               ${ventasDiarias.map(v => `<tr><td>${v.fecha}</td><td>${v.total_ventas}</td><td>$${v.monto_total.toFixed(2)}</td></tr>`).join('')}
             </tbody></table>
-            <h2>{t('reportes.topProducts')}</h2>
+            <h2>${t('reportes.topProducts')}</h2>
             <table><thead><tr><th>${t('reportes.product')}</th><th>${t('reportes.sold')}</th><th>${t('reportes.income')}</th></tr></thead><tbody>
               ${topProductos.map(p => `<tr><td>${p.nombre}</td><td>${p.total_vendido}</td><td>$${p.total_ingreso.toFixed(2)}</td></tr>`).join('')}
             </tbody></table>
-            <h2>{t('reportes.salesByCategory')}</h2>
-            <table><thead><tr><th>{t('reportes.category')}</th><th>{t('reportes.salesCount')}</th><th>{t('reportes.units')}</th><th>{t('reportes.income')}</th></tr></thead><tbody>
+            <h2>${t('reportes.salesByCategory')}</h2>
+            <table><thead><tr><th>${t('reportes.category')}</th><th>${t('reportes.salesCount')}</th><th>${t('reportes.units')}</th><th>${t('reportes.income')}</th></tr></thead><tbody>
               ${ventasCategoria.map(c => `<tr><td>${c.categoria}</td><td>${c.total_ventas}</td><td>${c.total_unidades}</td><td>$${c.total_ingreso.toFixed(2)}</td></tr>`).join('')}
             </tbody></table>
             <script>window.onload=()=>{window.print()}</script>
@@ -202,7 +202,7 @@ export default function ReportesPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="fecha" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                     <Legend />
                     <Line type="monotone" dataKey="monto" name="Ingresos ($)" stroke="#3B82F6" strokeWidth={2} dot={{ r: 3 }} />
                   </LineChart>
@@ -221,7 +221,7 @@ export default function ReportesPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis type="number" tick={{ fontSize: 11 }} />
                     <YAxis dataKey="nombre" type="category" width={120} tick={{ fontSize: 10 }} />
-                    <Tooltip formatter={(value: number) => value.toLocaleString()} />
+                    <Tooltip formatter={(value) => Number(value).toLocaleString()} />
                     <Bar dataKey="vendidos" name="Unidades" fill="#10B981" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -237,10 +237,10 @@ export default function ReportesPage() {
                 <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
                     <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%"
-                      outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                      outerRadius={100} label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}>
                       {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                   </PieChart>
                 </ResponsiveContainer>
               )}
@@ -257,8 +257,8 @@ export default function ReportesPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis type="number" tick={{ fontSize: 11 }} />
                     <YAxis dataKey="categoria" type="category" width={120} tick={{ fontSize: 10 }} />
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                    <Bar dataKey="total_ingreso" name="Ingreso ($)" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
+<Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                  <Bar dataKey="total_ingreso" name="Ingreso ($)" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}

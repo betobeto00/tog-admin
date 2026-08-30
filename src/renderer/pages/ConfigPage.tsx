@@ -192,9 +192,9 @@ export default function ConfigPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Configuración</h1>
-        <p className="text-sm text-gray-500">Ajustes del negocio y gestión de usuarios</p>
-      </div>
+<h1 className="text-2xl font-bold text-gray-900">{t('config.title')}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t('config.subtitle')}</p>
+        </div>
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-gray-200">
@@ -202,25 +202,25 @@ export default function ConfigPage() {
           className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             tab === 'negocio' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}>
-          <Store className="w-4 h-4 inline mr-1.5" /> Datos del Negocio
+          <Store className="w-4 h-4 inline mr-1.5" /> {t('config.businessTab')}
         </button>
         <button onClick={() => setTab('usuarios')}
           className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             tab === 'usuarios' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}>
-          <Users className="w-4 h-4 inline mr-1.5" /> Usuarios
+          <Users className="w-4 h-4 inline mr-1.5" /> {t('config.usersTab')}
         </button>
         <button onClick={() => setTab('terminal')}
           className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             tab === 'terminal' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}>
-          <CreditCard className="w-4 h-4 inline mr-1.5" /> Terminal
+          <CreditCard className="w-4 h-4 inline mr-1.5" /> {t('config.terminalTab')}
         </button>
         <button onClick={() => setTab('sistema')}
           className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             tab === 'sistema' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}>
-          <Settings className="w-4 h-4 inline mr-1.5" /> Sistema
+          <Settings className="w-4 h-4 inline mr-1.5" /> {t('config.systemTab')}
         </button>
       </div>
 
@@ -233,32 +233,32 @@ export default function ConfigPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Business Name *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('config.businessName')} *</label>
               <input value={form.nombre_negocio} onChange={(e) => setForm({ ...form, nombre_negocio: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                placeholder="My Business Name" />
+                placeholder={t('config.businessName')} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">EIN (Tax ID)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('config.ein')}</label>
               <input value={form.ein} onChange={(e) => setForm({ ...form, ein: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                 placeholder="XX-XXXXXXX" />
-              <p className="text-xs text-gray-400 mt-1">Employer Identification Number (optional)</p>
+              <p className="text-xs text-gray-400 mt-1">{t('config.einHelp')}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('config.phone')}</label>
               <input value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                 placeholder="(555) 123-4567" />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('config.address')}</label>
               <input value={form.direccion} onChange={(e) => setForm({ ...form, direccion: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                 placeholder="123 Main St, City, State ZIP" />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Logo de la empresa</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('config.businessLogo')}</label>
               <div className="flex items-center gap-3">
                 <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
                   onChange={(e) => {
@@ -284,43 +284,43 @@ export default function ConfigPage() {
                   className="block w-full text-sm text-gray-700 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
                 {logoPath && (
                   <button type="button" onClick={() => setLogoPath('')}
-                    className="text-xs text-red-600 hover:text-red-700">Quitar</button>
+                    className="text-xs text-red-600 hover:text-red-700">{t('config.remove')}</button>
                 )}
               </div>
               {logoPath && <img src={logoPath} alt="Logo" className="mt-2 h-16 w-auto border border-gray-200 rounded p-1 bg-white" />}
               <div className="mt-2 text-xs text-gray-500 space-y-0.5">
-                <p><strong>Recomendaciones:</strong></p>
+                <p><strong>{t('config.recommendationsTitle')}</strong></p>
                 <ul className="list-disc list-inside space-y-0.5 text-gray-500">
-                  <li><strong>Formato:</strong> PNG (transparencia) o JPG. También WebP y SVG.</li>
-                  <li><strong>Tamaño máximo:</strong> 1 MB. Imágenes más pesadas tardan en imprimirse.</li>
-                  <li><strong>Dimensiones ideales:</strong> 400×200 px o 600×300 px (proporción 2:1).</li>
-                  <li><strong>Modo de color:</strong> RGB para pantalla, CMYK si va a imprenta.</li>
-                  <li><strong>Fondo:</strong> Preferible transparente (PNG) para combinar con cualquier papel.</li>
+                  <li><strong>Formato:</strong> {t('config.recommendationFormat')}</li>
+                  <li><strong>Tamaño máximo:</strong> {t('config.recommendationSize')}</li>
+                  <li><strong>Dimensiones ideales:</strong> {t('config.recommendationDimensions')}</li>
+                  <li><strong>Modo de color:</strong> {t('config.recommendationColor')}</li>
+                  <li><strong>Fondo:</strong> {t('config.recommendationBg')}</li>
                 </ul>
               </div>
             </div>
           </div>
 
           <h3 className="font-semibold text-gray-900 pt-4 border-t border-gray-100 flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-green-600" /> Tax & Currency
+            <CreditCard className="w-5 h-5 text-green-600" /> {t('config.taxCurrency')}
           </h3>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sales Tax Rate (%)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('config.salesTaxRate')}</label>
               <input type="number" step="0.01" min="0" max="100" value={form.sales_tax_rate}
                 onChange={(e) => setForm({ ...form, sales_tax_rate: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00" />
-              <p className="text-xs text-gray-400 mt-1">Varies by state/county. Set to 0 if tax-exempt.</p>
+              <p className="text-xs text-gray-400 mt-1">{t('config.taxRateHelp')}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Currency Symbol</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('config.currencySymbolLabel')}</label>
               <input value={form.currency_symbol}
                 onChange={(e) => setForm({ ...form, currency_symbol: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                 placeholder="$" />
-              <p className="text-xs text-gray-400 mt-1">Default: $ (USD)</p>
+              <p className="text-xs text-gray-400 mt-1">{t('config.currencyHelp')}</p>
             </div>
           </div>
 
@@ -335,28 +335,28 @@ export default function ConfigPage() {
                 onChange={(e) => setPrinterName(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                 placeholder={t('config.printerPlaceholder')} />
-              <p className="text-xs text-gray-400 mt-1">{t('config.printerHint')}</p>
+              <p className="text-xs text-gray-400 mt-1">{t('config.printerHelp')}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('config.cashDefaultLabel')}</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('config.openingAmount')}</label>
               <input type="number" step="0.01" min="0" value={fondoDefault}
                 onChange={(e) => setFondoDefault(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                 placeholder="100.00" />
-              <p className="text-xs text-gray-400 mt-1">{t('config.cashDefaultHint')}</p>
+              <p className="text-xs text-gray-400 mt-1">{t('config.openingAmountHelp')}</p>
             </div>
           </div>
 
           {/* Common tax rates reference */}
           <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700">
-            <p className="font-medium mb-1">📊 Common Sales Tax Rates (reference)</p>
-            <p className="text-xs">No tax: 0% • Oregon, Montana, Delaware: 0% • Texas: 6.25%+ • California: 7.25%+ • New York: 4%+ • Florida: 6%</p>
+            <p className="font-medium mb-1">{t('config.taxRatesRef')}</p>
+            <p className="text-xs">{t('config.commonTaxRates')}</p>
           </div>
 
           <div className="flex justify-end pt-4 border-t border-gray-100">
             <button onClick={saveConfig} disabled={saving || !form.nombre_negocio.trim()}
               className="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 flex items-center gap-2">
-              <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Settings'}
+              <Save className="w-4 h-4" /> {saving ? t('config.saving') : t('config.saveSettings')}
             </button>
           </div>
         </div>
@@ -513,7 +513,7 @@ export default function ConfigPage() {
       {tab === 'terminal' && (
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5 max-w-2xl">
           <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-blue-600" /> Terminal VP800 — Pago con Tarjeta
+            <CreditCard className="w-5 h-5 text-blue-600" /> {t('config.terminalVp800Card')}
           </h3>
           <p className="text-sm text-gray-500">
             Configura la conexión con el terminal de pago Valor VP800 para procesar tarjetas de crédito/débito.

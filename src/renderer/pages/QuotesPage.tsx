@@ -65,7 +65,7 @@ export default function QuotesPage() {
     : []
 
   const addItem = (prod: Producto) => {
-    setItems([...items, { producto_id: prod.id, descripcion: prod.nombre, cantidad: 1, precio_unitario: prod.precio_venta, descuento: 0, subtotal: prod.precio_unitario }])
+    setItems([...items, { producto_id: prod.id, descripcion: prod.nombre, cantidad: 1, precio_unitario: prod.precio_venta, descuento: 0, subtotal: prod.precio_venta }])
     setSearchProd('')
   }
 
@@ -182,23 +182,23 @@ export default function QuotesPage() {
       <h2>QUOTE / ESTIMATE</h2>
       <div class="center">#${String(q.numero_cotizacion).padStart(6, '0')}</div>
       <div class="center" style="font-size:10px;color:#666">${formatDateTime(q.fecha)}</div>
-      ${q.fecha_vencimiento ? `<div class="center" style="font-size:10px;color:#999">Valid until: ${q.fecha_vencimiento}</div>` : ''}
+      ${q.fecha_vencimiento ? `<div class="center" style="font-size:10px;color:#999">${t('quotes.validUntil')}: ${q.fecha_vencimiento}</div>` : ''}
       <hr>
-      <div class="label">BILL TO:</div>
+      <div class="label">${t('quotes.billTo')}</div>
       <div><strong>${q.cliente_nombre}</strong></div>
       ${q.cliente_email ? `<div>${q.cliente_email}</div>` : ''}
       ${q.cliente_telefono ? `<div>${q.cliente_telefono}</div>` : ''}
       ${q.cliente_direccion ? `<div>${q.cliente_direccion}</div>` : ''}
       <hr>
-      <table><thead><tr><th style="text-align:left">Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Subtotal</th></tr></thead>
+      <table><thead><tr><th style="text-align:left">${t('quotes.descriptionShort')}</th><th style="text-align:center">${t('quotes.qtyShort')}</th><th style="text-align:right">${t('quotes.price')}</th><th style="text-align:right">${t('quotes.subtotal')}</th></tr></thead>
       <tbody>${rows}</tbody></table>
       <hr>
-      <div class="right">Subtotal: ${formatCurrency(q.subtotal || 0)}</div>
-      ${(q.impuesto || 0) > 0 ? `<div class="right">Tax: ${formatCurrency(q.impuesto)}</div>` : ''}
-      <div class="right total">TOTAL: ${formatCurrency(q.total || 0)}</div>
-      ${q.notas ? `<hr><div class="label">NOTES:</div><div style="font-size:10px">${q.notas}</div>` : ''}
+      <div class="right">${t('quotes.subtotal')}: ${formatCurrency(q.subtotal || 0)}</div>
+      ${(q.impuesto || 0) > 0 ? `<div class="right">${t('quotes.tax')}: ${formatCurrency(q.impuesto)}</div>` : ''}
+      <div class="right total">${t('quotes.total')}: ${formatCurrency(q.total || 0)}</div>
+      ${q.notas ? `<hr><div class="label">${t('quotes.notes')}:</div><div style="font-size:10px">${q.notas}</div>` : ''}
       <hr>
-      <div class="center" style="margin-top:15px;font-size:10px;color:#666">Thank you for your business!</div>
+      <div class="center" style="margin-top:15px;font-size:10px;color:#666">${t('quotes.receiptThankYou')}</div>
     </body></html>`)
     win.document.close(); win.print()
   }
@@ -207,11 +207,11 @@ export default function QuotesPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quotes</h1>
-          <p className="text-sm text-gray-500">{quotes.length} quotes</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('quotes.title')}</h1>
+          <p className="text-sm text-gray-500">{quotes.length} {t('quotes.title').toLowerCase()}</p>
         </div>
         <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-          <Plus className="w-4 h-4" /> New Quote
+          <Plus className="w-4 h-4" /> {t('quotes.newQuote')}
         </button>
       </div>
 
@@ -220,12 +220,12 @@ export default function QuotesPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} onBlur={() => loadData()}
-            placeholder="Search by client name or quote #..."
+            placeholder={t('quotes.searchPlaceholder')}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
         </div>
         <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
-          <option value="">All Status</option>
+          <option value="">{t('quotes.allStatus')}</option>
           <option value="pendiente">Pending</option>
           <option value="aprobada">Approved</option>
           <option value="rechazada">Rejected</option>
@@ -238,20 +238,20 @@ export default function QuotesPage() {
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Quote</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Client</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Date</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Valid Until</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Total</th>
-              <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Actions</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('quotes.quote')}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('quotes.client')}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('quotes.date')}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('quotes.validUntil')}</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('quotes.total')}</th>
+              <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('quotes.status')}</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('quotes.actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
               <tr><td colSpan={7} className="text-center py-12"><div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto" /></td></tr>
             ) : quotes.length === 0 ? (
-              <tr><td colSpan={7} className="text-center py-12 text-gray-400"><FileText className="w-12 h-12 mx-auto mb-2 opacity-50" /><p>No quotes found</p></td></tr>
+              <tr><td colSpan={7} className="text-center py-12 text-gray-400"><FileText className="w-12 h-12 mx-auto mb-2 opacity-50" /><p>{t('quotes.noQuotesFound')}</p></td></tr>
             ) : (quotes || []).map((q) => {
               const Icon = STATUS_ICONS[q.estado] || Clock
               return (
@@ -282,28 +282,28 @@ export default function QuotesPage() {
       </div>
 
       {/* Modal Create/Edit Quote */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingQuote ? `Edit Quote #${String(editingQuote.numero_cotizacion).padStart(6, '0')}` : 'New Quote'} wide>
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingQuote ? `${t('quotes.editQuote')} #${String(editingQuote.numero_cotizacion).padStart(6, '0')}` : t('quotes.newQuote')} wide>
         <div className="space-y-4">
           {/* Client Info */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Client Name *</label>
-              <input value={cliente.nombre} onChange={(e) => setCliente({ ...cliente, nombre: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Client or Company name" /></div>
+            <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">{t('quotes.clientName')} *</label>
+              <input value={cliente.nombre} onChange={(e) => setCliente({ ...cliente, nombre: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder={t('quotes.clientPlaceholder')} /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input type="email" value={cliente.email} onChange={(e) => setCliente({ ...cliente, email: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="client@email.com" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-              <input value={cliente.telefono} onChange={(e) => setCliente({ ...cliente, telefono: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="(555) 123-4567" /></div>
-            <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-              <input value={cliente.direccion} onChange={(e) => setCliente({ ...cliente, direccion: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="123 Main St, City, State" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">Valid Until</label>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">{t('quotes.phone')}</label>
+              <input value={cliente.telefono} onChange={(e) => setCliente({ ...cliente, telefono: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder={t('quotes.phonePlaceholder')} /></div>
+            <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">{t('quotes.address')}</label>
+              <input value={cliente.direccion} onChange={(e) => setCliente({ ...cliente, direccion: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder={t('quotes.addressPlaceholder')} /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">{t('quotes.validUntil')}</label>
               <input type="date" value={fechaVenc} onChange={(e) => setFechaVenc(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" /></div>
           </div>
 
           {/* Items */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Items *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('quotes.items')} *</label>
             <div className="relative mb-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input type="text" value={searchProd} onChange={(e) => setSearchProd(e.target.value)} placeholder="Search product to add..."
+              <input type="text" value={searchProd} onChange={(e) => setSearchProd(e.target.value)} placeholder={t('quotes.searchProduct')}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm" />
               {searchProducts.length > 0 && (
                 <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
@@ -315,17 +315,17 @@ export default function QuotesPage() {
                 </div>
               )}
             </div>
-            <button onClick={addCustomItem} className="text-xs text-blue-600 hover:text-blue-700 mb-2">+ Add custom line item</button>
+            <button onClick={addCustomItem} className="text-xs text-blue-600 hover:text-blue-700 mb-2">{t('quotes.addCustomItem')}</button>
             {items.length > 0 && (
               <div className="bg-gray-50 rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-100">
                     <tr>
-                      <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">Description</th>
-                      <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 w-20">Qty</th>
-                      <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 w-24">Unit Price</th>
-                      <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 w-20">Disc %</th>
-                      <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 w-24">Subtotal</th>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">{t('quotes.description')}</th>
+                      <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 w-20">{t('quotes.qty')}</th>
+                      <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 w-24">{t('quotes.unitPrice')}</th>
+                      <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 w-20">{t('quotes.disc')}</th>
+                      <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 w-24">{t('quotes.subtotal')}</th>
                       <th className="w-8"></th>
                     </tr>
                   </thead>
@@ -349,37 +349,37 @@ export default function QuotesPage() {
           {/* Totals */}
           <div className="flex justify-between items-start">
             <div className="w-1/2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-              <textarea rows={3} value={notas} onChange={(e) => setNotas(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Payment terms, special conditions..." />
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('quotes.notes')}</label>
+              <textarea rows={3} value={notas} onChange={(e) => setNotas(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder={t('quotes.notesPlaceholder')} />
             </div>
             <div className="w-64 bg-gray-50 rounded-xl p-4 space-y-1.5 text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
-              {taxRate > 0 && <div className="flex justify-between"><span className="text-gray-500">Tax ({(taxRate * 100).toFixed(1)}%)</span><span>{formatCurrency(impuesto)}</span></div>}
-              <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200"><span>Total</span><span>{formatCurrency(total)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{t('quotes.subtotal')}</span><span>{formatCurrency(subtotal)}</span></div>
+              {taxRate > 0 && <div className="flex justify-between"><span className="text-gray-500">{t('quotes.tax')} ({(taxRate * 100).toFixed(1)}%)</span><span>{formatCurrency(impuesto)}</span></div>}
+              <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200"><span>{t('quotes.total')}</span><span>{formatCurrency(total)}</span></div>
             </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-            <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+            <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{t('quotes.cancel')}</button>
             <button onClick={saveQuote} disabled={saving || !cliente.nombre.trim() || items.length === 0}
               className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300">
-              {saving ? 'Saving...' : editingQuote ? 'Update Quote' : 'Create Quote'}
+              {saving ? t('quotes.saving') : editingQuote ? t('quotes.updateQuote') : t('quotes.createQuote')}
             </button>
           </div>
         </div>
       </Modal>
 
       {/* Modal View Quote */}
-      <Modal open={viewOpen} onClose={() => setViewOpen(false)} title={viewQuote ? `Quote #${String(viewQuote.numero_cotizacion).padStart(6, '0')}` : ''} wide>
+      <Modal open={viewOpen} onClose={() => setViewOpen(false)} title={viewQuote ? `${t('quotes.quote')} #${String(viewQuote.numero_cotizacion).padStart(6, '0')}` : ''} wide>
         {viewQuote && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><p className="text-gray-500">Client</p><p className="font-medium">{viewQuote.cliente_nombre || '—'}</p></div>
-              <div><p className="text-gray-500">Date</p><p className="font-medium">{viewQuote.fecha ? formatDateTime(viewQuote.fecha) : '—'}</p></div>
+              <div><p className="text-gray-500">{t('quotes.client')}</p><p className="font-medium">{viewQuote.cliente_nombre || '—'}</p></div>
+              <div><p className="text-gray-500">{t('quotes.date')}</p><p className="font-medium">{viewQuote.fecha ? formatDateTime(viewQuote.fecha) : '—'}</p></div>
               {viewQuote.cliente_email && <div><p className="text-gray-500">Email</p><p className="font-medium">{viewQuote.cliente_email}</p></div>}
-              {viewQuote.cliente_telefono && <div><p className="text-gray-500">Phone</p><p className="font-medium">{viewQuote.cliente_telefono}</p></div>}
-              {viewQuote.fecha_vencimiento && <div><p className="text-gray-500">Valid Until</p><p className="font-medium">{viewQuote.fecha_vencimiento}</p></div>}
-              <div><p className="text-gray-500">Status</p>
+              {viewQuote.cliente_telefono && <div><p className="text-gray-500">{t('quotes.phone')}</p><p className="font-medium">{viewQuote.cliente_telefono}</p></div>}
+              {viewQuote.fecha_vencimiento && <div><p className="text-gray-500">{t('quotes.validUntil')}</p><p className="font-medium">{viewQuote.fecha_vencimiento}</p></div>}
+              <div><p className="text-gray-500">{t('quotes.status')}</p>
                 <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full capitalize ${STATUS_COLORS[viewQuote.estado]}`}>{viewQuote.estado}</span>
               </div>
             </div>
@@ -387,10 +387,10 @@ export default function QuotesPage() {
             <div className="bg-gray-50 rounded-xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-gray-100"><tr>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">Description</th>
-                  <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500">Qty</th>
-                  <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500">Price</th>
-                  <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500">Subtotal</th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">{t('quotes.description')}</th>
+                  <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500">{t('quotes.qty')}</th>
+                  <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500">{t('quotes.price')}</th>
+                  <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500">{t('quotes.subtotal')}</th>
                 </tr></thead>
                 <tbody className="divide-y divide-gray-200">
                   {(viewQuote.detalles || []).map((d: any) => (
@@ -401,23 +401,23 @@ export default function QuotesPage() {
             </div>
 
             <div className="bg-gray-50 rounded-xl p-4 space-y-1.5 text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>{formatCurrency(viewQuote.subtotal || 0)}</span></div>
-              {(viewQuote.impuesto || 0) > 0 && <div className="flex justify-between"><span className="text-gray-500">Tax</span><span>{formatCurrency(viewQuote.impuesto)}</span></div>}
-              <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200"><span>Total</span><span>{formatCurrency(viewQuote.total || 0)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{t('quotes.subtotal')}</span><span>{formatCurrency(viewQuote.subtotal || 0)}</span></div>
+              {(viewQuote.impuesto || 0) > 0 && <div className="flex justify-between"><span className="text-gray-500">{t('quotes.tax')}</span><span>{formatCurrency(viewQuote.impuesto)}</span></div>}
+              <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200"><span>{t('quotes.total')}</span><span>{formatCurrency(viewQuote.total || 0)}</span></div>
             </div>
 
-            {viewQuote.notas && <div className="bg-blue-50 rounded-xl p-3 text-sm text-blue-700"><strong>Notes:</strong> {viewQuote.notas}</div>}
+            {viewQuote.notas && <div className="bg-blue-50 rounded-xl p-3 text-sm text-blue-700"><strong>{t('quotes.notes')}:</strong> {viewQuote.notas}</div>}
 
             {/* Action buttons */}
             {viewQuote.estado === 'pendiente' && (
               <div className="flex gap-2 pt-2 border-t border-gray-100">
-                <button onClick={() => changeStatus(viewQuote.id, 'aprobada')} className="flex-1 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 flex items-center justify-center gap-1"><CheckCircle className="w-4 h-4" /> Approve</button>
-                <button onClick={() => changeStatus(viewQuote.id, 'rechazada')} className="flex-1 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 flex items-center justify-center gap-1"><XCircle className="w-4 h-4" /> Reject</button>
-                <button onClick={() => changeStatus(viewQuote.id, 'convertida')} className="flex-1 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-1"><FileText className="w-4 h-4" /> Convert to Sale</button>
+                <button onClick={() => changeStatus(viewQuote.id, 'aprobada')} className="flex-1 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 flex items-center justify-center gap-1"><CheckCircle className="w-4 h-4" /> {t('quotes.approve')}</button>
+                <button onClick={() => changeStatus(viewQuote.id, 'rechazada')} className="flex-1 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 flex items-center justify-center gap-1"><XCircle className="w-4 h-4" /> {t('quotes.reject')}</button>
+                <button onClick={() => changeStatus(viewQuote.id, 'convertida')} className="flex-1 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-1"><FileText className="w-4 h-4" /> {t('quotes.convertToSale')}</button>
               </div>
             )}
             <div className="flex gap-2">
-              <button onClick={() => printQuote(viewQuote)} className="flex-1 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 flex items-center justify-center gap-1"><Printer className="w-4 h-4" /> Print</button>
+              <button onClick={() => printQuote(viewQuote)} className="flex-1 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 flex items-center justify-center gap-1"><Printer className="w-4 h-4" /> {t('quotes.print')}</button>
             </div>
           </div>
         )}
