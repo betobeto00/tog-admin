@@ -1,6 +1,6 @@
 {
   "name": "tog-admin",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "TOG Admin - Sistema de Punto de Venta para Papelería, Centro de Copiado e Impresión",
   "main": "dist-electron/main/index.js",
   "author": "betobeto00",
