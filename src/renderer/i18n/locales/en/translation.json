@@ -789,7 +789,8 @@
     "currencySymbolLabel": "Currency Symbol",
     "commonTaxRates": "No tax: 0% • Oregon, Montana, Delaware: 0% • Texas: 6.25%+ • California: 7.25%+ • New York: 4%+ • Florida: 6%",
     "terminalVp800Card": "VP800 Terminal — Card Payment",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "paymentMethodsTab": "Payment Methods"
   },
   "forcePassword": {
     "title": "Password Change Required",
