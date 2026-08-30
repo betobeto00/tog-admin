@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../stores/auth.store'
 import {
   Plus, Search, Edit2, Trash2, Package, Tag,
-  ChevronDown, AlertTriangle, Filter, Download, Upload, History, EyeOff
+  ChevronDown, AlertTriangle, Filter, Download, Upload, History, EyeOff, ScanBarcode
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { formatCurrency } from '../lib/utils'
+import { useToast } from '../components/ui/Toast'
 
 interface Producto {
   id: number; codigo_barras: string | null; sku: string | null
@@ -68,6 +69,66 @@ export default function InventarioPage() {
 
   // Import/Export CSV
   const [importing, setImporting] = useState(false)
+
+  // Escáner de código de barras para formulario
+  const [barcodeMode, setBarcodeMode] = useState(false)
+  const barcodeBufferRef = useRef('')
+  const barcodeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const nombreRef = useRef<HTMLInputElement>(null)
+  const toast = useToast()
+
+  // Handler para escaneo de código en formulario de producto
+  const handleFormBarcodeScan = useCallback((barcode: string) => {
+    if (!modalOpen) return
+    // Llenar el campo de código de barras
+    setForm((prev) => ({ ...prev, codigo_barras: barcode }))
+    // Focus al campo de nombre para escribir el resto
+    setTimeout(() => nombreRef.current?.focus(), 50)
+    toast.success(`${i18n.language === 'en' ? 'Barcode scanned' : 'Código escaneado'}: ${barcode}`)
+  }, [modalOpen, toast, i18n.language])
+
+  // Hook global de escaneo para formulario
+  useEffect(() => {
+    if (!barcodeMode || !modalOpen) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      // Ignorar si está en un input excepto el de código de barras
+      if (target.tagName === 'INPUT' && target !== nombreRef.current) return
+
+      if (barcodeTimeoutRef.current) {
+        clearTimeout(barcodeTimeoutRef.current)
+        barcodeTimeoutRef.current = null
+      }
+
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        const barcode = barcodeBufferRef.current.trim()
+        barcodeBufferRef.current = ''
+        if (barcode.length > 0) handleFormBarcodeScan(barcode)
+        return
+      }
+
+      if (e.key === 'Backspace') {
+        barcodeBufferRef.current = barcodeBufferRef.current.slice(0, -1)
+        return
+      }
+
+      if (e.key.length > 1 && !e.key.startsWith('F')) return
+      barcodeBufferRef.current += e.key
+
+      barcodeTimeoutRef.current = setTimeout(() => {
+        barcodeBufferRef.current = ''
+        barcodeTimeoutRef.current = null
+      }, 50)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      if (barcodeTimeoutRef.current) clearTimeout(barcodeTimeoutRef.current)
+    }
+  }, [barcodeMode, modalOpen, handleFormBarcodeScan])
 
   // Filtro sin stock
   const [filterSinStock, setFilterSinStock] = useState(false)
@@ -143,6 +204,7 @@ export default function InventarioPage() {
   const openCreate = () => {
     setEditing(null)
     setForm(emptyProduct)
+    setBarcodeMode(true)
     setModalOpen(true)
   }
 
@@ -160,6 +222,7 @@ export default function InventarioPage() {
       stock_minimo: p.stock_minimo,
       unidad: p.unidad,
     })
+    setBarcodeMode(false)
     setModalOpen(true)
   }
 
@@ -488,17 +551,26 @@ export default function InventarioPage() {
       </div>
 
       {/* Modal Producto */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? t('inventario.editProduct') : t('inventario.newProduct')} wide>
+      <Modal open={modalOpen} onClose={() => { setModalOpen(false); setBarcodeMode(false) }} title={editing ? t('inventario.editProduct') : t('inventario.newProduct')} wide>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.name')} *</label>
-              <input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+              <input ref={nombreRef} value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Barcode' : 'Código de barras'}</label>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
+                {i18n.language === 'en' ? 'Barcode' : 'Código de barras'}
+                {barcodeMode && !editing && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                    <ScanBarcode className="w-3 h-3" />
+                    {i18n.language === 'en' ? 'Scan now' : 'Escanea ahora'}
+                  </span>
+                )}
+              </label>
               <input value={form.codigo_barras} onChange={(e) => setForm({ ...form, codigo_barras: e.target.value })}
+                placeholder={barcodeMode && !editing ? (i18n.language === 'en' ? 'Scan barcode or type...' : 'Escanea o escribe el código...') : ''}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>

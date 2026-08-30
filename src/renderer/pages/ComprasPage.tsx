@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../stores/auth.store'
 import {
-  Plus, Search, Trash2, Truck, Package, Calendar, Eye
+  Plus, Search, Trash2, Truck, Package, Calendar, Eye, ScanBarcode
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import { formatCurrency, formatDateTime } from '../lib/utils'
+import { useToast } from '../components/ui/Toast'
 
 interface Producto {
   id: number; nombre: string; precio_compra: number; stock: number; unidad: string
@@ -37,11 +38,73 @@ export default function ComprasPage() {
   const [notas, setNotas] = useState('')
   const [saving, setSaving] = useState(false)
 
+  // Escáner de código de barras
+  const [scannerActive, setScannerActive] = useState(false)
+  const scannerBufferRef = useRef('')
+  const scannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const toast = useToast()
+
   // Filtros
   const [fechaInicio, setFechaInicio] = useState(() => { const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString().split('T')[0] })
   const [fechaFin, setFechaFin] = useState(() => new Date().toISOString().split('T')[0])
 
   useEffect(() => { loadData() }, [fechaInicio, fechaFin])
+
+  // Handler de escaneo de código de barras
+  const handleBarcodeScan = useCallback((barcode: string) => {
+    if (!nuevaOpen) return
+    const producto = productos.find((p) =>
+      p.codigo_barras === barcode || p.sku === barcode
+    )
+    if (producto) {
+      addItem(producto)
+      toast.success(`${producto.nombre} - ${i18n.language === 'en' ? 'added' : 'agregado'}`)
+    } else {
+      toast.warning(`${i18n.language === 'en' ? 'Product not found' : 'Producto no encontrado'}: ${barcode}`)
+    }
+  }, [nuevaOpen, productos, addItem, toast, i18n.language])
+
+  // Hook global de escaneo
+  useEffect(() => {
+    if (!scannerActive || !nuevaOpen) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') return
+
+      if (scannerTimeoutRef.current) {
+        clearTimeout(scannerTimeoutRef.current)
+        scannerTimeoutRef.current = null
+      }
+
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        const barcode = scannerBufferRef.current.trim()
+        scannerBufferRef.current = ''
+        if (barcode.length > 0) handleBarcodeScan(barcode)
+        return
+      }
+
+      if (e.key === 'Backspace') {
+        scannerBufferRef.current = scannerBufferRef.current.slice(0, -1)
+        return
+      }
+
+      if (e.key.length > 1 && !e.key.startsWith('F')) return
+      scannerBufferRef.current += e.key
+
+      scannerTimeoutRef.current = setTimeout(() => {
+        scannerBufferRef.current = ''
+        scannerTimeoutRef.current = null
+      }, 50)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      if (scannerTimeoutRef.current) clearTimeout(scannerTimeoutRef.current)
+    }
+  }, [scannerActive, nuevaOpen, handleBarcodeScan])
 
   const loadData = async () => {
     setLoading(true)
@@ -183,7 +246,7 @@ export default function ComprasPage() {
       </div>
 
       {/* Modal Nueva Compra */}
-      <Modal open={nuevaOpen} onClose={() => setNuevaOpen(false)} title={t('compras.newPurchase')} wide>
+      <Modal open={nuevaOpen} onClose={() => { setNuevaOpen(false); setScannerActive(false) }} title={t('compras.newPurchase')} wide>
         <div className="space-y-4">
           {/* Proveedor + Método */}
           <div className="grid grid-cols-2 gap-4">
@@ -206,9 +269,37 @@ export default function ComprasPage() {
             </div>
           </div>
 
-          {/* Buscar producto */}
+          {/* Escáner + Buscar producto */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('compras.addProduct')}</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-sm font-medium text-gray-700">{t('compras.addProduct')}</label>
+              <button
+                type="button"
+                onClick={() => setScannerActive(!scannerActive)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+                  scannerActive
+                    ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                    : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                }`}
+              >
+                <ScanBarcode className="w-4 h-4" />
+                {scannerActive
+                  ? (i18n.language === 'en' ? 'Scanner ON' : 'Escáner ACTIVO')
+                  : (i18n.language === 'en' ? 'Scanner OFF' : 'Escáner INACTIVO')
+                }
+              </button>
+            </div>
+            {scannerActive && (
+              <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                <span className="text-xs text-green-700 font-medium">
+                  {i18n.language === 'en'
+                    ? 'Ready to scan — scan a barcode to add product'
+                    : 'Listo para escanear — escanea un código para agregar el producto'
+                  }
+                </span>
+              </div>
+            )}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input type="text" value={searchProd} onChange={(e) => setSearchProd(e.target.value)}
