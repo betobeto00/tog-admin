@@ -3,6 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import { app } from 'electron'
+import { t } from '../i18n'
 
 interface LicenseData {
   cliente: string
@@ -67,7 +68,7 @@ export function validateLicense(): LicenseValidation {
     return {
       valid: false,
       license: null,
-      error: 'No se encontró archivo de licencia (license.key)',
+      error: t('errors.licenseFileNotFound'),
       daysRemaining: null,
     }
   }
@@ -81,7 +82,7 @@ export function validateLicense(): LicenseValidation {
       return {
         valid: false,
         license,
-        error: 'Archivo de licencia corrupto o incompleto',
+        error: t('errors.licenseNotValid'),
         daysRemaining: null,
       }
     }
@@ -107,7 +108,7 @@ export function validateLicense(): LicenseValidation {
       return {
         valid: false,
         license,
-        error: 'Firma de licencia inválida — archivo manipulado',
+        error: t('errors.licenseSignatureInvalid'),
         daysRemaining: null,
       }
     }
@@ -137,7 +138,7 @@ export function validateLicense(): LicenseValidation {
         return {
           valid: false,
           license,
-          error: 'Licencia vinculada a otra máquina',
+          error: t('errors.licenseWrongMachine'),
           daysRemaining: diasRestantes,
         }
       }
@@ -241,7 +242,7 @@ export function saveLicense(fileContent: string): { success: boolean; error?: st
     
     // Validar que sea una licencia válida antes de guardar
     if (!license.cliente || !license.expira || !license.firma || !license.id) {
-      return { success: false, error: 'Archivo no es una licencia válida' }
+      return { success: false, error: t('errors.licenseNotValid') }
     }
 
     // Verificar firma
@@ -251,7 +252,7 @@ export function saveLicense(fileContent: string): { success: boolean; error?: st
     const firmaValida = verify.verify(PUBLIC_KEY, firma, 'base64')
 
     if (!firmaValida) {
-      return { success: false, error: 'Firma de licencia inválida' }
+      return { success: false, error: t('errors.licenseSignatureInvalid') }
     }
 
     // Guardar

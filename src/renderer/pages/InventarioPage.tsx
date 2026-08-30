@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../stores/auth.store'
 import {
   Plus, Search, Edit2, Trash2, Package, Tag,
@@ -21,7 +22,7 @@ interface UnidadMedida { id: number; nombre: string; abreviatura: string | null;
 const emptyProduct = {
   nombre: '', codigo_barras: '', sku: '', descripcion: '',
   categoria_id: 0, precio_compra: 0, precio_venta: 0,
-  stock: 0, stock_minimo: 5, unidad: 'Unit',
+  stock: 0, stock_minimo: 5, unidad: 'unidad',
 }
 
 export default function InventarioPage() {
@@ -486,7 +487,7 @@ export default function InventarioPage() {
       </div>
 
       {/* Modal Producto */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Editar Producto' : 'Nuevo Producto'} wide>
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? t('inventario.editProduct') : t('inventario.newProduct')} wide>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
@@ -582,7 +583,7 @@ export default function InventarioPage() {
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
             <button onClick={saveProduct} disabled={saving || !form.nombre.trim()}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300">
-              {saving ? 'Guardando...' : editing ? 'Guardar Cambios' : 'Crear Producto'}
+              {saving ? t('common.saving') : editing ? t('common.save') : t('common.create')}
             </button>
           </div>
         </div>

@@ -148,6 +148,24 @@ contextBridge.exposeInMainWorld('api', {
     getLang: () => ipcRenderer.invoke('i18n:get-lang'),
     setLang: (lang: 'es' | 'en') => ipcRenderer.invoke('i18n:set-lang', { lang }),
   },
+
+  // Crash Reports
+  crashReport: {
+    save: (data: {
+      type: string
+      message: string
+      stack?: string
+      componentStack?: string
+      currentUrl?: string
+      userAgent?: string
+      loggedUser?: string
+    }) => ipcRenderer.invoke('crash-report:save', data),
+    list: () => ipcRenderer.invoke('crash-report:list'),
+    read: (filename: string) => ipcRenderer.invoke('crash-report:read', { filename }),
+    delete: (filename: string) => ipcRenderer.invoke('crash-report:delete', { filename }),
+    openFolder: () => ipcRenderer.invoke('crash-report:open-folder'),
+    getPath: () => ipcRenderer.invoke('crash-report:path'),
+  },
 })
 
 // Declarar tipo global para window.api
@@ -252,6 +270,22 @@ export interface PapeleriaAPI {
   i18n: {
     getLang: () => Promise<'es' | 'en'>
     setLang: (lang: 'es' | 'en') => Promise<{ success: boolean; lang: 'es' | 'en' }>
+  }
+  crashReport: {
+    save: (data: {
+      type: string
+      message: string
+      stack?: string
+      componentStack?: string
+      currentUrl?: string
+      userAgent?: string
+      loggedUser?: string
+    }) => Promise<{ success: boolean; path?: string; error?: string }>
+    list: () => Promise<{ success: boolean; reports?: Array<{ id: string; filename: string; path: string; timestamp: string; size: number }>; error?: string }>
+    read: (filename: string) => Promise<{ success: boolean; content?: string; error?: string }>
+    delete: (filename: string) => Promise<{ success: boolean; error?: string }>
+    openFolder: () => Promise<{ success: boolean; error?: string }>
+    getPath: () => Promise<string>
   }
 }
 

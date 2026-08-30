@@ -75,7 +75,7 @@ export default function DashboardPage() {
       {/* Saludo */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
-          {i18n.language === 'en' ? `Welcome, ${usuario?.nombre}!` : `¡Bienvenido, ${usuario?.nombre}!`}
+          {t('dashboard.welcome', { name: usuario?.nombre })}
         </h1>
         <p className="text-gray-500 mt-1">
           {hora.toLocaleDateString(locale, {
@@ -125,7 +125,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            {i18n.language === 'en' ? 'Payment Distribution' : 'Distribución de Pagos'}
+            {t('dashboard.paymentDistribution')}
           </h2>
           <div className="space-y-4">
             <PaymentRow label={t('caja.cashMethod')} amount={resumen?.efectivo || 0} total={resumen?.monto_total || 1} color="bg-green-500" />
@@ -139,7 +139,7 @@ export default function DashboardPage() {
           {stockBajo.length === 0 ? (
             <div className="text-center py-8 text-gray-400">
               <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
-              <p>{i18n.language === 'en' ? 'All products have enough stock' : 'Todos los productos tienen stock suficiente'}</p>
+              <p>{t('dashboard.allStockOk')}</p>
             </div>
           ) : (
             <div className="space-y-3 max-h-64 overflow-y-auto">
@@ -151,7 +151,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-orange-600">{p.stock} uds</p>
-                    <p className="text-xs text-gray-400">mín: {p.stock_minimo}</p>
+                    <p className="text-xs text-gray-400">{t('dashboard.min')}: {p.stock_minimo}</p>
                   </div>
                 </div>
               ))}

@@ -13,6 +13,14 @@ import {
   quoteCreateSchema,
 } from '../shared/validations'
 import { getTerminalService } from './services/valorTerminal'
+import {
+  saveCrashReport,
+  listCrashReports,
+  readCrashReport,
+  deleteCrashReport,
+  openCrashReportsFolder,
+  getCrashReportsPath,
+} from './services/crash-reporter'
 import { validateLicense, getLicenseStatus, saveLicense, resetLicenseState } from './services/license'
 import { getLang, setLang, initI18n, t, type SupportedLang } from './i18n'
 
@@ -39,9 +47,10 @@ export function registerIpcHandlers(): void {
   registerCajaExtraHandlers()
   registerAjustesHandlers()
   registerI18nHandlers()
+  registerCrashReportHandlers()
 }
 
-function registerI18nHandlers(): void {
+function registerI18nHandlers(): void {  
   ipcMain.handle('i18n:get-lang', () => getLang())
 
   ipcMain.handle('i18n:set-lang', (_evt, payload: { lang: string }) => {
@@ -50,6 +59,77 @@ function registerI18nHandlers(): void {
     }
     setLang(payload.lang as SupportedLang)
     return { success: true, lang: getLang() }
+  })
+}
+
+// ============================================
+// CRASH REPORTS
+// ============================================
+
+function registerCrashReportHandlers(): void {
+  ipcMain.handle('crash-report:save', async (_event, data: {
+    type: string
+    message: string
+    stack?: string
+    componentStack?: string
+    currentUrl?: string
+    userAgent?: string
+    loggedUser?: string
+  }) => {
+    try {
+      const filePath = saveCrashReport({
+        type: data.type as any,
+        message: data.message,
+        stack: data.stack,
+        componentStack: data.componentStack,
+        currentUrl: data.currentUrl,
+        userAgent: data.userAgent,
+        loggedUser: data.loggedUser,
+      })
+      return { success: true, path: filePath }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('crash-report:list', async () => {
+    try {
+      return { success: true, reports: listCrashReports() }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('crash-report:read', async (_event, data: { filename: string }) => {
+    try {
+      const content = readCrashReport(data.filename)
+      if (content === null) return { success: false, error: 'Reporte no encontrado' }
+      return { success: true, content }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('crash-report:delete', async (_event, data: { filename: string }) => {
+    try {
+      const deleted = deleteCrashReport(data.filename)
+      return { success: deleted }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('crash-report:open-folder', async () => {
+    try {
+      await openCrashReportsFolder()
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('crash-report:path', async () => {
+    return getCrashReportsPath()
   })
 }
 
@@ -79,7 +159,7 @@ function registerAuthHandlers(): void {
         // Registrar intento fallido
         const prev = loginAttempts.get(data.usuario) || { count: 0, lastAttempt: 0 }
         loginAttempts.set(data.usuario, { count: prev.count + 1, lastAttempt: Date.now() })
-        return { success: false, error: 'Usuario no encontrado' }
+        return { success: false, error: t('errors.notFound') }
       }
 
       const validPassword = bcrypt.compareSync(data.contrasena, user.contrasena)
@@ -87,7 +167,7 @@ function registerAuthHandlers(): void {
         // Registrar intento fallido
         const prev = loginAttempts.get(data.usuario) || { count: 0, lastAttempt: 0 }
         loginAttempts.set(data.usuario, { count: prev.count + 1, lastAttempt: Date.now() })
-        return { success: false, error: 'Contraseña incorrecta' }
+        return { success: false, error: t('errors.wrongPassword') }
       }
 
       // Login exitoso: limpiar intentos
@@ -111,15 +191,12 @@ function registerUsuariosHandlers(): void {
   ipcMain.handle('usuarios:change-password', async (_event, data: { usuario_id: number; contrasena_actual: string; contrasena_nueva: string }) => {
     const db = getDatabase()
     const user = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(data.usuario_id) as any
-    if (!user) {
-      return { success: false, error: 'Usuario no encontrado' }
+    if (!user) {       return { success: false, error: t('errors.notFound') }
     }
     const validPassword = bcrypt.compareSync(data.contrasena_actual, user.contrasena)
-    if (!validPassword) {
-      return { success: false, error: 'Contraseña actual incorrecta' }
+    if (!validPassword) {       return { success: false, error: t('errors.wrongCurrentPassword') }
     }
-    if (!data.contrasena_nueva || data.contrasena_nueva.length < 6) {
-      return { success: false, error: 'La nueva contraseña debe tener al menos 6 caracteres' }
+    if (!data.contrasena_nueva || data.contrasena_nueva.length < 6) {       return { success: false, error: t('errors.passwordMinLength') }
     }
     const newHash = bcrypt.hashSync(data.contrasena_nueva, 10)
     db.prepare(`UPDATE usuarios SET contrasena = ?, debe_cambiar_contrasena = 0, actualizado_en = datetime('now') WHERE id = ?`).run(newHash, data.usuario_id)
@@ -348,8 +425,8 @@ function registerProductosHandlers(): void {
     const db = getDatabase()
     const ajustar = db.transaction(() => {
       const producto = db!.prepare('SELECT id, nombre, stock FROM productos WHERE id = ?').get(data.producto_id) as any
-      if (!producto) return { success: false, error: 'Producto no encontrado' }
-      if (!data.justificacion.trim()) return { success: false, error: 'La justificación es obligatoria' }
+      if (!producto) return { success: false, error: t('errors.notFound') }
+      if (!data.justificacion.trim()) return { success: false, error: t('errors.justificationRequired') }
 
       const stockAnterior = producto.stock
       const diferencia = data.stock_nuevo - stockAnterior
@@ -715,7 +792,7 @@ function registerCajaHandlers(): void {
     // Verificar que no haya caja abierta
     const abierta = db.prepare("SELECT id FROM caja WHERE estado = 'abierta' LIMIT 1").get()
     if (abierta) {
-      return { success: false, error: 'Ya hay una caja abierta. Ciérrala antes de abrir otra.' }
+      return { success: false, error: t('errors.cashAlreadyOpen') }
     }
 
     const result = db.prepare(
@@ -730,7 +807,7 @@ function registerCajaHandlers(): void {
 
     const cerrarCaja = db.transaction(() => {
       const caja = db!.prepare('SELECT * FROM caja WHERE id = ?').get(data.caja_id) as any
-      if (!caja) return { success: false, error: 'Caja no encontrada' }
+      if (!caja) return { success: false, error: t('errors.notFound') }
 
       const totalEsperado = caja.fondo_inicial + caja.total_entradas - caja.total_salidas + caja.total_ventas
       const diferencia = data.total_real - totalEsperado
@@ -758,7 +835,7 @@ function registerCajaHandlers(): void {
 
     const cajaAbierta = db.prepare("SELECT id FROM caja WHERE estado = 'abierta' LIMIT 1").get() as any
     if (!cajaAbierta) {
-      return { success: false, error: 'No hay caja abierta' }
+      return { success: false, error: t('errors.cashNotOpen') }
     }
 
     db.prepare(`
@@ -979,8 +1056,7 @@ function registerBackupHandlers(): void {
   ipcMain.handle('backup:create', async (_event, data?: { ruta?: string }) => {
     try {
       const dbPath = getDbPath()
-      if (!fs.existsSync(dbPath)) {
-        return { success: false, error: 'No se encontró la base de datos.' }
+      if (!fs.existsSync(dbPath)) {         return { success: false, error: t('errors.dbNotFound') }
       }
 
       let targetPath = data?.ruta
@@ -991,7 +1067,7 @@ function registerBackupHandlers(): void {
           filters: [{ name: 'SQLite Database', extensions: ['db'] }],
         })
         if (result.canceled || !result.filePath) {
-          return { success: false, error: 'Operación cancelada.' }
+          return { success: false, error: t('errors.operationCancelled') }
         }
         targetPath = result.filePath
       }
@@ -1019,13 +1095,13 @@ function registerBackupHandlers(): void {
           properties: ['openFile'],
         })
         if (result.canceled || !result.filePaths.length) {
-          return { success: false, error: 'Operación cancelada.' }
+          return { success: false, error: t('errors.operationCancelled') }
         }
         sourcePath = result.filePaths[0]
       }
 
       if (!fs.existsSync(sourcePath)) {
-        return { success: false, error: 'El archivo de backup no existe.' }
+        return { success: false, error: t('errors.fileNotFound') }
       }
 
       // Verificar que es un SQLite válido (mágico bytes)
@@ -1035,7 +1111,7 @@ function registerBackupHandlers(): void {
       fs.closeSync(fd)
       const magic = buf.toString('utf8', 0, 16)
       if (!magic.startsWith('SQLite format')) {
-        return { success: false, error: 'El archivo no parece ser una base de datos SQLite válida.' }
+        return { success: false, error: t('errors.invalidDbFile') }
       }
 
       const dbPath = getDbPath()
@@ -1073,7 +1149,7 @@ function registerBackupHandlers(): void {
     try {
       const dbPath = getDbPath()
       if (!fs.existsSync(dbPath)) {
-        return { success: false, error: 'No existe base de datos.' }
+        return { success: false, error: t('errors.dbNotFound') }
       }
 
       // Cerrar DB actual
@@ -1140,7 +1216,7 @@ function registerTerminalHandlers(): void {
       } else {
         return {
           success: false,
-          error: resultado.RESPONSE_TEXT || 'Transacción rechazada por el terminal',
+          error: resultado.RESPONSE_TEXT || t('errors.terminalDeclinedByTerminal'),
           codigo_respuesta: resultado.RESPONSE_CODE,
         }
       }
@@ -1185,7 +1261,7 @@ function registerProductosCsvHandlers(): void {
         defaultPath: `productos-${new Date().toISOString().split('T')[0]}.csv`,
         filters: [{ name: 'CSV', extensions: ['csv'] }],
       })
-      if (result.canceled || !result.filePath) return { success: false, error: 'Cancelado' }
+      if (result.canceled || !result.filePath) return { success: false, error: t('errors.operationCancelled') }
 
       const db = getDatabase()
       const productos = db.prepare(`
@@ -1216,7 +1292,7 @@ function registerProductosCsvHandlers(): void {
     try {
       const content = fs.readFileSync(filePath, 'utf8')
       const lines = content.split('\n').filter((l) => l.trim())
-      if (lines.length < 2) return { success: false, error: 'El archivo CSV está vacío o no tiene datos' }
+      if (lines.length < 2) return { success: false, error: t('errors.csvEmpty') }
 
       const db = getDatabase()
       const header = lines[0].toLowerCase()
@@ -1269,7 +1345,7 @@ function registerCajaExtraHandlers(): void {
     try {
       const db = getDatabase()
       const caja = db.prepare("SELECT * FROM caja WHERE estado = 'abierta' LIMIT 1").get() as any
-      if (!caja) return { success: false, error: 'No hay caja abierta' }
+      if (!caja) return { success: false, error: t('errors.cashNotOpen') }
 
       const totalEsperado = caja.fondo_inicial + caja.total_entradas - caja.total_salidas + caja.total_ventas
 

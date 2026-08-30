@@ -247,6 +247,9 @@ La app funcionaba perfectamente en `npm run dev` pero mostraba pantalla blanca e
 4. **Siempre probar el build de producción** — Dev mode puede ocultar problemas
 5. **El debug remoto es difícil** — Necesitas DevTools o logging en main process
 6. **CSS inline es la solución más robusta** — Evita dependencia de archivos externos
+7. **i18n debe implementarse desde el inicio** — Traducir strings hardcoded después es más trabajo
+8. **Tests automatizados previenen regresiones** — Vitest + React Testing Library son la combinación ideal
+9. **Crash reports son esenciales para debugging en producción** — Los usuarios no pueden describir errores técnicos
 
 ### Referencia: Comandos de build
 

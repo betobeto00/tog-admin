@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../stores/auth.store'
 import {
   Search, ShoppingCart, Plus, Minus, Trash2, X,
@@ -25,6 +26,7 @@ interface CartItem {
 type MetodoPago = 'efectivo' | 'transferencia' | 'pago_movil' | 'mixto'
 
 export default function POSPage() {
+  const { t } = useTranslation()
   const usuario = useAuthStore((s) => s.usuario)
   const toast = useToast()
   const [productos, setProductos] = useState<Producto[]>([])
@@ -226,7 +228,7 @@ export default function POSPage() {
       await loadProducts()
     } catch (err) {
       console.error('Error procesando venta:', err)
-      toast.error('Error al procesar la venta')
+      toast.error(t('errors.processSaleError'))
     } finally {
       setProcesando(false)
     }
@@ -254,15 +256,15 @@ export default function POSPage() {
       <div className="flex h-[calc(100vh-8rem)] items-center justify-center">
         <div className="text-center bg-white rounded-2xl border border-gray-200 p-12 max-w-md">
           <AlertTriangle className="w-16 h-16 text-orange-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Caja Cerrada</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">{t('pos.cashRegisterClosed')}</h2>
           <p className="text-gray-500 mb-6">
-            No hay una caja abierta. Debes abrir la caja antes de usar el punto de venta.
+            {t('pos.cashRegisterClosedDesc')}
           </p>
           <button
             onClick={() => window.location.hash = '#/caja'}
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl"
           >
-            Ir a Caja
+            {t('pos.goToCash')}
           </button>
         </div>
       </div>
@@ -282,7 +284,7 @@ export default function POSPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar producto por nombre o código de barras... (F2)"
+              placeholder={t('pos.searchPlaceholder')}
               className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl text-base bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             {search && (
@@ -300,7 +302,7 @@ export default function POSPage() {
             {filtered.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
                 <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No se encontraron productos</p>
+                <p className="text-sm">{t('pos.noProductsFound')}</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
@@ -313,7 +315,7 @@ export default function POSPage() {
                     <div>
                       <p className="text-sm font-medium text-gray-900">{p.nombre}</p>
                       <p className="text-xs text-gray-400">
-                        {p.categoria_nombre || 'Sin categoría'} • Stock: {p.stock} {p.unidad}
+                        {p.categoria_nombre || t('pos.noCategory')} • Stock: {p.stock} {p.unidad}
                       </p>
                     </div>
                     <span className="text-sm font-bold text-blue-600">{formatCurrency(p.precio_venta)}</span>
@@ -329,8 +331,8 @@ export default function POSPage() {
           <div className="flex-1 flex items-center justify-center text-gray-300">
             <div className="text-center">
               <ShoppingCart className="w-16 h-16 mx-auto mb-3" />
-              <p className="text-lg font-medium">Busca un producto para agregar al carrito</p>
-              <p className="text-sm mt-1">Escribe el nombre o escanea el código de barras</p>
+              <p className="text-lg font-medium">{t('pos.searchPrompt')}</p>
+              <p className="text-sm mt-1">{t('pos.searchHint')}</p>
             </div>
           </div>
         )}
@@ -342,14 +344,14 @@ export default function POSPage() {
         <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShoppingCart className="w-5 h-5 text-blue-600" />
-            <span className="font-semibold text-gray-900">Carrito</span>
+            <span className="font-semibold text-gray-900">{t('pos.cart')}</span>
             <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-              {cart.length} {cart.length === 1 ? 'item' : 'items'}
+              {t('pos.itemCount', { count: cart.length, plural: cart.length === 1 ? 'item' : 'items' })}
             </span>
           </div>
           {cart.length > 0 && (
             <button onClick={clearCart} className="text-xs text-red-500 hover:text-red-700">
-              Vaciar
+              {t('pos.clearCart')}
             </button>
           )}
         </div>
@@ -359,7 +361,7 @@ export default function POSPage() {
           {cart.length === 0 ? (
             <div className="text-center py-12 text-gray-300">
               <ShoppingCart className="w-10 h-10 mx-auto mb-2" />
-              <p className="text-sm">Carrito vacío</p>
+              <p className="text-sm">{t('pos.emptyCartShort')}</p>
             </div>
           ) : (
             cart.map((item) => (
@@ -378,20 +380,19 @@ export default function POSPage() {
         {/* Totales + Botón cobrar */}
         <div className="border-t border-gray-200 p-4 space-y-3">
           <div className="space-y-1.5 text-sm">
-            <div className="flex justify-between text-gray-600">
-              <span>Subtotal</span>
+            <div className="flex justify-between text-gray-600">                <span>{t('common.subtotal')}</span>
               <span>{formatCurrency(subtotalBruto)}</span>
             </div>
             {descuentoItems > 0 && (
               <div className="flex justify-between text-red-500">
-                <span>Dcto. items</span>
+                <span>{t('pos.itemDiscountShort')}</span>
                 <span>-{formatCurrency(descuentoItems)}</span>
               </div>
             )}
             {/* Descuento global */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1">
-                <span className="text-gray-600">Dcto. global:</span>
+                <span className="text-gray-600">{t('pos.globalDiscountShort')}</span>
                 <input
                   type="number"
                   min="0"
@@ -407,15 +408,15 @@ export default function POSPage() {
               )}
             </div>
             <div className="flex justify-between text-gray-600">
-              <span>Subtotal neto</span>
+              <span>{t('pos.netSubtotal')}</span>
               <span>{formatCurrency(subtotalConGlobal)}</span>
             </div>
             <div className="flex justify-between text-gray-600">
-              <span>Tax ({(taxRate * 100).toFixed(1)}%)</span>
+              <span>{t('common.tax')} ({(taxRate * 100).toFixed(1)}%)</span>
               <span>{formatCurrency(impuesto)}</span>
             </div>
             <div className="flex justify-between text-lg font-bold text-gray-900 pt-1.5 border-t border-gray-200">
-              <span>Total</span>
+              <span>{t('common.total')}</span>
               <span>{formatCurrency(total)}</span>
             </div>
           </div>
@@ -424,7 +425,7 @@ export default function POSPage() {
             onClick={() => setQuickSaleOpen(true)}
             className="w-full py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors flex items-center justify-center gap-2 border border-blue-200"
           >
-            <Plus className="w-4 h-4" /> Venta Rápida (Servicio)
+            <Plus className="w-4 h-4" /> {t('pos.quickSaleService')}
           </button>
           <button
             onClick={openCobro}
@@ -433,29 +434,29 @@ export default function POSPage() {
               text-white font-semibold rounded-xl text-base transition-colors flex items-center justify-center gap-2"
           >
             <DollarSign className="w-5 h-5" />
-            Cobrar (F5)
+            {t('pos.checkoutShortcut')}
           </button>
         </div>
       </div>
 
       {/* ======== MODAL DE COBRO ======== */}
-      <Modal open={cobrarOpen} onClose={() => !procesando && setCobrarOpen(false)} title="Procesar Pago">
+      <Modal open={cobrarOpen} onClose={() => !procesando && setCobrarOpen(false)} title={t('pos.processPayment')}>
         <div className="space-y-5">
           {/* Total a pagar */}
           <div className="text-center py-4 bg-gray-50 rounded-xl">
-            <p className="text-sm text-gray-500">Total a pagar</p>
+            <p className="text-sm text-gray-500">{t('pos.totalToPay')}</p>
             <p className="text-3xl font-bold text-gray-900">{formatCurrency(total)}</p>
           </div>
 
           {/* Métodos de pago */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Método de pago</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('pos.paymentMethodLabel')}</label>
             <div className="grid grid-cols-2 gap-2">
               {([
-                { key: 'efectivo', label: 'Efectivo', icon: DollarSign },
-                { key: 'transferencia', label: 'Transferencia', icon: CreditCard },
-                { key: 'pago_movil', label: 'Pago Móvil', icon: Smartphone },
-                { key: 'mixto', label: 'Mixto', icon: DollarSign },
+                { key: 'efectivo', label: t('pos.cash'), icon: DollarSign },
+                { key: 'transferencia', label: t('pos.transfer'), icon: CreditCard },
+                { key: 'pago_movil', label: t('pos.mobile'), icon: Smartphone },
+                { key: 'mixto', label: t('pos.mixed'), icon: DollarSign },
               ] as const).map(({ key, label, icon: Icon }) => (
                 <button
                   key={key}
@@ -475,7 +476,7 @@ export default function POSPage() {
           {/* Monto pagado (solo efectivo) */}
           {metodoPago === 'efectivo' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Monto recibido</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('pos.amountReceived')}</label>
               <input
                 type="number"
                 step="0.01"
@@ -487,13 +488,13 @@ export default function POSPage() {
               />
               {parseFloat(montoPagado) >= total && (
                 <div className="mt-3 text-center p-3 bg-green-50 rounded-xl">
-                  <p className="text-sm text-green-600">Cambio</p>
+                  <p className="text-sm text-green-600">{t('pos.change')}</p>
                   <p className="text-2xl font-bold text-green-700">{formatCurrency(cambio)}</p>
                 </div>
               )}
               {parseFloat(montoPagado) > 0 && parseFloat(montoPagado) < total && (
                 <div className="mt-2 text-center text-sm text-red-500">
-                  Falta {formatCurrency(total - parseFloat(montoPagado))}
+                  {t('pos.missing')} {formatCurrency(total - parseFloat(montoPagado))}
                 </div>
               )}
             </div>
@@ -501,20 +502,20 @@ export default function POSPage() {
 
           {/* Resumen */}
           <div className="bg-gray-50 rounded-xl p-3 text-sm space-y-1">
-            <div className="flex justify-between"><span className="text-gray-500">Items</span><span>{cart.length}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>{formatCurrency(subtotalBruto)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">{t('inventario.items') || 'Items'}</span><span>{cart.length}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">{t('common.subtotal')}</span><span>{formatCurrency(subtotalBruto)}</span></div>
             {(descuentoItems + descuentoGlobalMonto) > 0 && (
-              <div className="flex justify-between text-red-500"><span>Descuento</span><span>-{formatCurrency(descuentoItems + descuentoGlobalMonto)}</span></div>
+              <div className="flex justify-between text-red-500"><span>{t('common.discount')}</span><span>-{formatCurrency(descuentoItems + descuentoGlobalMonto)}</span></div>
             )}
-            <div className="flex justify-between"><span className="text-gray-500">Sales Tax</span><span>{formatCurrency(impuesto)}</span></div>
-            <div className="flex justify-between font-bold pt-1 border-t border-gray-200"><span>Total</span><span>{formatCurrency(total)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">{t('common.tax')}</span><span>{formatCurrency(impuesto)}</span></div>
+            <div className="flex justify-between font-bold pt-1 border-t border-gray-200"><span>{t('common.total')}</span><span>{formatCurrency(total)}</span></div>
           </div>
 
           {/* Botones */}
           <div className="flex gap-3">
             <button onClick={() => setCobrarOpen(false)} disabled={procesando}
               className="flex-1 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200">
-              Cancelar
+              {t('common.cancel')}
             </button>
             <button
               onClick={procesarVenta}
@@ -527,7 +528,7 @@ export default function POSPage() {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
               ) : (
-                <><Check className="w-5 h-5" /> Confirmar Pago</>
+                <><Check className="w-5 h-5" /> {t('pos.confirmPayment')}</>
               )}
             </button>
           </div>
@@ -535,12 +536,12 @@ export default function POSPage() {
       </Modal>
 
       {/* ======== MODAL TICKET ======== */}
-      <Modal open={ticketOpen} onClose={() => setTicketOpen(false)} title="¡Venta Registrada!">
+      <Modal open={ticketOpen} onClose={() => setTicketOpen(false)} title={t('pos.saleRegistered')}>
         {ultimoTicket && (
           <div className="space-y-4">
             <div className="text-center py-4 bg-green-50 rounded-xl">
               <Check className="w-12 h-12 text-green-500 mx-auto mb-2" />
-              <p className="text-lg font-bold text-green-700">Pago procesado exitosamente</p>
+              <p className="text-lg font-bold text-green-700">{t('pos.paymentProcessed')}</p>
               <p className="text-sm text-green-600 mt-1">
                 Ticket {formatTicketNumber(ultimoTicket.numero_venta)}
               </p>
@@ -550,7 +551,7 @@ export default function POSPage() {
             <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-4 font-mono text-xs space-y-1">
               <div className="text-center mb-3">
                 <p className="font-bold text-sm">TOG Admin</p>
-                <p className="text-gray-400">Ticket {formatTicketNumber(ultimoTicket.numero_venta)}</p>
+                <p className="text-gray-400">{t('ventas.ticket')} {formatTicketNumber(ultimoTicket.numero_venta)}</p>
               </div>
               <div className="border-t border-dashed border-gray-200 pt-2">
                 {ultimoTicket.items?.map((item: any, i: number) => (
@@ -561,29 +562,29 @@ export default function POSPage() {
                 ))}
               </div>
               <div className="border-t border-dashed border-gray-200 pt-2 space-y-1">
-                <div className="flex justify-between"><span>Subtotal:</span><span>{formatCurrency(subtotalBruto)}</span></div>
+                <div className="flex justify-between"><span>{t('common.subtotal')}:</span><span>{formatCurrency(subtotalBruto)}</span></div>
                 {(descuentoItems + descuentoGlobalMonto) > 0 && (
-                  <div className="flex justify-between text-red-500"><span>Descuento:</span><span>-{formatCurrency(descuentoItems + descuentoGlobalMonto)}</span></div>
+                  <div className="flex justify-between text-red-500"><span>{t('common.discount')}:</span><span>-{formatCurrency(descuentoItems + descuentoGlobalMonto)}</span></div>
                 )}
-                <div className="flex justify-between"><span>Tax:</span><span>{formatCurrency(impuesto)}</span></div>
+                <div className="flex justify-between"><span>{t('common.tax')}:</span><span>{formatCurrency(impuesto)}</span></div>
                 <div className="flex justify-between font-bold text-sm"><span>TOTAL:</span><span>{formatCurrency(ultimoTicket.total)}</span></div>
               </div>
               <div className="border-t border-dashed border-gray-200 pt-2">
                 <p>Pago: {ultimoTicket.metodo_pago}</p>
               </div>
               <div className="text-center pt-3 text-gray-400">
-                <p>¡Gracias por su compra!</p>
+                <p>{t('pos.thankYou')}</p>
               </div>
             </div>
 
             <div className="flex gap-3">
               <button onClick={() => setTicketOpen(false)}
                 className="flex-1 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200">
-                Cerrar
+                {t('pos.closeButton')}
               </button>
               <button onClick={() => { window.print(); setTicketOpen(false) }}
                 className="flex-1 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 flex items-center justify-center gap-2">
-                <Printer className="w-4 h-4" /> Imprimir
+                <Printer className="w-4 h-4" /> {t('pos.printButton')}
               </button>
             </div>
           </div>
@@ -591,20 +592,20 @@ export default function POSPage() {
       </Modal>
 
       {/* ======== MODAL VENTA RÁPIDA ======== */}
-      <Modal open={quickSaleOpen} onClose={() => setQuickSaleOpen(false)} title="Venta Rápida (Servicio)">
+      <Modal open={quickSaleOpen} onClose={() => setQuickSaleOpen(false)} title={t('pos.quickSaleService')}>
         <div className="space-y-4">
           <p className="text-sm text-gray-500">
-            Agrega un servicio o cobro manual al carrito sin necesidad de crear un producto.
+            {t('pos.quickSaleDescription')}
           </p>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Descripción *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('pos.addDescription')}</label>
             <input type="text" value={quickSaleDesc}
               onChange={(e) => setQuickSaleDesc(e.target.value)}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
-              placeholder="Ej: Copia color x10, Encuadernación, etc." autoFocus />
+              placeholder={t('pos.addDescriptionPlaceholder')} autoFocus />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Monto *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('pos.addAmount')}</label>
             <input type="number" step="0.01" min="0.01" value={quickSaleMonto}
               onChange={(e) => setQuickSaleMonto(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl text-2xl font-bold text-center focus:ring-2 focus:ring-blue-500"
@@ -613,12 +614,12 @@ export default function POSPage() {
           <div className="flex gap-3 pt-2 border-t border-gray-100">
             <button onClick={() => setQuickSaleOpen(false)}
               className="flex-1 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200">
-              Cancelar
+              {t('common.cancel')}
             </button>
             <button onClick={addQuickSale}
               disabled={!quickSaleDesc.trim() || !quickSaleMonto || parseFloat(quickSaleMonto) <= 0}
               className="flex-1 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 disabled:bg-blue-300">
-              Agregar al Carrito
+              {t('pos.addToCartButton')}
             </button>
           </div>
         </div>

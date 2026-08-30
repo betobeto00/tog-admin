@@ -3,6 +3,7 @@ import path from 'path'
 import { initializeDatabase } from './db/database'
 import { registerIpcHandlers } from './ipc-handlers'
 import { initI18n, t as i18nT } from './i18n'
+import { saveCrashReport, captureLog } from './services/crash-reporter'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -59,6 +60,30 @@ function createWindow() {
 
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
     console.log(`[Renderer Console] [${level}] ${message}`)
+    captureLog(`[Renderer] [${level}] ${message}`)
+  })
+
+  // Capturar crashes del renderer/GPU
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[CrashReporter] Renderer process gone:', details.reason, details.exitCode)
+    captureLog(`RENDERER CRASH: ${details.reason} (exit code: ${details.exitCode})`)
+    try {
+      saveCrashReport({
+        type: 'gpu-process-crash',
+        message: `Renderer process crashed: ${details.reason} (exit code: ${details.exitCode})`,
+      })
+    } catch {}
+  })
+
+  mainWindow.webContents.on('unresponsive', () => {
+    console.error('[CrashReporter] Renderer became unresponsive')
+    captureLog('RENDERER UNRESPONSIVE')
+    try {
+      saveCrashReport({
+        type: 'gpu-process-crash',
+        message: 'Renderer process became unresponsive',
+      })
+    } catch {}
   })
 
   mainWindow.once('ready-to-show', () => {
@@ -100,6 +125,39 @@ function createTray() {
     mainWindow?.show()
   })
 }
+
+// ============================================
+// GLOBAL ERROR HANDLERS - Crash Reports
+// ============================================
+
+// Capturar excepciones no atrapadas
+process.on('uncaughtException', (error) => {
+  console.error('[CrashReporter] Uncaught Exception:', error)
+  captureLog(`UNCAUGHT EXCEPTION: ${error.message}`)
+  try {
+    saveCrashReport({
+      type: 'uncaught-exception',
+      message: error.message,
+      stack: error.stack,
+    })
+  } catch {}
+  // No cerrar la app inmediatamente, dar tiempo para guardar el reporte
+})
+
+// Capturar promesas rechazadas sin handler
+process.on('unhandledRejection', (reason) => {
+  const message = reason instanceof Error ? reason.message : String(reason)
+  const stack = reason instanceof Error ? reason.stack : undefined
+  console.error('[CrashReporter] Unhandled Rejection:', reason)
+  captureLog(`UNHANDLED REJECTION: ${message}`)
+  try {
+    saveCrashReport({
+      type: 'unhandled-rejection',
+      message,
+      stack,
+    })
+  } catch {}
+})
 
 // App lifecycle
 app.whenReady().then(() => {

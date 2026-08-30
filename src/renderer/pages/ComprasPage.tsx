@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../stores/auth.store'
 import {
   Plus, Search, Trash2, Truck, Package, Calendar, Eye
@@ -20,6 +21,7 @@ interface CompraRecord {
 }
 
 export default function ComprasPage() {
+  const { t } = useTranslation()
   const usuario = useAuthStore((s) => s.usuario)
   const [compras, setCompras] = useState<CompraRecord[]>([])
   const [productos, setProductos] = useState<Producto[]>([])
@@ -118,30 +120,30 @@ export default function ComprasPage() {
     } finally { setSaving(false) }
   }
 
-  const metodoLabel: Record<string, string> = { efectivo: '💵 Efectivo', transferencia: '🏦 Transferencia', pago_movil: '📱 Pago Móvil' }
+  const metodoLabel: Record<string, string> = { efectivo: '💵 ' + t('compras.cash'), transferencia: '🏦 ' + t('compras.transfer'), pago_movil: '📱 ' + t('compras.mobile') }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Compras</h1>
-          <p className="text-sm text-gray-500">{compras.length} compras en el período</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('compras.title')}</h1>
+          <p className="text-sm text-gray-500">{t('caja.purchasesInPeriod', { count: compras.length })}</p>
         </div>
         <button onClick={() => { setItems([]); setNuevaOpen(true) }}
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-          <Plus className="w-4 h-4" /> Nueva Compra
+          <Plus className="w-4 h-4" /> {t('compras.newPurchase')}
         </button>
       </div>
 
       {/* Filtros */}
       <div className="flex gap-3 items-end">
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Desde</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">{t('caja.from')}</label>
           <input type="date" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Hasta</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">{t('caja.to')}</label>
           <input type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
         </div>
@@ -152,12 +154,12 @@ export default function ComprasPage() {
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Compra</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Fecha</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Proveedor</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Cajero</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Método</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Total</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.purchase')}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('common.date')}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.supplier')}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('ventas.cashier')}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.method')}</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('common.total')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -165,7 +167,7 @@ export default function ComprasPage() {
               <tr><td colSpan={6} className="text-center py-12"><div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto" /></td></tr>
             ) : compras.length === 0 ? (
               <tr><td colSpan={6} className="text-center py-12 text-gray-400">
-                <Truck className="w-12 h-12 mx-auto mb-2 opacity-50" /><p>No hay compras registradas</p></td></tr>
+                <Truck className="w-12 h-12 mx-auto mb-2 opacity-50" /><p>{t('compras.noPurchases')}</p></td></tr>
             ) : compras.map((c) => (
               <tr key={c.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 text-sm font-mono font-medium">#{String(c.numero_compra).padStart(6, '0')}</td>
@@ -181,36 +183,36 @@ export default function ComprasPage() {
       </div>
 
       {/* Modal Nueva Compra */}
-      <Modal open={nuevaOpen} onClose={() => setNuevaOpen(false)} title="Nueva Compra" wide>
+      <Modal open={nuevaOpen} onClose={() => setNuevaOpen(false)} title={t('compras.newPurchase')} wide>
         <div className="space-y-4">
           {/* Proveedor + Método */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('compras.supplier')}</label>
               <select value={proveedorId} onChange={(e) => setProveedorId(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                <option value={0}>Sin proveedor</option>
+                <option value={0}>{t('compras.noSupplier')}</option>
                 {proveedores.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Método de pago</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('compras.paymentMethod')}</label>
               <select value={metodoPago} onChange={(e) => setMetodoPago(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                <option value="efectivo">Efectivo</option>
-                <option value="transferencia">Transferencia</option>
-                <option value="pago_movil">Pago Móvil</option>
+                <option value="efectivo">{t('compras.cash')}</option>
+                <option value="transferencia">{t('compras.transfer')}</option>
+                <option value="pago_movil">{t('compras.mobile')}</option>
               </select>
             </div>
           </div>
 
           {/* Buscar producto */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Agregar producto</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('compras.addProduct')}</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input type="text" value={searchProd} onChange={(e) => setSearchProd(e.target.value)}
-                placeholder="Buscar producto por nombre..."
+                placeholder={t('compras.searchProduct')}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm" />
             </div>
             {prodsFiltrados.length > 0 && (
@@ -232,10 +234,10 @@ export default function ComprasPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-100">
                   <tr>
-                    <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">Producto</th>
-                    <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 w-24">Cantidad</th>
-                    <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 w-28">Costo Unit.</th>
-                    <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 w-28">Subtotal</th>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">{t('inventario.productName')}</th>
+                    <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 w-24">{t('common.quantity')}</th>
+                    <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 w-28">{t('compras.unitCost')}</th>
+                    <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 w-28">{t('common.subtotal')}</th>
                     <th className="w-10"></th>
                   </tr>
                 </thead>
@@ -272,17 +274,17 @@ export default function ComprasPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.notes')}</label>
             <input type="text" value={notas} onChange={(e) => setNotas(e.target.value)}
-              placeholder="Nota opcional..."
+              placeholder={t('compras.optionalNote')}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
           </div>
 
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-            <button onClick={() => setNuevaOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
+            <button onClick={() => setNuevaOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{t('compras.cancel')}</button>
             <button onClick={saveCompra} disabled={saving || items.length === 0}
               className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300">
-              {saving ? 'Guardando...' : 'Registrar Compra'}
+              {saving ? t('compras.saving') : t('compras.register')}
             </button>
           </div>
         </div>

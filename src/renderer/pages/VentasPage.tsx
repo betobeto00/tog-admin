@@ -124,13 +124,13 @@ export default function VentasPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-              placeholder="Número, cajero, método de pago..."
+              placeholder="Ticket, cashier, payment method..."
               className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500" />
           </div>
         </div>
         <button onClick={() => { setFechaInicio(new Date().toISOString().split('T')[0]); setFechaFin(new Date().toISOString().split('T')[0]) }}
           className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
-          <Calendar className="w-4 h-4 inline mr-1" /> Hoy
+          <Calendar className="w-4 h-4 inline mr-1" /> Today
         </button>
       </div>
 
@@ -140,9 +140,9 @@ export default function VentasPage() {
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Ticket</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Fecha</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Cajero</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Método</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Date</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Cashier</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Method</th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Subtotal</th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Tax</th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Total</th>
@@ -304,7 +304,7 @@ export default function VentasPage() {
 
       {/* ======== CONFIRM ANULAR ======== */}
       <Modal open={!!anularTarget} onClose={() => { setAnularTarget(null); setAnularMotivo('') }}
-        title="Anular Venta">
+        title="Void Sale">
         <div className="space-y-4">
           <div className="bg-red-50 rounded-xl p-4 text-sm text-red-700 flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
@@ -322,7 +322,7 @@ export default function VentasPage() {
             <textarea rows={2} value={anularMotivo}
               onChange={(e) => setAnularMotivo(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-              placeholder="Ej: Cliente se arrepintió, Error de precio..." />
+              placeholder="E.g.: Customer changed mind, pricing error..." />
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <button onClick={() => { setAnularTarget(null); setAnularMotivo('') }}
@@ -332,7 +332,7 @@ export default function VentasPage() {
             <button onClick={anularVenta}
               disabled={!anularMotivo.trim() || anulando}
               className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:bg-red-300 flex items-center gap-2">
-              {anulando ? 'Anulando...' : <><XCircle className="w-4 h-4" /> Anular Venta</>}
+              {anulando ? 'Voiding...' : <><XCircle className="w-4 h-4" /> Void Sale</>}
             </button>
           </div>
         </div>

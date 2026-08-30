@@ -31,6 +31,9 @@ Desktop app construida con Electron + React + TypeScript + SQLite. Una PC, una c
 - 🛡️ **Session timeout** — 30 min auto-logout
 - 📱 Windows installer via Inno Setup
 - ⚡ **Lazy loading** — optimized initial load time
+- 🌐 **i18n (Internationalization)** — English/Spanish with 500+ translation keys
+- 🐛 **Crash reports** — automatic error reports with system info
+- ✅ **50 automated tests** — validation schemas + React components
 
 ## Screenshots
 
@@ -49,6 +52,12 @@ npm install
 
 # Ejecutar en modo desarrollo
 npm run dev
+
+# Ejecutar tests
+npm test
+
+# Tests en watch mode
+npm run run test:watch
 ```
 
 Esto arranca Vite (renderer) y Electron (main process) con hot-reload.
@@ -92,21 +101,28 @@ tog-admin/
 │   │   ├── db/
 │   │   │   ├── database.ts  # SQLite + 12 migraciones + seeds
 │   │   │   └── migrate.ts   # Script standalone de migración
+│   │   ├── i18n/            # Traducciones main process
+│   │   │   └── locales/     # es.json, en.json
 │   │   └── services/
-│   │       └── valorTerminal.ts  # Servicio VP800
+│   │       ├── valorTerminal.ts  # Servicio VP800
+│   │       ├── license.ts        # Validación licencias
+│   │       └── crash-reporter.ts # Reportes de error
 │   ├── renderer/            # React frontend
 │   │   ├── main.tsx         # Entry point React
 │   │   ├── App.tsx          # Router + lazy loading
-│   │   ├── pages/           # Vistas (10 páginas)
+│   │   ├── pages/           # Vistas (12 páginas)
 │   │   ├── components/      # Componentes UI
 │   │   │   ├── pos/         # CartItem (extraído)
 │   │   │   ├── ui/          # Modal, ConfirmDialog, Toast
 │   │   │   └── layout/      # Layout, Header, Sidebar
 │   │   ├── stores/          # Estado (Zustand + session timeout)
+│   │   ├── i18n/            # Traducciones renderer
+│   │   │   └── locales/     # es/, en/
 │   │   └── lib/             # Utilidades
 │   └── shared/              # Tipos y validaciones
 │       ├── types.ts
-│       └── validations.ts   # Schemas Zod
+│       ├── validations.ts   # Schemas Zod
+│       └── validations.test.ts  # 28 tests
 ├── resources/               # Iconos y assets
 ├── build.bat                # Script de build completo
 ├── package.json
@@ -127,8 +143,11 @@ tog-admin/
 | Base de datos | SQLite (better-sqlite3) |
 | Validación | Zod |
 | Build | Vite + electron-builder |
-| Instalador | Inno Setup 6 |
+| Instalador | NSIS (electron-builder) |
 | Terminal pago | Serialport (VP800) |
+| Testing | Vitest + React Testing Library |
+| i18n | i18next + react-i18next |
+| Licencias | RSA-2048 (Node.js crypto) |
 
 ## Default Credentials
 
