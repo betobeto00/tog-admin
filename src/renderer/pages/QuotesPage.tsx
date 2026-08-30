@@ -86,7 +86,15 @@ export default function QuotesPage() {
 
   const subtotal = items.reduce((acc, i) => acc + i.subtotal, 0)
   const [taxRate, setTaxRate] = useState(0)
-  useEffect(() => { window.api.config.get().then((cfg: any[]) => { const r = cfg.find((c: any) => c.clave === 'sales_tax_rate'); if (r) setTaxRate(parseFloat(r.valor) / 100) }) }, [])
+  useEffect(() => {
+    window.api.config.get().then((cfg: any[]) => {
+      const r = cfg.find((c: any) => c.clave === 'sales_tax_rate')
+      if (r && r.valor) {
+        const parsed = parseFloat(r.valor)
+        if (!isNaN(parsed)) setTaxRate(parsed / 100)
+      }
+    })
+  }, [])
   const impuesto = subtotal * taxRate
   const total = subtotal + impuesto
 
