@@ -625,7 +625,7 @@ export default function ConfigPage() {
                     const result = await window.api.backup.create()
                     if (result?.success) {
                       toast.success(`{t('caja.backupCreated')}`) 
-                    } else if (result?.error !== 'Operación cancelada.') {
+                    } else if (result?.error !== t('common.operationCancelled')) {
                       toast.error(`Error: ${result?.error}`)
                     }
                   } finally {
@@ -663,9 +663,9 @@ export default function ConfigPage() {
                   try {
                     const result = await window.api.backup.restore()
                     if (result?.success) {
-                      toast.success('{t('caja.backupRestored')}')
+                      toast.success(t('caja.backupRestored'))
                       setTimeout(() => window.location.reload(), 1500)
-                    } else if (result?.error !== 'Operación cancelada.') {
+                    } else if (result?.error !== t('common.operationCancelled')) {
                       toast.error(`Error: ${result?.error}`)
                     }
                   } finally {
@@ -674,9 +674,9 @@ export default function ConfigPage() {
                 }}
                 disabled={backupLoading || !has('config_backup')}
                 className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-orange-500 rounded-lg hover:bg-orange-600 disabled:bg-orange-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                title={!has('config_backup') ? '{t('config.noPermRestore')}' : ''}
+                title={!has('config_backup') ? t('config.noPermRestore') : ''}
               >
-                <Upload className="w-4 h-4" /> {backupLoading ? '{t('caja.restoring')}' : '{t('caja.restoreFromFile')}'}
+                <Upload className="w-4 h-4" /> {backupLoading ? t('caja.restoring') : t('caja.restoreFromFile')}
                 {!has('config_backup') && <span className="text-xs opacity-70">{t('config.noPermission')}</span>}
               </button>
             </div>
@@ -850,8 +850,7 @@ export default function ConfigPage() {
                 }
               }}
               disabled={!has('config_db_reset')}
-              className="px-4 py-2.5 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:bg-red-300 disabled:cursor-not-allowed flex items-center gap-2"
-              title={!has('config_db_reset') ? '{t('config.noPermReset')}' : ''}
+              className="px-4 py-2.5 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:bg-red-300 disabled:cursor-not-allowed flex items-center gap-2"                title={!has('config_db_reset') ? t('config.noPermReset') : ''}
             >
               <Trash2 className="w-4 h-4" /> {t('config.resetDbButton')}
               {!has('config_db_reset') && <span className="text-xs opacity-70">{t('config.noPermission')}</span>}
