@@ -205,19 +205,16 @@ git push origin v1.0.3
 ### Paso 5: Crear Release en GitHub
 
 ```bash
-gh release create v1.0.3 \
-  --repo betobeto00/tog-admin \
-  --title "TOG Admin v1.0.3" \
-  --notes "## Cambios
-- Descripción del cambio 1
-- Descripción del cambio 2"
+gh release create v1.0.6 \ --repo betobeto00/tog-admin \ --title "TOG Admin v1.0.6" \ --notes "## Cambios - Descripción del cambio 1 - Descripción del cambio 2"
 ```
+
+
+
 
 ### Paso 6: Subir el instalador al Release
 
 ```bash
-gh release upload v1.0.3 "release/TOG Admin Setup 1.0.3.exe" \
-  --repo betobeto00/tog-admin --clobber
+gh release upload v1.0.3 "release/TOG Admin Setup 1.0.3.exe" \ --repo betobeto00 tog-admin --clobber
 ```
 
 ### Verificar que el Release está correcto

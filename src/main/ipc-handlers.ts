@@ -248,7 +248,7 @@ function registerUsuariosHandlers(): void {
 
   ipcMain.handle('usuarios:delete', async (_event, data: { id: number }) => {
     const db = getDatabase()
-    db.prepare('UPDATE usuarios SET activo = 0, actualizado_en = datetime("now") WHERE id = ?').run(data.id)
+    db.prepare(`UPDATE usuarios SET activo = 0, actualizado_en = datetime('now') WHERE id = ?`).run(data.id)
     return { success: true }
   })
 
@@ -282,7 +282,7 @@ function registerUsuariosHandlers(): void {
     }
 
     const permisosJson = JSON.stringify(data.permisos)
-    db.prepare('UPDATE usuarios SET permisos = ?, actualizado_en = datetime("now") WHERE id = ?').run(permisosJson, data.id)
+    db.prepare(`UPDATE usuarios SET permisos = ?, actualizado_en = datetime('now') WHERE id = ?`).run(permisosJson, data.id)
     return { success: true }
   })
 }
@@ -449,7 +449,7 @@ function registerProductosHandlers(): void {
 
   ipcMain.handle('productos:delete', async (_event, data: { id: number }) => {
     const db = getDatabase()
-    db.prepare('UPDATE productos SET activo = 0, actualizado_en = datetime("now") WHERE id = ?').run(data.id)
+    db.prepare(`UPDATE productos SET activo = 0, actualizado_en = datetime('now') WHERE id = ?`).run(data.id)
     return { success: true }
   })
 
@@ -475,7 +475,7 @@ function registerProductosHandlers(): void {
       const diferencia = data.stock_nuevo - stockAnterior
 
       // Actualizar stock
-      db!.prepare('UPDATE productos SET stock = ?, actualizado_en = datetime(\'now\') WHERE id = ?').run(data.stock_nuevo, data.producto_id)
+      db!.prepare(`UPDATE productos SET stock = ?, actualizado_en = datetime('now') WHERE id = ?`).run(data.stock_nuevo, data.producto_id)
 
       // Registrar ajuste
       db!.prepare(`
