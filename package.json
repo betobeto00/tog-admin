@@ -1,9 +1,9 @@
 {
   "name": "tog-admin",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "TOG Admin - Sistema de Punto de Venta para Papelería, Centro de Copiado e Impresión",
   "main": "dist-electron/main/index.js",
-  "author": "Bet00 Nardieu",
+  "author": "betobeto00",
   "license": "MIT",
   "scripts": {
     "dev": "npm run build:main && concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
