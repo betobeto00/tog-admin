@@ -567,10 +567,11 @@ npm run build:main
    ```json
    "publish": {
      "provider": "github",
-     "owner": "Bet00-Nardieu",
+     "owner": "betobeto00",
      "repo": "tog-admin"
    }
    ```
+5. Verificar que el usuario tenga v1.0.3 o superior (versions anteriores no tienen auto-update)
 
 ### El logo no aparece en el instalador
 
@@ -591,6 +592,28 @@ Verificar que `package.json` tenga las rutas correctas:
 La DB en producción está en: `%APPDATA%/tog-admin/tog-admin.db`
 
 En desarrollo está en: `data/tog-admin.db`
+
+### Error NSIS: "Variable not referenced"
+
+El script `installer.nsh` tiene una variable declarada que NSIS no detecta como usada. Solución:
+
+```nsh
+; NO usar Var a nivel de archivo si solo se usa en macros
+; En su lugar, usar registros temporales $0, $1 directamente
+!macro customInit
+  System::Call 'kernel32::GetUserDefaultUILanguage() i .r0'
+  IntOp $1 $0 & 0x3FF
+  ${If} $1 == 0x0A
+    StrCpy $0 "es"
+  ${Else}
+    StrCpy $0 "en"
+  ${EndIf}
+!macroend
+```
+
+### El instalador muestra diálogo de idioma después de Finalizar
+
+Esto era un bug del script NSIS anterior. Se resolvió eliminando la página manual de idioma y usando auto-detección del sistema Windows. Ver `packaging/installer.nsh`.
 
 ---
 

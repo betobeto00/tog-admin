@@ -8,6 +8,7 @@ Desktop app construida con Electron + React + TypeScript + SQLite. Una PC, una c
 
 ## Features
 
+### Core
 - 🔐 Login with role-based access (admin / cashier) + rate limiting
 - 🛒 Point of Sale with cart, search, checkout & receipt printing
 - 💳 **Terminal integration (Valor VP800)** — cobro con tarjeta por USB
@@ -25,15 +26,30 @@ Desktop app construida con Electron + React + TypeScript + SQLite. Una PC, una c
 - ⚙️ Settings: business name, EIN, address, Sales Tax, currency
 - 👤 User management with roles (admin / cashier) + password change
 - 🔒 **Forced password change** on first login (admin)
+
+### Seguridad
 - 💾 **Data backup & restore** — copy SQLite database
 - 🔔 **Toast notifications** — feedback for all operations
 - ✅ **Zod validation** on critical IPC handlers
 - 🛡️ **Session timeout** — 30 min auto-logout
-- 📱 Windows installer via Inno Setup
-- ⚡ **Lazy loading** — optimized initial load time
-- 🌐 **i18n (Internationalization)** — English/Spanish with 500+ translation keys
 - 🐛 **Crash reports** — automatic error reports with system info
 - ✅ **50 automated tests** — validation schemas + React components
+
+### UI/UX
+- 🎨 **Hero background** — imagen de fondo en pantalla de login
+- 🏷️ **Logo real** — logo de la empresa en Login, Sidebar e instalador
+- 🖼️ **Icono transparente** — icono sin fondo para el instalador
+- 🌐 **i18n (Internationalization)** — English/Spanish with 500+ translation keys
+- 📋 **Release Notes** — historial de versiones visible desde el login
+
+### Actualizaciones
+- 🔄 **Auto-update system** — notificación automática de nuevas versiones via GitHub Releases
+- 📥 **Descarga e instalación** — el usuario puede actualizar sin reinstall manual
+- 🔍 **Check for updates** — botón para verificar actualizaciones desde el login
+
+### Empaquetado
+- 📱 Windows installer via NSIS
+- ⚡ **Lazy loading** — optimized initial load time
 
 ## Screenshots
 
@@ -42,7 +58,7 @@ Desktop app construida con Electron + React + TypeScript + SQLite. Una PC, una c
 ## Requisitos
 
 - **Node.js** 20+ (https://nodejs.org)
-- **Inno Setup** 6 (https://jrsoftware.org/isinfo.php) — para generar el instalador
+- **GitHub CLI** (`gh`) — para publicar releases
 
 ## Desarrollo
 
@@ -57,7 +73,10 @@ npm run dev
 npm test
 
 # Tests en watch mode
-npm run run test:watch
+npm run test:watch
+
+# Verificar tipos
+npm run typecheck
 ```
 
 Esto arranca Vite (renderer) y Electron (main process) con hot-reload.
@@ -71,48 +90,80 @@ npm run dev
 
 ### Producción completa (app + instalador)
 ```bash
-build.bat 1.0.0
+npm run build:installer
 ```
 
 Esto ejecuta:
-1. `npm install` — dependencias
-2. `vite build` — compila React
-3. `tsc` — compila main process
-4. `electron-builder --win --dir` — empaqueta la app
-5. `Inno Setup` — genera `release/TOG-Admin-Setup.exe`
+1. `npm run rebuild` — compila módulos nativos (better-sqlite3, serialport)
+2. `npm run build:renderer` — compila React + Tailwind CSS
+3. `npm run build:main` — compila main process TypeScript
+4. `electron-builder --win nsis` — genera el instalador NSIS
 
 ### Solo la app (sin instalador)
 ```bash
 npm run build:win
 ```
 
+### Publicar release
+```bash
+# 1. Actualizar versión en package.json
+# 2. Commit y push
+git add -A && git commit -m "v1.0.6: cambios" && git push origin master
+
+# 3. Build del instalador
+npm run build:installer
+
+# 4. Crear tag
+git tag -a v1.0.6 -m "v1.0.6"
+git push origin v1.0.6
+
+# 5. Crear Release en GitHub
+gh release create v1.0.6 --repo betobeto00/tog-admin --title "TOG Admin v1.0.6" --notes "Changelog..."
+
+# 6. Subir instalador
+gh release upload v1.0.6 "release/TOG Admin Setup 1.0.6.exe" --repo betobeto00/tog-admin --clobber
+```
+
+Para más detalles, ver [docs/GUIA_DESARROLLADOR.md](docs/GUIA_DESARROLLADOR.md).
+
 ## Estructura
 
 ```
 tog-admin/
 ├── docs/                    # Documentación del proyecto
+│   ├── GUIA_DESARROLLADOR.md
+│   ├── ROADMAP.md
+│   └── LICENCIAMIENTO.md
 ├── packaging/
-│   └── installer.iss        # Script Inno Setup
+│   └── installer.nsh        # Script NSIS (custom)
+├── public/                  # Assets estáticos
+│   ├── hero-bg.jpg          # Fondo del login
+│   ├── logo.jpg             # Logo de la empresa
+│   └── favicon-*.png
+├── resources/               # Iconos para Electron
+│   ├── icon.ico             # Icono del instalador (Windows)
+│   └── icon.png             # Icono de la app
 ├── src/
 │   ├── main/                # Electron main process (Node.js)
 │   │   ├── index.ts         # Entry point
 │   │   ├── preload.ts       # API segura para renderer
 │   │   ├── ipc-handlers.ts  # Todos los handlers IPC
 │   │   ├── db/
-│   │   │   ├── database.ts  # SQLite + 12 migraciones + seeds
-│   │   │   └── migrate.ts   # Script standalone de migración
+│   │   │   ├── database.ts  # SQLite + migraciones + seeds
+│   │   │   └── migrate.ts
 │   │   ├── i18n/            # Traducciones main process
 │   │   │   └── locales/     # es.json, en.json
 │   │   └── services/
 │   │       ├── valorTerminal.ts  # Servicio VP800
 │   │       ├── license.ts        # Validación licencias
-│   │       └── crash-reporter.ts # Reportes de error
+│   │       ├── crash-reporter.ts # Reportes de error
+│   │       └── updater.ts        # Auto-actualizaciones
 │   ├── renderer/            # React frontend
 │   │   ├── main.tsx         # Entry point React
 │   │   ├── App.tsx          # Router + lazy loading
 │   │   ├── pages/           # Vistas (12 páginas)
 │   │   ├── components/      # Componentes UI
-│   │   │   ├── pos/         # CartItem (extraído)
+│   │   │   ├── pos/         # CartItem
 │   │   │   ├── ui/          # Modal, ConfirmDialog, Toast
 │   │   │   └── layout/      # Layout, Header, Sidebar
 │   │   ├── stores/          # Estado (Zustand + session timeout)
@@ -121,13 +172,11 @@ tog-admin/
 │   │   └── lib/             # Utilidades
 │   └── shared/              # Tipos y validaciones
 │       ├── types.ts
-│       ├── validations.ts   # Schemas Zod
-│       └── validations.test.ts  # 28 tests
-├── resources/               # Iconos y assets
-├── build.bat                # Script de build completo
+│       └── validations.ts   # Schemas Zod
+├── keys/                    # Claves RSA (licencias)
 ├── package.json
 ├── tsconfig.json
-├── tsconfig.main.json       # TS config para main process
+├── tsconfig.main.json
 ├── vite.config.ts
 └── tailwind.config.ts
 ```
@@ -148,6 +197,7 @@ tog-admin/
 | Testing | Vitest + React Testing Library |
 | i18n | i18next + react-i18next |
 | Licencias | RSA-2048 (Node.js crypto) |
+| Auto-update | electron-updater + GitHub Releases |
 
 ## Default Credentials
 
@@ -166,6 +216,7 @@ tog-admin/
 - ✅ **Zod validation** en handlers críticos
 - ✅ **Stock validation** — previene stock negativo
 - ✅ **Backup/Restore** — copia de seguridad de la base de datos
+- ✅ **Auto-update** — actualizaciones verificadas desde GitHub Releases
 
 ## Licencia
 
