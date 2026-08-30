@@ -825,8 +825,7 @@ export default function ConfigPage() {
                 const step1 = window.confirm(t('config.resetDbWarning'))
                 if (!step1) return
 
-                const step2 = window.confirm(t('config.resetDbLastChance'))\n\n¿Confirmas?'
-                )
+                const step2 = window.confirm(t('config.resetDbLastChance'))
                 if (!step2) return
 
                 const confirmText = window.prompt(
