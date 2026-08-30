@@ -106,23 +106,29 @@ npm run build:win
 
 ### Publicar release
 ```bash
-# 1. Actualizar versión en package.json
+# 1. Actualizar versión en package.json y Manual del Usuario
 # 2. Commit y push
-git add -A && git commit -m "v1.0.6: cambios" && git push origin master
+git add -A && git commit -m "v1.0.x: cambios" && git push origin master
 
-# 3. Build del instalador
+# 3. Crear tag y pushearlo
+git tag -a v1.0.x -m "Release v1.0.x"
+git push origin v1.0.x
+
+# 4. Build del instalador (genera .exe + latest.yml + .blockmap)
 npm run build:installer
 
-# 4. Crear tag
-git tag -a v1.0.6 -m "v1.0.6"
-git push origin v1.0.6
-
 # 5. Crear Release en GitHub
-gh release create v1.0.6 --repo betobeto00/tog-admin --title "TOG Admin v1.0.6" --notes "Changelog..."
+gh release create v1.0.x --repo betobeto00/tog-admin --title "TOG Admin v1.0.x" --notes-file release/RELEASE_NOTES.md
 
-# 6. Subir instalador
-gh release upload v1.0.6 "release/TOG Admin Setup 1.0.6.exe" --repo betobeto00/tog-admin --clobber
+# 6. Subir los TRES archivos (no solo el .exe)
+gh release upload v1.0.x \
+  "release/TOG Admin Setup 1.0.x.exe" \
+  "release/latest.yml" \
+  "release/TOG Admin Setup 1.0.x.exe.blockmap" \
+  --repo betobeto00/tog-admin --clobber
 ```
+
+> ⚠️ **Crítico**: el paso 6 debe subir `latest.yml` y `.blockmap` además del `.exe`. Sin estos archivos, electron-updater no detecta la actualización. Ver [docs/UPDATER_NOTES.md](docs/UPDATER_NOTES.md) para detalles.
 
 Para más detalles, ver [docs/GUIA_DESARROLLADOR.md](docs/GUIA_DESARROLLADOR.md).
 
