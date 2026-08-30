@@ -201,7 +201,10 @@
 | S4 | Context isolation | 🔴 | ✅ | Electron IPC seguro |
 | S5 | Bcrypt hashing | 🔴 | ✅ | Contraseñas hasheadas con salt |
 | S6 | Sistema de licencias | 🔴 | ✅ | RSA-2048 con validación offline |
-| S7 | ErrorBoundary global | 🔴 | ✅ | Captura errores React con UI amigable |
+| S7 | ErrorBoundary global | 🔴 | ✅ | Captura errores React + genera crash report |
+| S8 | Crash reports automáticos | 🟡 | ✅ | Reportes de error con info del sistema |
+| S9 | Internacionalización (i18n) | 🟡 | ✅ | 2 idiomas (ES/EN), ~500 keys |
+| S10 | Tests automatizados | 🟡 | ✅ | 50 tests (validaciones + componentes) |
 
 ---
 
@@ -209,7 +212,7 @@
 
 | # | Feature | Prioridad | Estado | Descripción |
 |---|---------|-----------|--------|-------------|
-| H1 | Centro de Ayuda | 🟡 | ✅ | 12 secciones detalladas con búsqueda |
+| H1 | Centro de Ayuda | 🟡 | ✅ | 15 secciones detalladas con búsqueda, traducido |
 | H2 | Tutorial de onboarding | 🟡 | ✅ | 5 pasos interactivos para nuevos usuarios |
 | H3 | Notificaciones | 🟡 | ✅ | Campana con alertas de stock bajo y caja |
 | H4 | Copyright / Licencias | 🟡 | ✅ | Botones legales en pantalla de login |
@@ -222,6 +225,6 @@
 | Prioridad | Implementadas | Pendientes |
 |-----------|---------------|------------|
 | 🔴 P0 (MVP) | ~45 | ~0 |
-| 🟡 P1 | ~31 | ~3 |
+| 🟡 P1 | ~34 | ~3 |
 | 🟢 P2 | ~4 | ~2 |
-| **Total** | **~80** | **~5** |
+| **Total** | **~83** | **~5** |

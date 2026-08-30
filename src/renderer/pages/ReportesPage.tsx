@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Legend
@@ -21,6 +22,7 @@ export default function ReportesPage() {
   const [topProductos, setTopProductos] = useState<TopProducto[]>([])
   const [resumen, setResumen] = useState<ResumenDia | null>(null)
   const [ventasCategoria, setVentasCategoria] = useState<VentaCategoria[]>([])
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(true)
 
   useEffect(() => { loadReportes() }, [fechaInicio, fechaFin])
@@ -56,9 +58,9 @@ export default function ReportesPage() {
 
   // Datos para pie chart (métodos de pago del día)
   const pieData = resumen ? [
-    { name: 'Efectivo', value: resumen.efectivo },
-    { name: 'Transferencia', value: resumen.transferencia },
-    { name: 'Pago Móvil', value: resumen.pago_movil },
+    { name: t('reportes.cash'), value: resumen.efectivo },
+    { name: t('reportes.transfer'), value: resumen.transferencia },
+    { name: t('reportes.mobile'), value: resumen.pago_movil },
   ].filter((d) => d.value > 0) : []
 
   // Totales del período
@@ -69,39 +71,39 @@ export default function ReportesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>
-        <p className="text-sm text-gray-500">Análisis de ventas y rendimiento</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('reportes.title')}</h1>
+        <p className="text-sm text-gray-500">{t('reportes.subtitle')}</p>
       </div>
 
       {/* Filtros */}
       <div className="flex gap-3 items-end">
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Desde</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">{t('reportes.startDate')}</label>
           <input type="date" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Hasta</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">{t('reportes.endDate')}</label>
           <input type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
         </div>
         <button onClick={() => { const d = new Date(); d.setDate(d.getDate() - 7); setFechaInicio(d.toISOString().split('T')[0]); setFechaFin(new Date().toISOString().split('T')[0]) }}
           className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
-          Últimos 7 días
+          {t('reportes.last7')}
         </button>
         <button onClick={() => { const d = new Date(); d.setDate(d.getDate() - 30); setFechaInicio(d.toISOString().split('T')[0]); setFechaFin(new Date().toISOString().split('T')[0]) }}
           className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
-          Últimos 30 días
+          {t('reportes.last30')}
         </button>
         <div className="flex-1" />
         <button onClick={() => {
-          const rows = [['Fecha', 'Ventas', 'Monto']]
+          const rows = [[t('common.date'), t('reportes.sales'), t('common.total')]]
           ventasDiarias.forEach(v => rows.push([v.fecha, String(v.total_ventas), String(v.monto_total)]))
           rows.push([])
-          rows.push(['Producto', 'Vendidos', 'Ingreso'])
+          rows.push([t('inventario.productName'), t('reportes.units'), t('reportes.income')])
           topProductos.forEach(p => rows.push([p.nombre, String(p.total_vendido), String(p.total_ingreso)]))
           rows.push([])
-          rows.push(['Categoría', 'Ventas', 'Unidades', 'Ingreso'])
+          rows.push([t('reportes.category'), t('reportes.sales'), t('reportes.units'), t('reportes.income')])
           ventasCategoria.forEach(c => rows.push([c.categoria, String(c.total_ventas), String(c.total_unidades), String(c.total_ingreso)]))
           const csv = rows.map(r => r.join(',')).join('\n')
           const blob = new Blob([csv], { type: 'text/csv' })

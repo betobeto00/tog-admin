@@ -1,42 +1,21 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, ChevronRight, ChevronLeft, Check, ShoppingCart, Package, DollarSign, BarChart3, Settings } from 'lucide-react'
 
-const TUTORIAL_STEPS = [
-  {
-    icon: ShoppingCart,
-    title: 'Punto de Venta (POS)',
-    description: 'Aquí realizas las ventas. Busca productos por nombre o código de barras, agrégalos al carrito y cobra.',
-    tip: 'Atajos: F2 = buscar, F5 = cobrar',
-    color: 'bg-blue-500',
-  },
-  {
-    icon: Package,
-    title: 'Inventario',
-    description: 'Gestiona tus productos: crear, editar, ajustar stock y ver alertas de stock bajo.',
-    tip: 'Cada venta descuenta stock automáticamente',
-    color: 'bg-green-500',
-  },
-  {
-    icon: DollarSign,
-    title: 'Caja',
-    description: 'Abre la caja con un fondo inicial antes de usar el POS. Al cerrar, concilia el efectivo.',
-    tip: 'Solo puede haber una caja abierta a la vez',
-    color: 'bg-purple-500',
-  },
-  {
-    icon: BarChart3,
-    title: 'Reportes',
-    description: 'Visualiza ventas por período, productos más vendidos y métodos de pago.',
-    tip: 'Usa filtros rápidos para rango de fechas',
-    color: 'bg-orange-500',
-  },
-  {
-    icon: Settings,
-    title: 'Configuración',
-    description: 'Configura datos del negocio, usuarios, impuestos y haz backup de tu información.',
-    tip: 'Haz backup regularmente para proteger tus datos',
-    color: 'bg-red-500',
-  },
+interface TutorialStep {
+  icon: any
+  titleKey: string
+  descKey: string
+  tipKey: string
+  color: string
+}
+
+const TUTORIAL_STEPS: TutorialStep[] = [
+  { icon: ShoppingCart, titleKey: 'tutorial.step1', descKey: 'tutorial.step1Desc', tipKey: 'tutorial.step1Tip', color: 'bg-blue-500' },
+  { icon: Package, titleKey: 'tutorial.step2', descKey: 'tutorial.step2Desc', tipKey: 'tutorial.step2Tip', color: 'bg-green-500' },
+  { icon: DollarSign, titleKey: 'tutorial.step3', descKey: 'tutorial.step3Desc', tipKey: 'tutorial.step3Tip', color: 'bg-purple-500' },
+  { icon: BarChart3, titleKey: 'tutorial.step4', descKey: 'tutorial.step4Desc', tipKey: 'tutorial.step4Tip', color: 'bg-orange-500' },
+  { icon: Settings, titleKey: 'tutorial.step5', descKey: 'tutorial.step5Desc', tipKey: 'tutorial.step5Tip', color: 'bg-red-500' },
 ]
 
 const TUTORIAL_KEY = 'tog_tutorial_completed'
@@ -54,6 +33,7 @@ export function resetTutorial() {
 }
 
 export default function Tutorial({ onComplete }: { onComplete: () => void }) {
+  const { t } = useTranslation()
   const [step, setStep] = useState(0)
   const current = TUTORIAL_STEPS[step]
   const Icon = current.icon
@@ -78,15 +58,15 @@ export default function Tutorial({ onComplete }: { onComplete: () => void }) {
           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Icon className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-bold">{current.title}</h2>
+          <h2 className="text-xl font-bold">{t(current.titleKey)}</h2>
         </div>
 
         {/* Content */}
         <div className="px-6 py-6">
-          <p className="text-gray-600 text-center mb-4">{current.description}</p>
+          <p className="text-gray-600 text-center mb-4">{t(current.descKey)}</p>
           {current.tip && (
             <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-700 text-center">
-              💡 <strong>Tip:</strong> {current.tip}
+              💡 <strong>Tip:</strong> {t(current.tipKey)}
             </div>
           )}
         </div>
@@ -112,7 +92,7 @@ export default function Tutorial({ onComplete }: { onComplete: () => void }) {
                 onClick={() => setStep(step - 1)}
                 className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg flex items-center gap-1"
               >
-                <ChevronLeft className="w-4 h-4" /> Anterior
+                <ChevronLeft className="w-4 h-4" /> {t('tutorial.previous')}
               </button>
             )}
             {isLast ? (
@@ -120,14 +100,14 @@ export default function Tutorial({ onComplete }: { onComplete: () => void }) {
                 onClick={handleComplete}
                 className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-1"
               >
-                <Check className="w-4 h-4" /> ¡Entendido!
+                <Check className="w-4 h-4" /> {t('tutorial.finish')}
               </button>
             ) : (
               <button
                 onClick={() => setStep(step + 1)}
                 className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-1"
               >
-                Siguiente <ChevronRight className="w-4 h-4" />
+                {t('tutorial.next')} <ChevronRight className="w-4 h-4" />
               </button>
             )}
           </div>

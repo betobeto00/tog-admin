@@ -94,9 +94,15 @@ npm run build:installer  # → release/TOG-Admin-Setup-1.0.0.exe
 |---------|---------|-----|
 | typescript | 5.4 | Compilador |
 | vite | ^5.2.0 | Bundler |
+| vitest | ^4.1.11 | Testing framework |
+| @testing-library/react | latest | Tests de componentes React |
+| @testing-library/jest-dom | latest | Matchers DOM para tests |
+| jsdom | latest | Entorno DOM para tests |
 | tailwindcss | ^3.4.0 | CSS framework |
 | electron-builder | ^24.13.0 | Empaquetado + NSIS |
 | @electron/rebuild | ^4.2.0 | Rebuild módulos nativos |
+| i18next | ^23.16.8 | Internacionalización |
+| react-i18next | ^15.7.4 | i18n para React |
 
 ---
 
@@ -131,19 +137,26 @@ D-E/
 │   │   ├── db/
 │   │   │   ├── database.ts
 │   │   │   └── migrate.ts
+│   │   ├── i18n/            # Traducciones main process
+│   │   │   ├── index.ts
+│   │   │   └── locales/     # es.json, en.json
 │   │   └── services/
 │   │       ├── valorTerminal.ts
-│   │       └── license.ts
+│   │       ├── license.ts
+│   │       └── crash-reporter.ts
 │   ├── renderer/            # Frontend React
 │   │   ├── App.tsx
 │   │   ├── main.tsx
 │   │   ├── components/      # 10+ componentes
 │   │   ├── pages/           # 12 páginas
 │   │   ├── stores/
+│   │   ├── i18n/            # Traducciones renderer
+│   │   │   └── locales/     # es/, en/
 │   │   └── lib/
 │   └── shared/
 │       ├── types.ts
-│       └── validations.ts   # 19 schemas Zod
+│       ├── validations.ts   # 19 schemas Zod
+│       └── validations.test.ts  # 28 tests
 ├── package.json             # Config build NSIS
 ├── tsconfig.json
 ├── vite.config.ts

@@ -6,6 +6,8 @@
  * Documentación: VP800-connect.md en docs/
  */
 
+import { t } from '../i18n'
+
 const STX = String.fromCharCode(0x02)
 const ETX = String.fromCharCode(0x03)
 
@@ -88,7 +90,7 @@ export class ValorTerminalService {
   enviarCobro(monto: number, timeoutMs = 120000): Promise<TerminalResponse> {
     return new Promise((resolve, reject) => {
       if (!this.port || !this.port.isOpen) {
-        return reject(new Error('El terminal VP800 no está conectado. Conecta el puerto COM primero.'))
+        return reject(new Error(t('errors.terminalNotConnected')))
       }
 
       // Estructura de payload requerida por la API semi-integrada de Valor
@@ -104,7 +106,7 @@ export class ValorTerminalService {
       // Timeout para evitar espera infinita
       const timeout = setTimeout(() => {
         this.port?.removeAllListeners('data')
-        reject(new Error('Tiempo de espera agotado. El cliente no insertó la tarjeta.'))
+        reject(new Error(t('errors.terminalClientTimeout')))
       }, timeoutMs)
 
       // Limpiar buffer previo
@@ -128,7 +130,7 @@ export class ValorTerminalService {
             const resultado: TerminalResponse = JSON.parse(jsonLimpio)
             resolve(resultado)
           } catch (e) {
-            reject(new Error('Error al parsear la respuesta del data-fono.'))
+            reject(new Error(t('errors.terminalConnection')))
           }
         }
       }

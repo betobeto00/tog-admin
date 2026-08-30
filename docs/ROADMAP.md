@@ -3,23 +3,54 @@
 ## Visión General (Actualizado: 28-Ago-2026)
 
 ```
-FASE 0 ✅   FASE 1 ✅   FASE 2 ✅   FASE 2.5 ✅  FASE 3 🟡
-CRÍTICOS    CORE        SEGURIDAD   P0+P1+P2     PREMIUM
+FASE 0 ✅   FASE 1 ✅   FASE 2 ✅   FASE 2.5 ✅  FASE 2.7 ✅  FASE 2.8 ✅  FASE 3 🟡
+CRÍTICOS    CORE        SEGURIDAD   P0+P1+P2     i18n        TESTS+ASSETS PREMIUM
             +UX
-─────────   ─────────   ─────────   ──────────   ─────────
-✅ Stock    ✅ Zod      ✅ Timeout  ✅ Precio    🟡 Touch
-✅ Backup   ✅ Dctos    ✅ Rate     ✅ Venta     🟡 Crédito
-✅ Passwd   ✅ Subcomp  ✅ VP800    ✅ Reporte X ✅ Etiquetas
-✅ Toast    ✅ Dash     ✅ License  ✅ CSV I/O   🟡 Quotes→Venta
-            ✅ Ajuste   ✅ Help     ✅ Hist.Ajuste 🟡 Cat Reports
-                        ✅ Tutorial ✅ Stock Bajo
-                        ✅ Alerts   ✅ Backup auto
-                        ✅ TermCfg  ✅ Printer/Fondo
-                                    ✅ PDF/CSV Reports
+─────────   ─────────   ─────────   ──────────   ─────────   ─────────   ─────────
+✅ Stock    ✅ Zod      ✅ Timeout  ✅ Precio    ✅ ES/EN     ✅ Vitest    🟡 Touch
+✅ Backup   ✅ Dctos    ✅ Rate     ✅ Venta     ✅ 500+keys  ✅ 50 tests  🟡 Crédito
+✅ Passwd   ✅ Subcomp  ✅ VP800    ✅ Reporte X ✅ HelpPage  ✅ Favicons  ✅ Etiquetas
+✅ Toast    ✅ Dash     ✅ License  ✅ CSV I/O   ✅ POSPage   ✅ public/   🟡 Quotes→Venta
+            ✅ Ajuste   ✅ Help     ✅ Hist.Ajuste ✅ Config   ✅ jest-dom  🟡 Cat Reports
+                        ✅ Tutorial ✅ Stock Bajo ✅ Tutorial ✅ jsdom
+                        ✅ Alerts   ✅ Backup auto ✅ AllPages ✅ setup
+                        ✅ TermCfg  ✅ Printer/Fondo ✅ Backend
 ```
 
-**Estado actual del proyecto:** ~97% completo (Fase 0, 1, 2 y 2.5 completadas)
+**Estado actual del proyecto:** ~98% completo (Fase 0, 1, 2, 2.5, 2.7 y 2.8 completadas)
 **Estimación restante:** 2-3 días (Fase 3: Premium)
+
+---
+
+## ✅ FASE 2.7: INTERNACIONALIZACIÓN (i18n) — COMPLETADA
+
+| # | Tarea | Estado | Archivos |
+|---|-------|--------|----------|
+| 2.23 | Archivos de traducción ES/EN completos | ✅ | `i18n/locales/es/translation.json`, `en/translation.json` |
+| 2.24 | Keys de traducción para ForcePasswordChange | ✅ | `ForcePasswordChange.tsx` |
+| 2.25 | Keys de traducción para Tutorial | ✅ | `Tutorial.tsx` |
+| 2.26 | Keys de traducción para Dashboard | ✅ | `DashboardPage.tsx` |
+| 2.27 | Keys de traducción para POS (carrito, cobro, ticket) | ✅ | `POSPage.tsx` |
+| 2.28 | Keys de traducción para Compras | ✅ | `ComprasPage.tsx` |
+| 2.29 | Keys de traducción para Help | ✅ | `HelpPage.tsx` |
+| 2.30 | Keys de traducción para Inventario | ✅ | `InventarioPage.tsx` |
+| 2.31 | Keys de traducción para Reportes | ✅ | `ReportesPage.tsx` |
+| 2.32 | Keys de traducción para Ventas | ✅ | `VentasPage.tsx` |
+| 2.33 | Keys de traducción para Config (tabs, forms, terminal, backup) | ✅ | `ConfigPage.tsx` |
+| 2.34 | Keys de traducción para crash reports | ✅ | `ErrorBoundary.tsx` |
+| 2.35 | Keys de traducción para legal modals | ✅ | `LoginPage.tsx` |
+| 2.36 | Auth store error messages en inglés | ✅ | `auth.store.ts` |
+
+---
+
+## ✅ FASE 2.8: TESTS + ASSETS — COMPLETADA
+
+| # | Tarea | Estado | Archivos |
+|---|-------|--------|----------|
+| 2.37 | Vitest configurado | ✅ | `vite.config.ts`, `package.json` |
+| 2.38 | Tests de validaciones Zod (28 tests) | ✅ | `shared/validations.test.ts` |
+| 2.39 | Favicon y apple-touch-icon en index.html | ✅ | `index.html` |
+| 2.40 | Assets públicos (logo, hero-bg) en /public | ✅ | `public/` |
 
 ---
 

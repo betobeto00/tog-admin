@@ -40,6 +40,8 @@
 | `db/database.ts` | SQLite + 13 migraciones + seeds |
 | `services/valorTerminal.ts` | Comunicación serial VP800 (USB/COM) |
 | `services/license.ts` | Validación licencias RSA-2048 |
+| `services/crash-reporter.ts` | Sistema de reportes de error |
+| `i18n/` | Traducciones ES/EN para main process |
 
 ### 2. Process de Renderizado (Renderer Process)
 **Responsabilidad:** UI completamente en React.
@@ -103,6 +105,8 @@ Renderer (React)                    Main (Node.js)
 | Backup | `backup:create`, `backup:restore` |
 | Terminal | `terminal:conectar`, `desconectar`, `estado`, `procesar-pago` |
 | Licencia | `license:status`, `validate`, `import` |
+| Crash Reports | `crash-report:save`, `list`, `read`, `delete`, `open-folder`, `path` |
+| i18n | `i18n:get-lang`, `i18n:set-lang` |
 
 ---
 
@@ -111,7 +115,7 @@ Renderer (React)                    Main (Node.js)
 | Componente | Archivo | Función |
 |------------|---------|---------|
 | `LicenseGate` | `LicenseGate.tsx` | Bloquea la app si no hay licencia válida |
-| `ErrorBoundary` | `ErrorBoundary.tsx` | Captura errores React con UI amigable |
+| `ErrorBoundary` | `ErrorBoundary.tsx` | Captura errores React + genera reporte automático |
 | `Tutorial` | `Tutorial.tsx` | Onboarding de 5 pasos para nuevos usuarios |
 | `ForcePasswordChange` | `ForcePasswordChange.tsx` | Obliga cambio de contraseña en primer login |
 | `Toast` | `ui/Toast.tsx` | Sistema de notificaciones |
@@ -133,7 +137,8 @@ Renderer (React)                    Main (Node.js)
 | contextBridge | API expuesta de forma controlada y tipada |
 | Validación IPC | 19 schemas Zod en handlers críticos |
 | Licencias | RSA-2048 con validación offline |
-| Error handling | ErrorBoundary global + logging diagnóstico |
+| Error handling | ErrorBoundary global + crash reports + logging diagnóstico |
+| Internacionalización | i18n con 2 idiomas (ES/EN), ~500 keys de traducción |
 | Backup automático | Al cerrar caja se crea backup de la DB |
 
 ---

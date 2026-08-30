@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../stores/auth.store'
 import { Lock, Eye, EyeOff, Shield } from 'lucide-react'
 
 export default function ForcePasswordChange() {
+  const { t } = useTranslation()
   const usuario = useAuthStore((s) => s.usuario)
   const changePassword = useAuthStore((s) => s.changePassword)
   const logout = useAuthStore((s) => s.logout)
@@ -22,19 +24,19 @@ export default function ForcePasswordChange() {
     setError('')
 
     if (!currentPassword) {
-      setError('Ingresa tu contraseña actual')
+      setError(t('forcePassword.errorCurrentRequired'))
       return
     }
     if (newPassword.length < 6) {
-      setError('La nueva contraseña debe tener al menos 6 caracteres')
+      setError(t('forcePassword.errorMinLength'))
       return
     }
     if (newPassword !== confirmPassword) {
-      setError('Las contraseñas no coinciden')
+      setError(t('forcePassword.errorMismatch'))
       return
     }
     if (newPassword === currentPassword) {
-      setError('La nueva contraseña debe ser diferente a la actual')
+      setError(t('forcePassword.errorDifferent'))
       return
     }
 
@@ -43,7 +45,7 @@ export default function ForcePasswordChange() {
     setLoading(false)
 
     if (!result.success) {
-      setError(result.error || 'Error al cambiar contraseña')
+      setError(result.error || t('errors.passwordChangeError'))
     }
   }
 
@@ -57,8 +59,8 @@ export default function ForcePasswordChange() {
               <Shield className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-bold">Cambio de Contraseña Requerido</h2>
-              <p className="text-sm text-white/80">Debes cambiar tu contraseña para continuar</p>
+              <h2 className="text-lg font-bold">{t('forcePassword.title')}</h2>
+              <p className="text-sm text-white/80">{t('forcePassword.subtitle')}</p>
             </div>
           </div>
         </div>
@@ -66,19 +68,19 @@ export default function ForcePasswordChange() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="bg-orange-50 rounded-xl p-4 text-sm text-orange-700">
-            <p>Tu contraseña actual es temporal. Por favor, establece una nueva contraseña segura.</p>
+            <p>{t('forcePassword.warning')}</p>
           </div>
 
-          {/* Contraseña actual */}
+          {/* Current password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña Actual *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('forcePassword.currentPassword')}</label>
             <div className="relative">
               <input
                 type={showCurrent ? 'text' : 'password'}
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                placeholder="Ingresa tu contraseña actual"
+                placeholder={t('forcePassword.currentPasswordPlaceholder')}
                 autoFocus
               />
               <button type="button" onClick={() => setShowCurrent(!showCurrent)}
@@ -88,16 +90,16 @@ export default function ForcePasswordChange() {
             </div>
           </div>
 
-          {/* Nueva contraseña */}
+          {/* New password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('forcePassword.newPassword')}</label>
             <div className="relative">
               <input
                 type={showNew ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                placeholder="Mínimo 6 caracteres"
+                placeholder={t('forcePassword.newPasswordPlaceholder')}
               />
               <button type="button" onClick={() => setShowNew(!showNew)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -116,22 +118,22 @@ export default function ForcePasswordChange() {
               </div>
             )}
             <p className="text-xs text-gray-400 mt-1">
-              {newPassword.length < 6 ? `${newPassword.length}/6 caracteres mínimos` : '✓ Longitud adequate'}
+              {newPassword.length < 6 ? t('forcePassword.passwordLength', { count: newPassword.length }) : t('forcePassword.passwordOk')}
             </p>
           </div>
 
-          {/* Confirmar contraseña */}
+          {/* Confirm password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar Nueva Contraseña *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('forcePassword.confirmPassword')}</label>
             <input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-              placeholder="Repite la nueva contraseña"
+              placeholder={t('forcePassword.confirmPasswordPlaceholder')}
             />
             {confirmPassword && confirmPassword !== newPassword && (
-              <p className="text-xs text-red-500 mt-1">Las contraseñas no coinciden</p>
+              <p className="text-xs text-red-500 mt-1">{t('forcePassword.passwordMismatch')}</p>
             )}
           </div>
 
@@ -142,17 +144,17 @@ export default function ForcePasswordChange() {
             </div>
           )}
 
-          {/* Botones */}
+          {/* Buttons */}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={logout}
               className="flex-1 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
-              Cerrar Sesión
+              {t('common.closeSession')}
             </button>
             <button type="submit"
               disabled={loading || !currentPassword || !newPassword || !confirmPassword}
               className="flex-1 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 flex items-center justify-center gap-2">
               <Lock className="w-4 h-4" />
-              {loading ? 'Cambiando...' : 'Cambiar Contraseña'}
+              {loading ? t('forcePassword.changingButton') : t('forcePassword.changeButton')}
             </button>
           </div>
         </form>

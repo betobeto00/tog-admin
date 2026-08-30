@@ -45,12 +45,12 @@ export const useAuthStore = create<AuthState>((set) => ({
       } else {
         set({
           isLoading: false,
-          error: result.error || 'Error de autenticación',
+          error: result.error || 'Authentication error',
         })
         return false
       }
     } catch (err: any) {
-      set({ isLoading: false, error: err.message || 'Error de conexión' })
+      set({ isLoading: false, error: err.message || 'Connection error' })
       return false
     }
   },
@@ -62,7 +62,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   changePassword: async (contrasenaActual: string, contrasenaNueva: string) => {
     const user = useAuthStore.getState().usuario
-    if (!user) return { success: false, error: 'No hay usuario logueado' }
+    if (!user) return { success: false, error: 'No logged in user' }
     try {
       const result = await window.api.usuarios.changePassword({
         usuario_id: user.id,
