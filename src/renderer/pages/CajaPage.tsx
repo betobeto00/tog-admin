@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '../stores/auth.store'
 import {
   Lock, Unlock, DollarSign, ArrowUpCircle, ArrowDownCircle,
@@ -22,6 +23,7 @@ interface HistorialCaja {
 }
 
 export default function CajaPage() {
+  const { t, i18n } = useTranslation()
   const usuario = useAuthStore((s) => s.usuario)
   const [caja, setCaja] = useState<CajaState | null>(null)
   const [historial, setHistorial] = useState<HistorialCaja[]>([])
@@ -172,7 +174,7 @@ export default function CajaPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Caja</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('caja.title')}</h1>
           <p className="text-sm text-gray-500">
             {caja?.estado === 'abierta'
               ? `Abierta desde ${formatDateTime(caja.fecha_apertura)}`
@@ -184,13 +186,13 @@ export default function CajaPage() {
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               view === 'caja' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}>
-            <Lock className="w-4 h-4 inline mr-1" /> Caja Actual
+            <Lock className="w-4 h-4 inline mr-1" /> {i18n.language === 'en' ? 'Current Register' : 'Caja Actual'}
           </button>
           <button onClick={() => setView('historial')}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               view === 'historial' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}>
-            <History className="w-4 h-4 inline mr-1" /> Historial
+            <History className="w-4 h-4 inline mr-1" /> {i18n.language === 'en' ? 'History' : 'Historial'}
           </button>
         </div>
       </div>
@@ -201,11 +203,11 @@ export default function CajaPage() {
           /* Sin caja abierta */
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <Lock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">No hay caja abierta</h2>
-            <p className="text-gray-500 mb-6">Abre la caja para comenzar a registrar ventas del día</p>
+            <h2 className="text-xl font-semibold text-gray-700 mb-2">{i18n.language === 'en' ? 'No register open' : 'No hay caja abierta'}</h2>
+            <p className="text-gray-500 mb-6">{i18n.language === 'en' ? 'Open the register to start recording today sales' : 'Abre la caja para comenzar a registrar ventas del día'}</p>
             <button onClick={() => { setFondoInicial(fondoDefault || ''); setAperturaOpen(true) }}
               className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors inline-flex items-center gap-2">
-              <Unlock className="w-5 h-5" /> Abrir Caja
+              <Unlock className="w-5 h-5" /> {t('caja.open')}
             </button>
           </div>
         ) : (
@@ -213,11 +215,11 @@ export default function CajaPage() {
           <div className="space-y-4">
             {/* Tarjetas de resumen */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-              <SummaryCard label="Fondo Inicial" value={formatCurrency(caja.fondo_inicial)} color="blue" />
-              <SummaryCard label="Ventas" value={formatCurrency(caja.total_ventas)} color="green" />
-              <SummaryCard label="Entradas" value={formatCurrency(caja.total_entradas)} color="emerald" />
-              <SummaryCard label="Salidas" value={formatCurrency(caja.total_salidas)} color="red" />
-              <SummaryCard label="Total Esperado" value={formatCurrency(totalEsperado)} color="purple" />
+              <SummaryCard label={i18n.language === 'en' ? 'Opening Balance' : 'Fondo Inicial'} value={formatCurrency(caja.fondo_inicial)} color="blue" />
+              <SummaryCard label={i18n.language === 'en' ? 'Sales' : 'Ventas'} value={formatCurrency(caja.total_ventas)} color="green" />
+              <SummaryCard label={i18n.language === 'en' ? 'Entries' : 'Entradas'} value={formatCurrency(caja.total_entradas)} color="emerald" />
+              <SummaryCard label={i18n.language === 'en' ? 'Withdrawals' : 'Salidas'} value={formatCurrency(caja.total_salidas)} color="red" />
+              <SummaryCard label={t('caja.expected')} value={formatCurrency(totalEsperado)} color="purple" />
             </div>
 
             {/* Fórmula */}
@@ -232,27 +234,27 @@ export default function CajaPage() {
             <div className="flex gap-3">
               <button onClick={() => { setMovTipo('entrada'); setMovOpen(true) }}
                 className="flex-1 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2 border border-emerald-200">
-                <ArrowUpCircle className="w-5 h-5" /> Registrar Entrada
+                <ArrowUpCircle className="w-5 h-5" /> {i18n.language === 'en' ? 'Record Entry' : 'Registrar Entrada'}
               </button>
               <button onClick={() => { setMovTipo('salida'); setMovOpen(true) }}
                 className="flex-1 py-3 bg-red-50 hover:bg-red-100 text-red-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2 border border-red-200">
-                <ArrowDownCircle className="w-5 h-5" /> Registrar Salida
+                <ArrowDownCircle className="w-5 h-5" /> {i18n.language === 'en' ? 'Record Withdrawal' : 'Registrar Salida'}
               </button>
               <button onClick={verReporteX}
                 className="flex-1 py-3 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2 border border-yellow-200">
-                <Calculator className="w-5 h-5" /> Reporte X
+                <Calculator className="w-5 h-5" /> {i18n.language === 'en' ? 'X Report' : 'Reporte X'}
               </button>
               <button onClick={() => setTotalReal(String(Math.round(totalEsperado)))}
                 className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
-                <Calculator className="w-5 h-5" /> Auto-llenar
+                <Calculator className="w-5 h-5" /> {i18n.language === 'en' ? 'Auto-fill' : 'Auto-llenar'}
               </button>
               <button onClick={imprimirCierre}
                 className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
-                <Printer className="w-5 h-5" /> Imprimir
+                <Printer className="w-5 h-5" /> {t('common.print')}
               </button>
               <button onClick={() => setCierreOpen(true)}
                 className="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2">
-                <Lock className="w-5 h-5" /> Cerrar Caja
+                <Lock className="w-5 h-5" /> {t('caja.close')}
               </button>
             </div>
           </div>
@@ -263,15 +265,15 @@ export default function CajaPage() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Fecha Apertura</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Cierre</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Cajero</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Fondo</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Ventas</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Esperado</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Real</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Diferencia</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Estado</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Opening' : 'Apertura'}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Closing' : 'Cierre'}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.cashier')}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Fund' : 'Fondo'}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Sales' : 'Ventas'}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.expected')}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Actual' : 'Real'}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.difference')}</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('common.status')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -279,7 +281,7 @@ export default function CajaPage() {
                 <tr>
                   <td colSpan={9} className="text-center py-12 text-gray-400">
                     <History className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>No hay historial de cajas</p>
+                    <p>{i18n.language === 'en' ? 'No cash register history' : 'No hay historial de cajas'}</p>
                   </td>
                 </tr>
               ) : (
@@ -314,13 +316,13 @@ export default function CajaPage() {
       )}
 
       {/* ======== MODAL APERTURA ======== */}
-      <Modal open={aperturaOpen} onClose={() => setAperturaOpen(false)} title="Abrir Caja">
+      <Modal open={aperturaOpen} onClose={() => setAperturaOpen(false)} title={t('caja.open')}>
         <div className="space-y-4">
           <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700">
-            <p>Ingresa el <strong>fondo inicial</strong> con el que abres la caja hoy. Este monto se sumará al total esperado al cierre.</p>
+            <p>{i18n.language === 'en' ? 'Enter the ' : 'Ingresa el '}<strong>{i18n.language === 'en' ? 'opening balance' : 'fondo inicial'}</strong>{i18n.language === 'en' ? ' to start the register today. This amount will be added to the expected total at closing.' : ' con el que abres la caja hoy. Este monto se sumará al total esperado al cierre.'}</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Fondo Inicial *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('caja.openAmount')} *</label>
             <input type="number" step="0.01" min="0" value={fondoInicial}
               onChange={(e) => setFondoInicial(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl text-2xl font-bold text-center focus:ring-2 focus:ring-blue-500"
@@ -340,24 +342,24 @@ export default function CajaPage() {
 
       {/* ======== MODAL MOVIMIENTO ======== */}
       <Modal open={movOpen} onClose={() => setMovOpen(false)}
-        title={movTipo === 'entrada' ? 'Registrar Entrada' : 'Registrar Salida'}>
+        title={movTipo === 'entrada' ? (i18n.language === 'en' ? 'Record Entry' : 'Registrar Entrada') : (i18n.language === 'en' ? 'Record Withdrawal' : 'Registrar Salida')}>
         <div className="space-y-4">
           <div className={`rounded-xl p-4 text-sm ${
             movTipo === 'entrada' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
           }`}>
             {movTipo === 'entrada'
-              ? 'Registra dinero extra que ingresa a la caja (ej: pago de deuda, ajuste).'
-              : 'Registra un retiro o gasto de la caja (ej: compra menor, retiro de efectivo).'}
+              ? (i18n.language === 'en' ? 'Record extra money entering the register (e.g.: debt payment, adjustment).' : 'Registra dinero extra que ingresa a la caja (ej: pago de deuda, ajuste).')
+              : (i18n.language === 'en' ? 'Record a withdrawal or expense from the register (e.g.: minor purchase, cash withdrawal).' : 'Registra un retiro o gasto de la caja (ej: compra menor, retiro de efectivo).')}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Monto *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('caja.amount')} *</label>
             <input type="number" step="0.01" min="0.01" value={movMonto}
               onChange={(e) => setMovMonto(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl text-2xl font-bold text-center focus:ring-2 focus:ring-blue-500"
               placeholder="0.00" autoFocus />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Descripción *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.description')} *</label>
             <input type="text" value={movDesc}
               onChange={(e) => setMovDesc(e.target.value)}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
@@ -372,14 +374,14 @@ export default function CajaPage() {
                 movTipo === 'entrada' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'
               }`}>
               {movTipo === 'entrada' ? <ArrowUpCircle className="w-4 h-4" /> : <ArrowDownCircle className="w-4 h-4" />}
-              Registrar {movTipo === 'entrada' ? 'Entrada' : 'Salida'}
+              {i18n.language === 'en' ? 'Record ' : 'Registrar '}{movTipo === 'entrada' ? (i18n.language === 'en' ? 'Entry' : 'Entrada') : (i18n.language === 'en' ? 'Withdrawal' : 'Salida')}
             </button>
           </div>
         </div>
       </Modal>
 
       {/* ======== MODAL CIERRE ======== */}
-      <Modal open={cierreOpen} onClose={() => setCierreOpen(false)} title="Cerrar Caja">
+      <Modal open={cierreOpen} onClose={() => setCierreOpen(false)} title={t('caja.close')}>
         <div className="space-y-4">
           {caja && (
             <>
@@ -432,7 +434,7 @@ export default function CajaPage() {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notas (opcional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.notes')} ({i18n.language === 'en' ? 'optional' : 'opcional'})</label>
                 <textarea rows={2} value={cierreNotas}
                   onChange={(e) => setCierreNotas(e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
@@ -453,24 +455,24 @@ export default function CajaPage() {
         </div>
       </Modal>
       {/* ======== MODAL REPORTE X ======== */}
-      <Modal open={reporteXOpen} onClose={() => setReporteXOpen(false)} title="Reporte X (Parcial)">
+      <Modal open={reporteXOpen} onClose={() => setReporteXOpen(false)} title={i18n.language === 'en' ? 'X Report (Partial)' : 'Reporte X (Parcial)'}>
         {reporteX && (
           <div className="space-y-4">
             <div className="bg-yellow-50 rounded-xl p-4 text-center">
-              <p className="text-sm text-yellow-700">Reporte parcial — La caja NO se cierra</p>
+              <p className="text-sm text-yellow-700">{i18n.language === 'en' ? 'Partial report — Register does NOT close' : 'Reporte parcial — La caja NO se cierra'}</p>
               <p className="text-xs text-yellow-600 mt-1">Generado: {new Date().toLocaleString()}</p>
             </div>
             <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">Cajero</span><span className="font-medium">{reporteX.caja.usuario_nombre}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Apertura</span><span className="font-medium">{formatDateTime(reporteX.caja.fecha_apertura)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Fondo Inicial</span><span className="font-medium">{formatCurrency(reporteX.caja.fondo_inicial)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{t('caja.cashier')}</span><span className="font-medium">{reporteX.caja.usuario_nombre}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{i18n.language === 'en' ? 'Opening' : 'Apertura'}</span><span className="font-medium">{formatDateTime(reporteX.caja.fecha_apertura)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{t('caja.openAmount')}</span><span className="font-medium">{formatCurrency(reporteX.caja.fondo_inicial)}</span></div>
               <div className="flex justify-between font-bold pt-2 border-t border-gray-200">
                 <span>Total Esperado</span>
                 <span className="text-blue-600">{formatCurrency(reporteX.totalEsperado)}</span>
               </div>
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">Ventas por Método de Pago</h4>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">{i18n.language === 'en' ? 'Sales by Payment Method' : 'Ventas por Método de Pago'}</h4>
               <div className="space-y-1">
                 {reporteX.ventasPorMetodo?.map((v: any, i: number) => (
                   <div key={i} className="flex justify-between text-sm bg-white rounded-lg p-2">
@@ -479,13 +481,13 @@ export default function CajaPage() {
                   </div>
                 ))}
                 {(!reporteX.ventasPorMetodo || reporteX.ventasPorMetodo.length === 0) && (
-                  <p className="text-sm text-gray-400 text-center py-2">No hay ventas registradas</p>
+                  <p className="text-sm text-gray-400 text-center py-2">{i18n.language === 'en' ? 'No sales recorded' : 'No hay ventas registradas'}</p>
                 )}
               </div>
             </div>
             {reporteX.movimientos?.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Movimientos</h4>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">{i18n.language === 'en' ? 'Movements' : 'Movimientos'}</h4>
                 <div className="space-y-1">
                   {reporteX.movimientos.map((m: any, i: number) => (
                     <div key={i} className="flex justify-between text-sm bg-white rounded-lg p-2">
@@ -500,7 +502,7 @@ export default function CajaPage() {
             )}
             <button onClick={() => setReporteXOpen(false)}
               className="w-full py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200">
-              Cerrar
+              {t('common.close')}
             </button>
           </div>
         )}

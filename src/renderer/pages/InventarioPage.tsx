@@ -26,7 +26,7 @@ const emptyProduct = {
 }
 
 export default function InventarioPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const usuario = useAuthStore((s) => s.usuario)
   const [productos, setProductos] = useState<Producto[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
@@ -297,40 +297,40 @@ export default function InventarioPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Inventario</h1>
-          <p className="text-sm text-gray-500">{productos.length} productos registrados</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('inventario.title')}</h1>
+          <p className="text-sm text-gray-500">{productos.length} {i18n.language === 'en' ? 'registered products' : 'productos registrados'}</p>
         </div>        <div className="flex gap-2">
           <button
             onClick={() => { setShowCat(!showCat); setShowUnid(false) }}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
               showCat ? 'bg-purple-50 border-purple-300 text-purple-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}>
-            <Tag className="w-4 h-4" /> Categorías
+            <Tag className="w-4 h-4" /> {i18n.language === 'en' ? 'Categories' : 'Categorías'}
           </button>
           <button
             onClick={() => { setShowUnid(!showUnid); setShowCat(false) }}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
               showUnid ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}>
-            <Package className="w-4 h-4" /> Units
+            <Package className="w-4 h-4" /> {i18n.language === 'en' ? 'Units' : 'Unidades'}
           </button>
           <button onClick={loadAjustes}
             className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
-            <History className="w-4 h-4" /> Ajustes
+            <History className="w-4 h-4" /> {i18n.language === 'en' ? 'Adjustments' : 'Ajustes'}
           </button>
           <button onClick={exportCsv}
             className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
-            <Download className="w-4 h-4" /> Exportar
+            <Download className="w-4 h-4" /> {t('common.export')}
           </button>
           <button onClick={importCsv} disabled={importing}
             className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-            <Upload className="w-4 h-4" /> {importing ? 'Importando...' : 'Importar'}
+            <Upload className="w-4 h-4" /> {importing ? t('common.loading') : t('common.import')}
           </button>
           <button
             onClick={openCreate}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
           >
-            <Plus className="w-4 h-4" /> New Product
+            <Plus className="w-4 h-4" /> {t('inventario.newProduct')}
           </button>
         </div>
       </div>
@@ -339,9 +339,9 @@ export default function InventarioPage() {
       {showCat && (
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-gray-800">Categorías</h3>
+            <h3 className="font-semibold text-gray-800">{i18n.language === 'en' ? 'Categories' : 'Categorías'}</h3>
             <button onClick={openCreateCat} className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
-              <Plus className="w-4 h-4" /> Agregar
+              <Plus className="w-4 h-4" /> {i18n.language === 'en' ? 'Add' : 'Agregar'}
             </button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -366,9 +366,9 @@ export default function InventarioPage() {
       {showUnid && (
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-gray-800">Units of Measure</h3>
+            <h3 className="font-semibold text-gray-800">{i18n.language === 'en' ? 'Units of Measure' : 'Unidades de Medida'}</h3>
             <button onClick={openCreateUnid} className="text-sm text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
-              <Plus className="w-4 h-4" /> Add Unit
+              <Plus className="w-4 h-4" /> {i18n.language === 'en' ? 'Add Unit' : 'Agregar Unidad'}
             </button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
@@ -400,7 +400,7 @@ export default function InventarioPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nombre, código de barras o SKU..."
+            placeholder={i18n.language === 'en' ? 'Search by name, barcode or SKU...' : 'Buscar por nombre, código de barras o SKU...'}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
           />
         </div>
@@ -409,7 +409,7 @@ export default function InventarioPage() {
           onChange={(e) => setFilterCat(Number(e.target.value))}
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500"
         >
-          <option value={0}>Todas las categorías</option>
+          <option value={0}>{i18n.language === 'en' ? 'All categories' : 'Todas las categorías'}</option>
           {categorias.map((c) => (
             <option key={c.id} value={c.id}>{c.nombre}</option>
           ))}
@@ -420,7 +420,7 @@ export default function InventarioPage() {
             filterSinStock ? 'bg-orange-50 border-orange-300 text-orange-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
           }`}
         >
-          <EyeOff className="w-4 h-4" /> Stock Bajo
+          <EyeOff className="w-4 h-4" /> {i18n.language === 'en' ? 'Low Stock' : 'Stock Bajo'}
         </button>
       </div>
 
@@ -429,13 +429,13 @@ export default function InventarioPage() {
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Producto</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Categoría</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Compra</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Venta</th>
-              <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Stock</th>
-              <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Unidad</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Acciones</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Product' : 'Producto'}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Category' : 'Categoría'}</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Cost' : 'Compra'}</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Sale' : 'Venta'}</th>
+              <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('inventario.currentStock')}</th>
+              <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Unit' : 'Unidad'}</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -443,7 +443,7 @@ export default function InventarioPage() {
               <tr>
                 <td colSpan={7} className="text-center py-12 text-gray-400">
                   <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p>No se encontraron productos</p>
+                  <p>{i18n.language === 'en' ? 'No products found' : 'No se encontraron productos'}</p>
                 </td>
               </tr>
             ) : (
@@ -469,13 +469,13 @@ export default function InventarioPage() {
                   <td className="px-4 py-3 text-sm text-gray-500 text-center capitalize">{p.unidad}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <button onClick={() => openAjuste(p)} className="p-1.5 hover:bg-blue-50 rounded-lg" title="Ajustar stock">
+                      <button onClick={() => openAjuste(p)} className="p-1.5 hover:bg-blue-50 rounded-lg" title={i18n.language === 'en' ? 'Adjust stock' : 'Ajustar stock'}>
                         <Package className="w-4 h-4 text-blue-500" />
                       </button>
-                      <button onClick={() => openEdit(p)} className="p-1.5 hover:bg-gray-100 rounded-lg" title="Editar">
+                      <button onClick={() => openEdit(p)} className="p-1.5 hover:bg-gray-100 rounded-lg" title={t('common.edit')}>
                         <Edit2 className="w-4 h-4 text-gray-500" />
                       </button>
-                      <button onClick={() => setDeleteTarget({ type: 'producto', id: p.id })} className="p-1.5 hover:bg-red-50 rounded-lg" title="Eliminar">
+                      <button onClick={() => setDeleteTarget({ type: 'producto', id: p.id })} className="p-1.5 hover:bg-red-50 rounded-lg" title={t('common.delete')}>
                         <Trash2 className="w-4 h-4 text-red-400" />
                       </button>
                     </div>
@@ -492,12 +492,12 @@ export default function InventarioPage() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.name')} *</label>
               <input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Código de barras</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Barcode' : 'Código de barras'}</label>
               <input value={form.codigo_barras} onChange={(e) => setForm({ ...form, codigo_barras: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
@@ -507,22 +507,22 @@ export default function InventarioPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Category' : 'Categoría'}</label>
               <select value={form.categoria_id} onChange={(e) => setForm({ ...form, categoria_id: Number(e.target.value) })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
-                <option value={0}>Sin categoría</option>
+                <option value={0}>{i18n.language === 'en' ? 'No category' : 'Sin categoría'}</option>
                 {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Unit of Measure</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Unit of Measure' : 'Unidad de Medida'}</label>
               <div className="flex gap-1">
                 <select value={form.unidad} onChange={(e) => setForm({ ...form, unidad: e.target.value })}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
                   {unidades.map((u) => (
                     <option key={u.id} value={u.nombre}>{u.nombre}{u.abreviatura ? ` (${u.abreviatura})` : ''}</option>
                   ))}
-                  {unidades.length === 0 && <option value="">No units yet</option>}
+                  {unidades.length === 0 && <option value="">{i18n.language === 'en' ? 'No units yet' : 'Sin unidades'}</option>}
                 </select>
                 <button type="button" onClick={() => setShowQuickUnidad(true)}
                   className="px-2 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-500 hover:text-emerald-600"
@@ -532,7 +532,7 @@ export default function InventarioPage() {
               </div>
               {showQuickUnidad && (
                 <div className="mt-2 p-3 bg-emerald-50 rounded-lg border border-emerald-200 space-y-2">
-                  <p className="text-xs font-medium text-emerald-700">New Unit of Measure</p>
+                  <p className="text-xs font-medium text-emerald-700">{i18n.language === 'en' ? 'New Unit of Measure' : 'Nueva Unidad de Medida'}</p>
                   <div className="flex gap-2">
                     <input value={quickUnidad.nombre} onChange={(e) => setQuickUnidad({ ...quickUnidad, nombre: e.target.value })}
                       placeholder="Name (e.g. Gallon)" autoFocus
@@ -549,31 +549,31 @@ export default function InventarioPage() {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Precio Compra</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Cost Price' : 'Precio Compra'}</label>
               <input type="number" step="0.01" min="0" value={form.precio_compra}
                 onChange={(e) => setForm({ ...form, precio_compra: Number(e.target.value) })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Precio Venta *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Sale Price' : 'Precio Venta'} *</label>
               <input type="number" step="0.01" min="0" value={form.precio_venta}
                 onChange={(e) => setForm({ ...form, precio_venta: Number(e.target.value) })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Stock Actual</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventario.currentStock')}</label>
               <input type="number" min="0" value={form.stock}
                 onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Stock Mínimo</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventario.minStock')}</label>
               <input type="number" min="0" value={form.stock_minimo}
                 onChange={(e) => setForm({ ...form, stock_minimo: Number(e.target.value) })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.description')}</label>
               <textarea rows={2} value={form.descripcion}
                 onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
@@ -581,7 +581,7 @@ export default function InventarioPage() {
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <button onClick={() => setModalOpen(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{t('common.cancel')}</button>
             <button onClick={saveProduct} disabled={saving || !form.nombre.trim()}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300">
               {saving ? t('common.saving') : editing ? t('common.save') : t('common.create')}
@@ -591,7 +591,7 @@ export default function InventarioPage() {
       </Modal>
 
       {/* Modal Categoría */}
-      <Modal open={catModalOpen} onClose={() => setCatModalOpen(false)} title={editingCat ? 'Editar Categoría' : 'Nueva Categoría'}>
+      <Modal open={catModalOpen} onClose={() => setCatModalOpen(false)} title={editingCat ? t('inventario.editProduct') + ' ' + (i18n.language === 'en' ? 'Category' : 'Categoría') : i18n.language === 'en' ? 'New Category' : 'Nueva Categoría'}>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
@@ -607,17 +607,17 @@ export default function InventarioPage() {
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <button onClick={() => setCatModalOpen(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{t('common.cancel')}</button>
             <button onClick={saveCategory} disabled={!catForm.nombre.trim()}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300">
-              {editingCat ? 'Guardar' : 'Crear'}
+              {editingCat ? t('common.save') : t('common.create')}
             </button>
           </div>
         </div>
       </Modal>
 
       {/* Modal Unidad de Medida */}
-      <Modal open={unidModalOpen} onClose={() => setUnidModalOpen(false)} title={editingUnid ? 'Editar Unidad' : 'Nueva Unidad de Medida'}>
+      <Modal open={unidModalOpen} onClose={() => setUnidModalOpen(false)} title={editingUnid ? (i18n.language === 'en' ? 'Edit Unit' : 'Editar Unidad') : (i18n.language === 'en' ? 'New Unit of Measure' : 'Nueva Unidad de Medida')}>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
@@ -633,17 +633,17 @@ export default function InventarioPage() {
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <button onClick={() => setUnidModalOpen(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{t('common.cancel')}</button>
             <button onClick={saveUnidad} disabled={!unidForm.nombre.trim()}
               className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:bg-emerald-300">
-              {editingUnid ? 'Guardar' : 'Crear'}
+              {editingUnid ? t('common.save') : t('common.create')}
             </button>
           </div>
         </div>
       </Modal>
 
       {/* Modal Ajuste de Inventario */}
-      <Modal open={ajusteOpen} onClose={() => setAjusteOpen(false)} title="Ajustar Stock">
+      <Modal open={ajusteOpen} onClose={() => setAjusteOpen(false)} title={i18n.language === 'en' ? 'Adjust Stock' : 'Ajustar Stock'}>
         <div className="space-y-4">
           {ajusteTarget && (
             <div className="bg-blue-50 rounded-xl p-4">
@@ -652,7 +652,7 @@ export default function InventarioPage() {
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nuevo Stock *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'New Stock' : 'Nuevo Stock'} *</label>
             <input type="number" min="0" value={ajusteStock}
               onChange={(e) => setAjusteStock(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl text-2xl font-bold text-center focus:ring-2 focus:ring-blue-500"
@@ -668,7 +668,7 @@ export default function InventarioPage() {
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Justificación * (obligatoria)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Reason * (required)' : 'Justificación * (obligatoria)'}</label>
             <textarea rows={2} value={ajusteJustificacion}
               onChange={(e) => setAjusteJustificacion(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
@@ -676,21 +676,21 @@ export default function InventarioPage() {
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <button onClick={() => setAjusteOpen(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{t('common.cancel')}</button>
             <button onClick={ajustarStock}
               disabled={!ajusteJustificacion.trim() || ajustando || ajusteStock === '' || Number(ajusteStock) < 0}
               className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 flex items-center gap-2">
-              {ajustando ? 'Ajustando...' : 'Ajustar Stock'}
+              {ajustando ? (i18n.language === 'en' ? 'Adjusting...' : 'Ajustando...') : (i18n.language === 'en' ? 'Adjust Stock' : 'Ajustar Stock')}
             </button>
           </div>
         </div>
       </Modal>
 
       {/* ======== HISTORIAL DE AJUSTES ======== */}
-      <Modal open={showAjustes} onClose={() => setShowAjustes(false)} title="Historial de Ajustes de Inventario">
+      <Modal open={showAjustes} onClose={() => setShowAjustes(false)} title={i18n.language === 'en' ? 'Adjustment History' : 'Historial de Ajustes de Inventario'}>
         <div className="space-y-3 max-h-96 overflow-y-auto">
           {ajustesHistorial.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">No hay ajustes registrados</p>
+            <p className="text-sm text-gray-400 text-center py-4">{i18n.language === 'en' ? 'No adjustments recorded' : 'No hay ajustes registrados'}</p>
           ) : (
             ajustesHistorial.map((a: any) => (
               <div key={a.id} className="bg-gray-50 rounded-lg p-3 text-sm">
@@ -719,9 +719,9 @@ export default function InventarioPage() {
           if (!deleteTarget) return
           deleteTarget.type === 'producto' ? deleteProduct(deleteTarget.id) : deleteTarget.type === 'categoria' ? deleteCategory(deleteTarget.id) : deleteUnidad(deleteTarget.id)
         }}
-        title={`Eliminar ${deleteTarget?.type === 'producto' ? 'producto' : deleteTarget?.type === 'categoria' ? 'categoría' : 'unidad de medida'}`}
-        message="Esta acción no se puede deshacer. El registro será eliminado permanentemente."
-        confirmText="Eliminar"
+        title={`${t('common.delete')} ${deleteTarget?.type === 'producto' ? (i18n.language === 'en' ? 'product' : 'producto') : deleteTarget?.type === 'categoria' ? (i18n.language === 'en' ? 'category' : 'categoría') : (i18n.language === 'en' ? 'unit of measure' : 'unidad de medida')}`}
+        message={i18n.language === 'en' ? 'This action cannot be undone. The record will be permanently deleted.' : 'Esta acción no se puede deshacer. El registro será eliminado permanentemente.'}
+        confirmText={t('common.delete')}
         danger
       />
     </div>

@@ -72,13 +72,11 @@ export default function LoginPage() {
       className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: `url('./hero-bg.jpg')` }}
     >
-      <div className="absolute inset-0 bg-white/70 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px]" />
       <div className="w-full max-w-md relative z-10">
         {/* Logo / Header */}
         <div className="text-center mb-8">
-          <div className="mx-auto w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-            <span className="text-white text-3xl font-bold">T</span>
-          </div>
+          <img src="./logo.jpg" alt="TOG Admin" className="mx-auto w-20 h-20 rounded-2xl mb-4 shadow-lg object-cover" />
           <h1 className="text-3xl font-bold text-gray-900">TOG Admin</h1>
           <p className="text-gray-500 mt-1">{t('nav.pos')}</p>
         </div>

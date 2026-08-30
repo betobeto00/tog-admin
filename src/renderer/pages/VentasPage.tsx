@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Search, Eye, XCircle, Printer, Calendar, Receipt,
   ChevronDown, AlertTriangle, DollarSign, Clock
@@ -21,6 +22,7 @@ interface VentaDetalle {
 }
 
 export default function VentasPage() {
+  const { t, i18n } = useTranslation()
   const [ventas, setVentas] = useState<Venta[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -100,27 +102,27 @@ export default function VentasPage() {
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Historial de Ventas</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('ventas.title')}</h1>
         <p className="text-sm text-gray-500">
-          {totales.count} ventas • {formatCurrency(totales.total)} total
-          {totales.anuladas > 0 && ` • ${totales.anuladas} anuladas`}
+          {totales.count} {i18n.language === 'en' ? 'sales' : 'ventas'} • {formatCurrency(totales.total)} {i18n.language === 'en' ? 'total' : 'total'}
+          {totales.anuladas > 0 && ` • ${totales.anuladas} ${i18n.language === 'en' ? 'voided' : 'anuladas'}`}
         </p>
       </div>
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-3 items-end">
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Desde</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">{t('common.from')}</label>
           <input type="date" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500" />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Hasta</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">{t('common.to')}</label>
           <input type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)}
             className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500" />
         </div>
         <div className="flex-1 min-w-[200px]">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Buscar</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">{t('common.search')}</label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
@@ -130,7 +132,7 @@ export default function VentasPage() {
         </div>
         <button onClick={() => { setFechaInicio(new Date().toISOString().split('T')[0]); setFechaFin(new Date().toISOString().split('T')[0]) }}
           className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
-          <Calendar className="w-4 h-4 inline mr-1" /> Today
+          <Calendar className="w-4 h-4 inline mr-1" /> {t('common.today')}
         </button>
       </div>
 
@@ -139,15 +141,15 @@ export default function VentasPage() {
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Ticket</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Date</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Cashier</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Method</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Subtotal</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Tax</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Total</th>
-              <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Estado</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Acciones</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('ventas.ticket')}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('ventas.date')}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('ventas.cashier')}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Method' : 'Método'}</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('common.subtotal')}</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('common.tax')}</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('common.total')}</th>
+              <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Status' : 'Estado'}</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -158,7 +160,7 @@ export default function VentasPage() {
             ) : filtered.length === 0 ? (
               <tr><td colSpan={9} className="text-center py-12 text-gray-400">
                 <Receipt className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>No se encontraron ventas</p>
+                <p>{i18n.language === 'en' ? 'No sales found' : 'No se encontraron ventas'}</p>
               </td></tr>
             ) : (
               filtered.map((v) => (
@@ -182,13 +184,13 @@ export default function VentasPage() {
                     <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
                       v.estado === 'completada' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                     }`}>
-                      {v.estado === 'completada' ? '✓ Completada' : '✕ Anulada'}
+                      {v.estado === 'completada' ? `✓ ${i18n.language === 'en' ? 'Completed' : 'Completada'}` : `✕ ${i18n.language === 'en' ? 'Voided' : 'Anulada'}`}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
                       <button onClick={() => openDetalle(v)}
-                        className="p-1.5 hover:bg-gray-100 rounded-lg" title="Ver detalle">
+                        className="p-1.5 hover:bg-gray-100 rounded-lg" title={i18n.language === 'en' ? 'View detail' : 'Ver detalle'}>
                         <Eye className="w-4 h-4 text-gray-500" />
                       </button>
                       {v.estado === 'completada' && (
@@ -203,11 +205,11 @@ export default function VentasPage() {
                               }
                             }
                           })}
-                            className="p-1.5 hover:bg-gray-100 rounded-lg" title="Re-imprimir">
+                            className="p-1.5 hover:bg-gray-100 rounded-lg" title={i18n.language === 'en' ? 'Reprint' : 'Re-imprimir'}>
                             <Printer className="w-4 h-4 text-gray-500" />
                           </button>
                           <button onClick={() => setAnularTarget(v)}
-                            className="p-1.5 hover:bg-red-50 rounded-lg" title="Anular">
+                            className="p-1.5 hover:bg-red-50 rounded-lg" title={i18n.language === 'en' ? 'Void' : 'Anular'}>
                             <XCircle className="w-4 h-4 text-red-400" />
                           </button>
                         </>
@@ -229,19 +231,19 @@ export default function VentasPage() {
             {/* Info de la venta */}
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-gray-500">Fecha</p>
+                <p className="text-gray-500">{t('ventas.date')}</p>
                 <p className="font-medium">{formatDateTime(detalleVenta.fecha)}</p>
               </div>
               <div>
-                <p className="text-gray-500">Cajero</p>
+                <p className="text-gray-500">{t('ventas.cashier')}</p>
                 <p className="font-medium">{detalleVenta.usuario_nombre}</p>
               </div>
               <div>
-                <p className="text-gray-500">Método de pago</p>
+                <p className="text-gray-500">{i18n.language === 'en' ? 'Payment method' : 'Método de pago'}</p>
                 <p className="font-medium">{metodoLabel[detalleVenta.metodo_pago] || detalleVenta.metodo_pago}</p>
               </div>
               <div>
-                <p className="text-gray-500">Estado</p>
+                <p className="text-gray-500">{i18n.language === 'en' ? 'Status' : 'Estado'}</p>
                 <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
                   detalleVenta.estado === 'completada' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                 }`}>
@@ -252,14 +254,14 @@ export default function VentasPage() {
 
             {/* Items */}
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">Productos</h4>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">{i18n.language === 'en' ? 'Products' : 'Productos'}</h4>
               <div className="bg-gray-50 rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-100">
                     <tr>
-                      <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">Producto</th>
-                      <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500">Precio</th>
-                      <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500">Cant.</th>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">{i18n.language === 'en' ? 'Product' : 'Producto'}</th>
+                      <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500">{i18n.language === 'en' ? 'Price' : 'Precio'}</th>
+                      <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500">{i18n.language === 'en' ? 'Qty' : 'Cant.'}</th>
                       <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500">Subtotal</th>
                     </tr>
                   </thead>
@@ -282,7 +284,7 @@ export default function VentasPage() {
               <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>{formatCurrency(detalleVenta.subtotal)}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Sales Tax</span><span>{formatCurrency(detalleVenta.impuesto)}</span></div>
               {detalleVenta.descuento > 0 && (
-                <div className="flex justify-between text-red-600"><span>Descuento</span><span>-{formatCurrency(detalleVenta.descuento)}</span></div>
+                <div className="flex justify-between text-red-600"><span>{t('common.discount')}</span><span>-{formatCurrency(detalleVenta.descuento)}</span></div>
               )}
               <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200">
                 <span>Total</span><span>{formatCurrency(detalleVenta.total)}</span>
@@ -295,7 +297,7 @@ export default function VentasPage() {
 
             {detalleVenta.notas && (
               <div className="bg-yellow-50 rounded-xl p-3 text-sm text-yellow-700">
-                <strong>Notas:</strong> {detalleVenta.notas}
+                <strong>{t('common.notes')}:</strong> {detalleVenta.notas}
               </div>
             )}
           </div>
@@ -318,7 +320,7 @@ export default function VentasPage() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Motivo de anulación *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Void reason *' : 'Motivo de anulación *'}</label>
             <textarea rows={2} value={anularMotivo}
               onChange={(e) => setAnularMotivo(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
@@ -327,7 +329,7 @@ export default function VentasPage() {
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <button onClick={() => { setAnularTarget(null); setAnularMotivo('') }}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
-              Cancelar
+              {t('common.cancel')}
             </button>
             <button onClick={anularVenta}
               disabled={!anularMotivo.trim() || anulando}

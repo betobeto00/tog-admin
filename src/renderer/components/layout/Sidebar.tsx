@@ -39,9 +39,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="px-6 py-5 border-b border-gray-800">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-            <span className="text-white text-lg font-bold">T</span>
-          </div>
+          <img src="./logo.jpg" alt="TOG Admin" className="w-10 h-10 rounded-xl object-cover" />
           <div>
             <h1 className="text-lg font-bold leading-tight">{t('common.appName')}</h1>
             <p className="text-xs text-gray-400">{t('nav.pos')}</p>
