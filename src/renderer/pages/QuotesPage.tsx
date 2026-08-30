@@ -135,13 +135,38 @@ export default function QuotesPage() {
     await window.api.quotes.delete(id); await loadData()
   }
 
-  // Generar HTML para imprimir
-  const printQuote = (q: any) => {
+  const loadAndPrint = async (id: number) => {
+    try {
+      const full = await window.api.quotes.getById(id)
+      printQuote(full)
+    } catch (e) {
+      console.error('Failed to load quote for printing', e)
+    }
+  }
+  const printQuote = async (q: any) => {
     const rows = q.detalles?.map((d: any) =>
       `<tr><td>${d.descripcion}</td><td style="text-align:center">${d.cantidad}</td><td style="text-align:right">${formatCurrency(d.precio_unitario)}</td><td style="text-align:right">${formatCurrency(d.subtotal)}</td></tr>`
     ).join('') || ''
     const win = window.open('', '_blank', 'width=400,height=700')
     if (!win) return
+    // Cargar datos del negocio para logo y contacto
+    let logo = '', bizName = '', bizAddr = '', bizPhone = '', bizEin = ''
+    try {
+      const cfg = await window.api.config.get()
+      const get = (k: string) => cfg.find((c: any) => c.clave === k)?.valor || ''
+      logo = get('logo_path')
+      bizName = get('nombre_negocio')
+      bizAddr = get('direccion')
+      bizPhone = get('telefono')
+      bizEin = get('ein')
+    } catch {}
+    const logoHTML = logo ? `<div class="center" style="margin-bottom:8px"><img src="${logo}" style="max-width:140px;max-height:80px"></div>` : ''
+    const companyHTML = `
+      <div class="center" style="font-size:11px"><strong>${bizName}</strong></div>
+      ${bizAddr ? `<div class="center" style="font-size:9px;color:#555">${bizAddr}</div>` : ''}
+      ${bizPhone ? `<div class="center" style="font-size:9px;color:#555">${bizPhone}</div>` : ''}
+      ${bizEin ? `<div class="center" style="font-size:9px;color:#555">EIN: ${bizEin}</div>` : ''}
+    `
     win.document.write(`<!DOCTYPE html><html><head><style>
       body{font-family:monospace;font-size:11px;width:360px;margin:0 auto;padding:15px}
       h2{text-align:center;margin:5px 0;font-size:14px}
@@ -152,6 +177,8 @@ export default function QuotesPage() {
       hr{border:none;border-top:1px dashed #000;margin:8px 0}
       .label{color:#666;font-size:10px}
     </style></head><body>
+      ${logoHTML}
+      ${companyHTML}
       <h2>QUOTE / ESTIMATE</h2>
       <div class="center">#${String(q.numero_cotizacion).padStart(6, '0')}</div>
       <div class="center" style="font-size:10px;color:#666">${formatDateTime(q.fecha)}</div>
@@ -242,7 +269,7 @@ export default function QuotesPage() {
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
                       <button onClick={() => openView(q)} className="p-1.5 hover:bg-gray-100 rounded-lg" title={t('quotes.view')}><Eye className="w-4 h-4 text-gray-500" /></button>
-                      <button onClick={() => printQuote(q)} className="p-1.5 hover:bg-gray-100 rounded-lg" title={t('quotes.print')}><Printer className="w-4 h-4 text-gray-500" /></button>
+                      <button onClick={() => loadAndPrint(q.id)} className="p-1.5 hover:bg-gray-100 rounded-lg" title={t('quotes.print')}><Printer className="w-4 h-4 text-gray-500" /></button>
                       {q.estado === 'pendiente' && <button onClick={() => openEdit(q)} className="p-1.5 hover:bg-gray-100 rounded-lg" title={t('quotes.edit')}><Edit2 className="w-4 h-4 text-gray-500" /></button>}
                       {q.estado === 'pendiente' && <button onClick={() => setDeleteTarget(q.id)} className="p-1.5 hover:bg-red-50 rounded-lg" title={t('quotes.delete')}><Trash2 className="w-4 h-4 text-red-400" /></button>}
                     </div>

@@ -27,6 +27,9 @@ export default function ConfigPage() {
     sales_tax_rate: '', currency_symbol: '$',
   })
 
+  // Logo de la empresa (base64)
+  const [logoPath, setLogoPath] = useState<string>('')
+
   // Usuarios
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [userModalOpen, setUserModalOpen] = useState(false)
@@ -98,6 +101,7 @@ export default function ConfigPage() {
     })
     setPrinterName(get('printer_name'))
     setFondoDefault(get('fondo_inicial_default'))
+    setLogoPath(get('logo_path'))
   }
 
   const saveConfig = async () => {
@@ -108,6 +112,7 @@ export default function ConfigPage() {
       }
       await window.api.config.set('printer_name', printerName)
       await window.api.config.set('fondo_inicial_default', fondoDefault)
+      await window.api.config.set('logo_path', logoPath)
       toast.success('Configuración guardada exitosamente')
     } catch (err) {
       toast.error('Error al guardar configuración')
@@ -251,6 +256,48 @@ export default function ConfigPage() {
               <input value={form.direccion} onChange={(e) => setForm({ ...form, direccion: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                 placeholder="123 Main St, City, State ZIP" />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Logo de la empresa</label>
+              <div className="flex items-center gap-3">
+                <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml']
+                    if (!allowed.includes(file.type)) {
+                      toast.error('Formato no permitido. Use PNG, JPG, WebP o SVG.')
+                      e.target.value = ''
+                      return
+                    }
+                    const maxSize = 1024 * 1024
+                    if (file.size > maxSize) {
+                      const sizeKb = (file.size / 1024).toFixed(0)
+                      toast.error(`La imagen es demasiado grande (${sizeKb} KB). Máximo permitido: 1 MB.`)
+                      e.target.value = ''
+                      return
+                    }
+                    const reader = new FileReader()
+                    reader.onloadend = () => setLogoPath(reader.result as string)
+                    reader.readAsDataURL(file)
+                  }}
+                  className="block w-full text-sm text-gray-700 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                {logoPath && (
+                  <button type="button" onClick={() => setLogoPath('')}
+                    className="text-xs text-red-600 hover:text-red-700">Quitar</button>
+                )}
+              </div>
+              {logoPath && <img src={logoPath} alt="Logo" className="mt-2 h-16 w-auto border border-gray-200 rounded p-1 bg-white" />}
+              <div className="mt-2 text-xs text-gray-500 space-y-0.5">
+                <p><strong>Recomendaciones:</strong></p>
+                <ul className="list-disc list-inside space-y-0.5 text-gray-500">
+                  <li><strong>Formato:</strong> PNG (transparencia) o JPG. También WebP y SVG.</li>
+                  <li><strong>Tamaño máximo:</strong> 1 MB. Imágenes más pesadas tardan en imprimirse.</li>
+                  <li><strong>Dimensiones ideales:</strong> 400×200 px o 600×300 px (proporción 2:1).</li>
+                  <li><strong>Modo de color:</strong> RGB para pantalla, CMYK si va a imprenta.</li>
+                  <li><strong>Fondo:</strong> Preferible transparente (PNG) para combinar con cualquier papel.</li>
+                </ul>
+              </div>
             </div>
           </div>
 
