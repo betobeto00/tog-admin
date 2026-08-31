@@ -309,7 +309,7 @@ export interface PapeleriaAPI {
     setLang: (lang: 'es' | 'en') => Promise<{ success: boolean; lang: 'es' | 'en' }>
   }
   updater: {
-    checkForUpdates: () => Promise<{ available: boolean; version?: string; currentVersion?: string; feedUrl?: string; error?: string }>
+    checkForUpdates: () => Promise<{ available: boolean; version?: string; currentVersion?: string; error?: string }>
     downloadUpdate: () => Promise<void>
     installUpdate: () => Promise<void>
     onProgress: (callback: (data: { percent: number; transferred: number; total: number }) => void) => void

@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [modalContent, setModalContent] = useState<null | 'copyright' | 'licenses' | 'privacy' | 'terms' | 'releases'>(null)
   const { login, isLoading, error, clearError } = useAuthStore()
   const [appVersion, setAppVersion] = useState('1.0.1')
-  const [updateInfo, setUpdateInfo] = useState<{ available: boolean; version?: string; currentVersion?: string; error?: string; feedUrl?: string } | null>(null)
+  const [updateInfo, setUpdateInfo] = useState<{ available: boolean; version?: string; currentVersion?: string; error?: string } | null>(null)
   const [checkingUpdate, setCheckingUpdate] = useState(false)
 
   // Obtener versión al montar
@@ -210,7 +210,7 @@ export default function LoginPage() {
                       </span>
                     )}
                     {updateInfo.error && (
-                      <span className="text-orange-500 ml-1" title={updateInfo.feedUrl || ''}>
+                      <span className="text-orange-500 ml-1">
                         ⚠️ {updateInfo.error}
                       </span>
                     )}

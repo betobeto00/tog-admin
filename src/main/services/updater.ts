@@ -99,8 +99,6 @@ export async function checkForUpdatesManual(): Promise<{
   available: boolean
   version?: string
   currentVersion?: string
-  feedUrl?: string
-  hasToken?: boolean
   error?: string
 }> {
   try {
@@ -113,16 +111,14 @@ export async function checkForUpdatesManual(): Promise<{
         available,
         version: latestVersion,
         currentVersion,
-        hasToken: !!ghToken,
       }
     }
-    return { available: false, currentVersion, hasToken: !!ghToken }
+    return { available: false, currentVersion }
   } catch (err: any) {
     return {
       available: false,
       error: err.message,
       currentVersion: app.getVersion(),
-      hasToken: !!ghToken,
     }
   }
 }
