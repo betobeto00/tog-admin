@@ -11,6 +11,29 @@ autoUpdater.logger = log
 autoUpdater.autoDownload = false
 autoUpdater.autoInstallOnAppQuit = false
 
+// ----------------------------------------------------------------------------
+// Modo dev: forzar checkForUpdates en desarrollo
+// ----------------------------------------------------------------------------
+// Por defecto electron-updater salta checkForUpdates si la app no está
+// empaquetada (app.isPackaged === false). Para probar el flujo de update
+// desde npm run dev sin tener que instalar cada vez:
+//
+// 1. Crear dev-app-update.yml en la raíz del proyecto (NO se commitea al
+//    repo porque apunta al release real). Contiene:
+//
+//    owner: betobeto00
+//    repo: tog-admin
+//    provider: github
+//    private: true
+//    updaterCacheDirName: tog-admin-updater
+//
+// 2. Lanzar con TOG_FORCE_UPDATE=1 (env var) o pasar --force-update flag
+// ----------------------------------------------------------------------------
+if (process.env.TOG_FORCE_UPDATE === '1' || process.argv.includes('--force-update')) {
+  autoUpdater.forceDevUpdateConfig = true
+  log.info('[Updater] forceDevUpdateConfig = true (dev mode forced)')
+}
+
 let mainWindow: BrowserWindow | null = null
 
 // ----------------------------------------------------------------------------
