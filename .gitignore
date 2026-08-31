@@ -30,3 +30,6 @@ license.key
 
 # Graphify (knowledge graph artifacts)
 graphify-out/
+
+# Build resources (contains GH_TOKEN file injected at build-time)
+build-resources/

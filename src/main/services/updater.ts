@@ -2,6 +2,7 @@ import { autoUpdater, UpdateInfo } from 'electron-updater'
 import { app, BrowserWindow, dialog, shell } from 'electron'
 import log from 'electron-log'
 import * as path from 'path'
+import * as fs from 'fs'
 
 // Configurar logging
 autoUpdater.logger = log
@@ -16,33 +17,49 @@ let mainWindow: BrowserWindow | null = null
 // GitHub token para repos privados
 // ----------------------------------------------------------------------------
 // El repo es privado, así que electron-updater necesita un Personal Access Token
-// (PAT) para consultar releases. El token se lee en este orden de prioridad:
-//
-// 1. process.env.GH_TOKEN o process.env.GITHUB_TOKEN (variable de entorno
-//    inyectada al .exe en build-time vía electron-builder extraMetadata)
-// 2. Si no está en runtime, intentar cargar .env local (útil en dev)
-//
-// El token en runtime se inyecta como variable de entorno normal, por lo
-// que queda cifrado en el binario compilado (no aparece en strings del asar).
+// (PAT) para consultar releases. El token se inyecta al binario en build-time
+// vía electron-builder extraResources (archivo gh-token en resources/), y se
+// lee en runtime desde process.resourcesPath.
 //
 // ⚠️ SEGURIDAD: Solo dar scope `Contents: Read` al token. NO `repo` completo.
 // ----------------------------------------------------------------------------
 function loadGitHubToken(): string | null {
-  // 1) Variables de entorno (runtime, puede haber sido inyectada en build)
-  let token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || null
-  if (token) {
-    log.info(`[Updater] GitHub token loaded from process.env (length: ${token.length})`)
-    return token
+  // 1) Archivo inyectado por electron-builder (extraResources)
+  //    En producción: process.resourcesPath/gh-token
+  //    En desarrollo: ./build-resources/gh-token (para testing)
+  const candidates = [
+    path.join(process.resourcesPath || '', 'gh-token'),
+    path.join(process.cwd(), 'build-resources', 'gh-token'),
+  ]
+  for (const filePath of candidates) {
+    try {
+      if (fs.existsSync(filePath)) {
+        const token = fs.readFileSync(filePath, 'utf-8').trim()
+        if (token) {
+          log.info(`[Updater] GitHub token loaded from file (length: ${token.length})`)
+          return token
+        }
+      }
+    } catch (err) {
+      log.warn(`[Updater] Failed to read token file ${filePath}: ${err}`)
+    }
   }
 
-  // 2) En desarrollo, intentar cargar desde .env (no aplica en producción)
+  // 2) Variables de entorno (útil en CI/CD)
+  const envToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN
+  if (envToken) {
+    log.info(`[Updater] GitHub token loaded from process.env (length: ${envToken.length})`)
+    return envToken
+  }
+
+  // 3) En desarrollo, intentar cargar desde .env
   if (!app.isPackaged) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const dotenv = require('dotenv')
       const envPath = path.join(process.cwd(), '.env')
       dotenv.config({ path: envPath })
-      token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || null
+      const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN
       if (token) {
         log.info(`[Updater] GitHub token loaded from .env (length: ${token.length})`)
         return token
@@ -52,7 +69,7 @@ function loadGitHubToken(): string | null {
     }
   }
 
-  log.warn('[Updater] No GH_TOKEN/GITHUB_TOKEN found. Auto-update will only work on public repos.')
+  log.warn('[Updater] No GH_TOKEN found. Auto-update will only work on public repos.')
   return null
 }
 

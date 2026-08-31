@@ -34,9 +34,9 @@ HttpError: 404
  Please double check that your authentication token is correct."
 ```
 
-### Solución implementada: token embebido en build
+### Solución implementada: token embebido via `extraResources`
 
-El proyecto actual usa **repo privado** con token embebido. El flujo es:
+El proyecto actual usa **repo privado** con token inyectado en el binario. El flujo es:
 
 1. **Generar Personal Access Token** (PAT) en GitHub:
    - https://github.com/settings/tokens
@@ -46,39 +46,47 @@ El proyecto actual usa **repo privado** con token embebido. El flujo es:
    - **NO dar scope `repo` completo** — ese permite borrar el repo, crear archivos, etc.
    - Expiration: 90 días (renovar antes de expirar)
 
-2. **Cargar el token desde `.env`** o variable de entorno:
+2. **Crear el archivo del token** (NO se commitea al repo):
    ```bash
-   # Opción A: en .env (recomendado, queda fuera del repo)
-   echo "GH_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx" >> .env
-
-   # Opción B: variable de entorno antes del build
-   $env:GH_TOKEN = "ghp_xxxxxxxxxxxxxxxxxxxx"
+   # El archivo build-resources/ está en .gitignore
+   mkdir -p build-resources
+   echo "ghp_xxxxxxxxxxxxxxxxxxxx" > build-resources/gh-token
    ```
 
 3. **Build del instalador**:
    ```bash
    npm run build:installer
    ```
-   Durante el build, electron-builder lee `GH_TOKEN` y la inyecta en el binario como `process.env.GH_TOKEN` (solo en el main process, no en renderer). El token queda "embebido" pero no visible en strings del .exe (porque electron-builder usa `Buffer` para env vars).
+   El config `extraResources` en `package.json` copia `build-resources/gh-token`
+   al directorio `resources/` del binario empaquetado. NO entra al asar, queda
+   como archivo plano junto al `app-update.yml`.
 
-4. **Subir el instalador a GitHub** (necesitas el MISMO token para publicar):
+4. **Subir el instalador a GitHub** (necesitas el MISMO token):
    ```bash
-   # electron-builder puede publicar directamente con el mismo token:
-   npm run build:installer -- --publish always
+   # Opción A: electron-builder sube automáticamente (más fácil)
+   GH_TOKEN=ghp_... npm run build:installer -- --publish always
 
-   # O subir manualmente con gh (usando el mismo GH_TOKEN):
+   # Opción B: subir manualmente con gh
    gh release create v1.0.x --repo betobeto00/tog-admin --title "..." --notes-file release/RELEASE_NOTES.md
-   gh release upload v1.0.x "release/TOG Admin Setup 1.0.x.exe" "release/latest.yml" "release/TOG Admin Setup 1.0.x.exe.blockmap" --repo betobeto00/tog-admin --clobber
+   gh release upload v1.0.x \
+     "release/TOG Admin Setup 1.0.x.exe" \
+     "release/latest.yml" \
+     "release/TOG Admin Setup 1.0.x.exe.blockmap" \
+     --repo betobeto00/tog-admin --clobber
    ```
 
 ### Cómo funciona en runtime
 
 Cuando el usuario final abre la app y hace Check Updates:
 
-1. `src/main/services/updater.ts` lee `process.env.GH_TOKEN` (inyectada en build)
-2. Llama `autoUpdater.addAuthHeader('token <token>')`
-3. electron-updater hace `GET https://github.com/{owner}/{repo}/releases.atom` con header `Authorization: token ghp_...`
-4. GitHub valida el token (debe tener scope `Contents: Read` o `repo:status`)
+1. `src/main/services/updater.ts` busca el token en este orden:
+   1. `process.resourcesPath/gh-token` ← inyectado por electron-builder en producción
+   2. `process.env.GH_TOKEN` o `GITHUB_TOKEN` ← CI/CD o testing manual
+   3. `.env` ← solo en desarrollo (`app.isPackaged === false`)
+2. Si encuentra token, llama `autoUpdater.addAuthHeader('token <token>')`
+3. electron-updater hace `GET https://github.com/{owner}/{repo}/releases.atom`
+   con header `Authorization: token ghp_...`
+4. GitHub valida el token (debe tener scope `Contents: Read`)
 5. Si es válido → retorna el feed con todas las releases
 6. electron-updater descarga `latest.yml` y compara versiones
 
