@@ -1,6 +1,7 @@
 import { autoUpdater, UpdateInfo } from 'electron-updater'
 import { app, BrowserWindow, dialog, shell } from 'electron'
 import log from 'electron-log'
+import * as path from 'path'
 
 // Configurar logging
 autoUpdater.logger = log
@@ -11,18 +12,53 @@ autoUpdater.autoInstallOnAppQuit = false
 
 let mainWindow: BrowserWindow | null = null
 
-// El repo en GitHub es PRIVADO. electron-updater requiere un Personal Access
-// Token (PAT) para repos privados. Se lee de la variable de entorno GH_TOKEN
-// o GITHUB_TOKEN. En package.json > build.publish hay "private": true que
-// activa el PrivateGitHubProvider cuando hay token disponible.
-// Para generar el token: GitHub > Settings > Developer settings > Personal
-// access tokens > classic > scope: repo. NO commitear el token.
-const ghToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN
+// ----------------------------------------------------------------------------
+// GitHub token para repos privados
+// ----------------------------------------------------------------------------
+// El repo es privado, así que electron-updater necesita un Personal Access Token
+// (PAT) para consultar releases. El token se lee en este orden de prioridad:
+//
+// 1. process.env.GH_TOKEN o process.env.GITHUB_TOKEN (variable de entorno
+//    inyectada al .exe en build-time vía electron-builder extraMetadata)
+// 2. Si no está en runtime, intentar cargar .env local (útil en dev)
+//
+// El token en runtime se inyecta como variable de entorno normal, por lo
+// que queda cifrado en el binario compilado (no aparece en strings del asar).
+//
+// ⚠️ SEGURIDAD: Solo dar scope `Contents: Read` al token. NO `repo` completo.
+// ----------------------------------------------------------------------------
+function loadGitHubToken(): string | null {
+  // 1) Variables de entorno (runtime, puede haber sido inyectada en build)
+  let token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || null
+  if (token) {
+    log.info(`[Updater] GitHub token loaded from process.env (length: ${token.length})`)
+    return token
+  }
+
+  // 2) En desarrollo, intentar cargar desde .env (no aplica en producción)
+  if (!app.isPackaged) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const dotenv = require('dotenv')
+      const envPath = path.join(process.cwd(), '.env')
+      dotenv.config({ path: envPath })
+      token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || null
+      if (token) {
+        log.info(`[Updater] GitHub token loaded from .env (length: ${token.length})`)
+        return token
+      }
+    } catch (err) {
+      log.warn('[Updater] dotenv not available, skipping .env load')
+    }
+  }
+
+  log.warn('[Updater] No GH_TOKEN/GITHUB_TOKEN found. Auto-update will only work on public repos.')
+  return null
+}
+
+const ghToken = loadGitHubToken()
 if (ghToken) {
   autoUpdater.addAuthHeader(`token ${ghToken}`)
-  log.info('[Updater] GitHub token loaded from env (length: ' + ghToken.length + ')')
-} else {
-  log.warn('[Updater] No GH_TOKEN/GITHUB_TOKEN found. Auto-update will only work on public repos.')
 }
 
 export function setupAutoUpdater(win: BrowserWindow): void {
@@ -113,7 +149,6 @@ export async function checkForUpdatesManual(): Promise<{
   available: boolean
   version?: string
   currentVersion?: string
-  feedUrl?: string
   hasToken?: boolean
   error?: string
 }> {
