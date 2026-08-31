@@ -196,7 +196,7 @@ export default function LoginPage() {
               {checkingUpdate ? (t('login.checking')) : (t('login.checkUpdates'))}
             </button>
             {updateInfo && (
-              <span className="text-xs">
+              <div className="text-xs space-y-1">
                 {updateInfo.available ? (
                   <span className="text-green-600 font-medium">
                     {i18n.language === 'en' ? `v${updateInfo.version} available!` : `¡v${updateInfo.version} disponible!`}
@@ -209,14 +209,19 @@ export default function LoginPage() {
                         (v{updateInfo.currentVersion})
                       </span>
                     )}
-                    {updateInfo.error && (
-                      <span className="text-orange-500 ml-1">
-                        ⚠️ {updateInfo.error}
-                      </span>
-                    )}
                   </span>
                 )}
-              </span>
+                {updateInfo.error && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-2 mt-1 max-w-md">
+                    <p className="text-orange-700 font-medium text-[11px] mb-0.5">
+                      ⚠️ {i18n.language === 'en' ? 'Update check failed' : 'Error al verificar actualizaciones'}
+                    </p>
+                    <p className="text-orange-600 text-[11px] font-mono break-words">
+                      {updateInfo.error}
+                    </p>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
