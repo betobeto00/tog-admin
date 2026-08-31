@@ -20,7 +20,7 @@ Chat privado*
 keys/private.key
 keys/*.pem
 keys/*.key
-!keys/public.key
+keys/public.key
 licenses/*.key
 
 # Allow licenses/.gitkeep so the directory structure is preserved
@@ -30,3 +30,6 @@ license.key
 
 # Graphify (knowledge graph artifacts)
 graphify-out/
+
+# Backup of .git created by filter-repo operations (do not commit)
+.git-backup-*
