@@ -34,100 +34,48 @@ HttpError: 404
  Please double check that your authentication token is correct."
 ```
 
-### Solución implementada: token embebido via `extraResources`
+### Solución para repos privados
 
-El proyecto actual usa **repo privado** con token inyectado en el binario. El flujo es:
+1. **Habilitar `private: true`** en `package.json > build.publish` (ya hecho en este repo):
+   ```json
+   "publish": {
+     "provider": "github",
+     "owner": "betobeto00",
+     "repo": "tog-admin",
+     "private": true
+   }
+   ```
+   Esto hace que electron-updater use `PrivateGitHubProvider` cuando detecta el token.
 
-1. **Generar Personal Access Token** (PAT) en GitHub:
+2. **Generar un Personal Access Token** en GitHub:
    - https://github.com/settings/tokens
    - Tipo: **classic**
-   - **Scope mínimo: `public_repo` + `repo:status` + `Contents: Read`**
-     - O solo `Contents: Read` si tu repo es 100% privado
-   - **NO dar scope `repo` completo** — ese permite borrar el repo, crear archivos, etc.
-   - Expiration: 90 días (renovar antes de expirar)
+   - Scope: **`repo`** (necesario para leer releases)
+   - Expiration: según necesidad (renovar antes de expirar)
 
-2. **Crear el archivo del token** (NO se commitea al repo):
+3. **Pasar el token al updater** vía variable de entorno **antes** de compilar/correr la app:
    ```bash
-   # El directorio build-resources/ está en .gitignore
-   mkdir -p build-resources
-
-   # El archivo se llama .gh-token (con punto al inicio, estilo Unix hidden)
-   # y contiene SOLO el token crudo, una sola línea, sin "GH_TOKEN="
-   echo "ghp_xxxxxxxxxxxxxxxxxxxx" > build-resources/.gh-token
-   ```
-
-   **Convenciones del archivo**:
-   - Nombre: `.gh-token` (con punto inicial para evitar commits accidentales)
-   - Contenido: solo el token, una línea, sin prefijo, sin comillas
-   - Encoding: UTF-8 sin BOM
-   - El updater hace `.trim()` antes de usarlo, así saltos de línea no importan
-
-3. **Build del instalador**:
-   ```bash
+   # Windows (PowerShell)
+   $env:GH_TOKEN = "ghp_xxxxxxxxxxxxxxxxxxxx"
    npm run build:installer
+
+   # Windows (CMD)
+   set GH_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+
+   # Linux/Mac
+   export GH_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
    ```
-   El config `extraResources` en `package.json` lee `build-resources/.gh-token`
-   y lo copia como `resources/gh-token` en el binario empaquetado. NO entra
-   al asar, queda como archivo plano junto al `app-update.yml`.
+   `src/main/services/updater.ts` lee `GH_TOKEN` (o `GITHUB_TOKEN`) y lo aplica como header `Authorization: token <token>`.
 
-4. **Subir el instalador a GitHub** (necesitas el MISMO token):
-   ```bash
-   # Opción A: electron-builder sube automáticamente (más fácil)
-   GH_TOKEN=ghp_... npm run build:installer -- --publish always
+### ⚠️ Seguridad del token
 
-   # Opción B: subir manualmente con gh
-   gh release create v1.0.x --repo betobeto00/tog-admin --title "..." --notes-file release/RELEASE_NOTES.md
-   gh release upload v1.0.x \
-     "release/TOG Admin Setup 1.0.x.exe" \
-     "release/latest.yml" \
-     "release/TOG Admin Setup 1.0.x.exe.blockmap" \
-     --repo betobeto00/tog-admin --clobber
-   ```
+- **NO commitear el token** en el repo. Solo usar como variable de entorno.
+- **NO distribuir el token** con la app. Cada instalación (cliente) debería tener su propio token con scope limitado, o usar una build que no requiera token (si haces el repo público).
+- El token debe **renovarse periódicamente**. GitHub te avisa 30 días antes.
 
-### Cómo funciona en runtime
+### Alternativa: hacer el repo público
 
-Cuando el usuario final abre la app y hace Check Updates:
-
-1. `src/main/services/updater.ts` busca el token en este orden:
-   1. `process.resourcesPath/gh-token` ← inyectado por electron-builder en producción
-   2. `process.env.GH_TOKEN` o `GITHUB_TOKEN` ← CI/CD o testing manual
-   3. `.env` ← solo en desarrollo (`app.isPackaged === false`)
-2. Si encuentra token, llama `autoUpdater.addAuthHeader('token <token>')`
-3. electron-updater hace `GET https://github.com/{owner}/{repo}/releases.atom`
-   con header `Authorization: token ghp_...`
-4. GitHub valida el token (debe tener scope `Contents: Read`)
-5. Si es válido → retorna el feed con todas las releases
-6. electron-updater descarga `latest.yml` y compara versiones
-
-### ⚠️ Seguridad del token embebido
-
-El token **no es secreto perfecto** dentro del .exe — un atacante motivado con `asar extract` puede encontrarlo. Pero el scope **`Contents: Read`** significa que aunque alguien robe el token:
-
-- ✅ Puede descargar releases y assets (eso es lo que queremos)
-- ❌ NO puede modificar, borrar, o subir archivos al repo
-- ❌ NO puede crear branches, tags, o commits
-- ❌ NO puede cambiar permisos
-
-**Si el token se filtra**, las consecuencias son limitadas. Solo necesitas **regenerarlo** cada 90 días (GitHub te avisa).
-
-### Rotación del token
-
-Cuando el token expire o se filtre:
-1. Ve a https://github.com/settings/tokens
-2. Click **Delete** en el token viejo
-3. **Generate new token** con el mismo scope mínimo
-4. Actualiza tu `.env`
-5. Rebuild (`npm run build:installer`)
-6. Distribuye el nuevo instalador
-
-### Alternativa: hacer el repo público (más simple)
-
-Si decides que el riesgo de repo público es aceptable:
-- **Ventaja**: cero setup, electron-updater funciona out-of-the-box sin token
-- **Desventaja**: cualquier persona puede ver el código fuente y los scripts de licencias
-- **Mitigación**: la clave privada RSA NO está en el repo (`keys/private.key` está en .gitignore)
-
-**Si haces el repo público**, elimina `"private": true` de `package.json > build.publish` para que el updater no requiera token.
+Si no te importa que cualquiera pueda ver el código fuente, **haz el repo público** y elimina el token. Esto simplifica el setup enormemente y `electron-updater` funciona out-of-the-box.
 
 ---
 

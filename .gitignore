@@ -30,9 +30,3 @@ license.key
 
 # Graphify (knowledge graph artifacts)
 graphify-out/
-
-# Build resources (contains GH_TOKEN file injected at build-time)
-build-resources/
-
-# Dev-only: forces updater to check GitHub releases during npm run dev
-dev-app-update.yml

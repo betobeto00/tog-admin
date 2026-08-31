@@ -1,8 +1,6 @@
 import { autoUpdater, UpdateInfo } from 'electron-updater'
 import { app, BrowserWindow, dialog, shell } from 'electron'
 import log from 'electron-log'
-import * as path from 'path'
-import * as fs from 'fs'
 
 // Configurar logging
 autoUpdater.logger = log
@@ -11,97 +9,7 @@ autoUpdater.logger = log
 autoUpdater.autoDownload = false
 autoUpdater.autoInstallOnAppQuit = false
 
-// ----------------------------------------------------------------------------
-// Modo dev: forzar checkForUpdates en desarrollo
-// ----------------------------------------------------------------------------
-// Por defecto electron-updater salta checkForUpdates si la app no está
-// empaquetada (app.isPackaged === false). Para probar el flujo de update
-// desde npm run dev sin tener que instalar cada vez:
-//
-// 1. Crear dev-app-update.yml en la raíz del proyecto (NO se commitea al
-//    repo porque apunta al release real). Contiene:
-//
-//    owner: betobeto00
-//    repo: tog-admin
-//    provider: github
-//    private: true
-//    updaterCacheDirName: tog-admin-updater
-//
-// 2. Lanzar con TOG_FORCE_UPDATE=1 (env var) o pasar --force-update flag
-// ----------------------------------------------------------------------------
-if (process.env.TOG_FORCE_UPDATE === '1' || process.argv.includes('--force-update')) {
-  autoUpdater.forceDevUpdateConfig = true
-  log.info('[Updater] forceDevUpdateConfig = true (dev mode forced)')
-}
-
 let mainWindow: BrowserWindow | null = null
-
-// ----------------------------------------------------------------------------
-// GitHub token para repos privados
-// ----------------------------------------------------------------------------
-// El repo es privado, así que electron-updater necesita un Personal Access Token
-// (PAT) para consultar releases. El token se inyecta al binario en build-time
-// vía electron-builder extraResources (archivo gh-token en resources/), y se
-// lee en runtime desde process.resourcesPath.
-//
-// ⚠️ SEGURIDAD: Solo dar scope `Contents: Read` al token. NO `repo` completo.
-// ----------------------------------------------------------------------------
-function loadGitHubToken(): string | null {
-  // 1) Archivo inyectado por electron-builder (extraResources).
-    //    Nota: el archivo fuente puede tener cualquier nombre (ej: ".gh-token"),
-    //    pero electron-builder lo copia como "gh-token" (definido en `to:`).
-    //    En producción: process.resourcesPath/gh-token
-    //    En desarrollo: ./build-resources/.gh-token (para testing)
-    const candidates = [
-      path.join(process.resourcesPath || '', 'gh-token'),
-      path.join(process.cwd(), 'build-resources', '.gh-token'),
-    ]
-    for (const filePath of candidates) {
-      try {
-        if (fs.existsSync(filePath)) {
-          const token = fs.readFileSync(filePath, 'utf-8').trim()
-          if (token) {
-            log.info(`[Updater] GitHub token loaded from file (length: ${token.length})`)
-            return token
-          }
-        }
-      } catch (err) {
-        log.warn(`[Updater] Failed to read token file ${filePath}: ${err}`)
-      }
-    }
-
-  // 2) Variables de entorno (útil en CI/CD)
-  const envToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN
-  if (envToken) {
-    log.info(`[Updater] GitHub token loaded from process.env (length: ${envToken.length})`)
-    return envToken
-  }
-
-  // 3) En desarrollo, intentar cargar desde .env
-  if (!app.isPackaged) {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const dotenv = require('dotenv')
-      const envPath = path.join(process.cwd(), '.env')
-      dotenv.config({ path: envPath })
-      const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN
-      if (token) {
-        log.info(`[Updater] GitHub token loaded from .env (length: ${token.length})`)
-        return token
-      }
-    } catch (err) {
-      log.warn('[Updater] dotenv not available, skipping .env load')
-    }
-  }
-
-  log.warn('[Updater] No GH_TOKEN found. Auto-update will only work on public repos.')
-  return null
-}
-
-const ghToken = loadGitHubToken()
-if (ghToken) {
-  autoUpdater.addAuthHeader(`token ${ghToken}`)
-}
 
 export function setupAutoUpdater(win: BrowserWindow): void {
   mainWindow = win
@@ -191,6 +99,7 @@ export async function checkForUpdatesManual(): Promise<{
   available: boolean
   version?: string
   currentVersion?: string
+  feedUrl?: string
   hasToken?: boolean
   error?: string
 }> {
