@@ -24,6 +24,61 @@
 
 Todos se generan en `release/` cuando corres `npm run build:installer`.
 
+## ⚠️ Repo privado requiere autenticación
+
+**Si tu repo en GitHub es privado**, electron-updater NO puede consultar `releases.atom` ni descargar los assets sin un Personal Access Token (PAT). El síntoma típico es:
+
+```
+HttpError: 404
+"method: GET url: https://github.com/{owner}/{repo}/releases.atom
+ Please double check that your authentication token is correct."
+```
+
+### Solución para repos privados
+
+1. **Habilitar `private: true`** en `package.json > build.publish` (ya hecho en este repo):
+   ```json
+   "publish": {
+     "provider": "github",
+     "owner": "betobeto00",
+     "repo": "tog-admin",
+     "private": true
+   }
+   ```
+   Esto hace que electron-updater use `PrivateGitHubProvider` cuando detecta el token.
+
+2. **Generar un Personal Access Token** en GitHub:
+   - https://github.com/settings/tokens
+   - Tipo: **classic**
+   - Scope: **`repo`** (necesario para leer releases)
+   - Expiration: según necesidad (renovar antes de expirar)
+
+3. **Pasar el token al updater** vía variable de entorno **antes** de compilar/correr la app:
+   ```bash
+   # Windows (PowerShell)
+   $env:GH_TOKEN = "ghp_xxxxxxxxxxxxxxxxxxxx"
+   npm run build:installer
+
+   # Windows (CMD)
+   set GH_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+
+   # Linux/Mac
+   export GH_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+   ```
+   `src/main/services/updater.ts` lee `GH_TOKEN` (o `GITHUB_TOKEN`) y lo aplica como header `Authorization: token <token>`.
+
+### ⚠️ Seguridad del token
+
+- **NO commitear el token** en el repo. Solo usar como variable de entorno.
+- **NO distribuir el token** con la app. Cada instalación (cliente) debería tener su propio token con scope limitado, o usar una build que no requiera token (si haces el repo público).
+- El token debe **renovarse periódicamente**. GitHub te avisa 30 días antes.
+
+### Alternativa: hacer el repo público
+
+Si no te importa que cualquiera pueda ver el código fuente, **haz el repo público** y elimina el token. Esto simplifica el setup enormemente y `electron-updater` funciona out-of-the-box.
+
+---
+
 ## Procedimiento correcto para publicar release
 
 ### 1. Preparar el código

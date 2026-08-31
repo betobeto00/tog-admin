@@ -204,9 +204,9 @@ export default function LoginPage() {
                 ) : (
                   <span className="text-gray-400">
                     {t('login.upToDate')}
-                    {updateInfo.currentVersion && updateInfo.version && (
+                    {updateInfo.currentVersion && (
                       <span className="text-gray-300 ml-1">
-                        (actual: {updateInfo.currentVersion} / latest: {updateInfo.version})
+                        (v{updateInfo.currentVersion})
                       </span>
                     )}
                     {updateInfo.error && (

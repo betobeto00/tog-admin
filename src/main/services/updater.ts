@@ -11,6 +11,20 @@ autoUpdater.autoInstallOnAppQuit = false
 
 let mainWindow: BrowserWindow | null = null
 
+// El repo en GitHub es PRIVADO. electron-updater requiere un Personal Access
+// Token (PAT) para repos privados. Se lee de la variable de entorno GH_TOKEN
+// o GITHUB_TOKEN. En package.json > build.publish hay "private": true que
+// activa el PrivateGitHubProvider cuando hay token disponible.
+// Para generar el token: GitHub > Settings > Developer settings > Personal
+// access tokens > classic > scope: repo. NO commitear el token.
+const ghToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN
+if (ghToken) {
+  autoUpdater.addAuthHeader(`token ${ghToken}`)
+  log.info('[Updater] GitHub token loaded from env (length: ' + ghToken.length + ')')
+} else {
+  log.warn('[Updater] No GH_TOKEN/GITHUB_TOKEN found. Auto-update will only work on public repos.')
+}
+
 export function setupAutoUpdater(win: BrowserWindow): void {
   mainWindow = win
 
@@ -79,33 +93,10 @@ export function setupAutoUpdater(win: BrowserWindow): void {
     console.log('[Updater] No hay actualización disponible')
   })
 
-  // Log diagnóstico detallado para debug
-  const debugLog = (label: string, data: any) => {
-    const line = `[${new Date().toISOString()}] ${label}: ${JSON.stringify(data, null, 2)}`
-    console.log(line)
-    try {
-      const path = require('path')
-      const fs = require('fs')
-      const logPath = path.join(app.getPath('userData'), 'updater-debug.log')
-      fs.appendFileSync(logPath, line + '\n')
-    } catch {}
-  }
-
-  autoUpdater.on('checking-for-update', () => debugLog('CHECKING', {}))
-  autoUpdater.on('update-available', (info) => debugLog('UPDATE_AVAILABLE', { version: info.version, files: info.files?.map(f => f.url) }))
-  autoUpdater.on('update-not-available', (info) => debugLog('UPDATE_NOT_AVAILABLE', { version: info?.version }))
-  autoUpdater.on('download-progress', (p) => debugLog('DOWNLOAD_PROGRESS', { percent: p.percent }))
-  autoUpdater.on('update-downloaded', (info) => debugLog('UPDATE_DOWNLOADED', { version: info.version, downloadedFile: info.downloadedFile }))
-  autoUpdater.on('error', (err) => debugLog('UPDATE_ERROR', { message: err.message, stack: err.stack }))
-
   // Verificar actualizaciones al iniciar (después de 5 segundos)
   setTimeout(() => {
-    console.log('[Updater] Verificando actualizaciones...')
-    console.log('[Updater] Versión actual:', app.getVersion())
-    console.log('[Updater] Publish config:', JSON.stringify(autoUpdater.getFeedURL()))
     autoUpdater.checkForUpdates().catch((err) => {
       log.error('[Updater] Error al verificar actualizaciones:', err.message)
-      console.error('[Updater] Error al verificar:', err.message)
     })
   }, 5000)
 
@@ -123,45 +114,30 @@ export async function checkForUpdatesManual(): Promise<{
   version?: string
   currentVersion?: string
   feedUrl?: string
+  hasToken?: boolean
   error?: string
 }> {
-  const debugLog = (label: string, data: any) => {
-    const line = `[${new Date().toISOString()}] ${label}: ${JSON.stringify(data)}`
-    console.log(line)
-    try {
-      const path = require('path')
-      const fs = require('fs')
-      const logPath = path.join(app.getPath('userData'), 'updater-debug.log')
-      fs.appendFileSync(logPath, line + '\n')
-    } catch {}
-  }
-
   try {
     const currentVersion = app.getVersion()
-    const feedUrl = autoUpdater.getFeedURL()
-    debugLog('MANUAL_CHECK_START', { currentVersion, feedUrl: feedUrl?.toString() })
     const result = await autoUpdater.checkForUpdates()
-    debugLog('MANUAL_CHECK_RESULT', {
-      hasUpdateInfo: !!result?.updateInfo,
-      version: result?.updateInfo?.version,
-      files: result?.updateInfo?.files?.map((f: any) => f.url),
-    })
     if (result && result.updateInfo) {
       const latestVersion = result.updateInfo.version
       const available = latestVersion !== currentVersion
-      debugLog('MANUAL_CHECK_DECISION', { latestVersion, currentVersion, available })
       return {
         available,
         version: latestVersion,
         currentVersion,
-        feedUrl: feedUrl?.toString(),
+        hasToken: !!ghToken,
       }
     }
-    debugLog('MANUAL_CHECK_NO_UPDATEINFO', { currentVersion, feedUrl: feedUrl?.toString() })
-    return { available: false, currentVersion, feedUrl: feedUrl?.toString() }
+    return { available: false, currentVersion, hasToken: !!ghToken }
   } catch (err: any) {
-    debugLog('MANUAL_CHECK_ERROR', { message: err.message, stack: err.stack, currentVersion: app.getVersion() })
-    return { available: false, error: err.message, currentVersion: app.getVersion() }
+    return {
+      available: false,
+      error: err.message,
+      currentVersion: app.getVersion(),
+      hasToken: !!ghToken,
+    }
   }
 }
 
