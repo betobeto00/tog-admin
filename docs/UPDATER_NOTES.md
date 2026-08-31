@@ -48,18 +48,27 @@ El proyecto actual usa **repo privado** con token inyectado en el binario. El fl
 
 2. **Crear el archivo del token** (NO se commitea al repo):
    ```bash
-   # El archivo build-resources/ está en .gitignore
+   # El directorio build-resources/ está en .gitignore
    mkdir -p build-resources
-   echo "ghp_xxxxxxxxxxxxxxxxxxxx" > build-resources/gh-token
+
+   # El archivo se llama .gh-token (con punto al inicio, estilo Unix hidden)
+   # y contiene SOLO el token crudo, una sola línea, sin "GH_TOKEN="
+   echo "ghp_xxxxxxxxxxxxxxxxxxxx" > build-resources/.gh-token
    ```
+
+   **Convenciones del archivo**:
+   - Nombre: `.gh-token` (con punto inicial para evitar commits accidentales)
+   - Contenido: solo el token, una línea, sin prefijo, sin comillas
+   - Encoding: UTF-8 sin BOM
+   - El updater hace `.trim()` antes de usarlo, así saltos de línea no importan
 
 3. **Build del instalador**:
    ```bash
    npm run build:installer
    ```
-   El config `extraResources` en `package.json` copia `build-resources/gh-token`
-   al directorio `resources/` del binario empaquetado. NO entra al asar, queda
-   como archivo plano junto al `app-update.yml`.
+   El config `extraResources` en `package.json` lee `build-resources/.gh-token`
+   y lo copia como `resources/gh-token` en el binario empaquetado. NO entra
+   al asar, queda como archivo plano junto al `app-update.yml`.
 
 4. **Subir el instalador a GitHub** (necesitas el MISMO token):
    ```bash

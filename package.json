@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "tog-admin",
   "version": "1.0.7",
   "description": "TOG Admin - Sistema de Punto de Venta para Papelería, Centro de Copiado e Impresión",
@@ -86,7 +86,7 @@
         ]
       },
       {
-        "from": "build-resources/gh-token",
+        "from": "build-resources/.gh-token",
         "to": "gh-token"
       }
     ],

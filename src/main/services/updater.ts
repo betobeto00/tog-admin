@@ -24,26 +24,28 @@ let mainWindow: BrowserWindow | null = null
 // ⚠️ SEGURIDAD: Solo dar scope `Contents: Read` al token. NO `repo` completo.
 // ----------------------------------------------------------------------------
 function loadGitHubToken(): string | null {
-  // 1) Archivo inyectado por electron-builder (extraResources)
-  //    En producción: process.resourcesPath/gh-token
-  //    En desarrollo: ./build-resources/gh-token (para testing)
-  const candidates = [
-    path.join(process.resourcesPath || '', 'gh-token'),
-    path.join(process.cwd(), 'build-resources', 'gh-token'),
-  ]
-  for (const filePath of candidates) {
-    try {
-      if (fs.existsSync(filePath)) {
-        const token = fs.readFileSync(filePath, 'utf-8').trim()
-        if (token) {
-          log.info(`[Updater] GitHub token loaded from file (length: ${token.length})`)
-          return token
+  // 1) Archivo inyectado por electron-builder (extraResources).
+    //    Nota: el archivo fuente puede tener cualquier nombre (ej: ".gh-token"),
+    //    pero electron-builder lo copia como "gh-token" (definido en `to:`).
+    //    En producción: process.resourcesPath/gh-token
+    //    En desarrollo: ./build-resources/.gh-token (para testing)
+    const candidates = [
+      path.join(process.resourcesPath || '', 'gh-token'),
+      path.join(process.cwd(), 'build-resources', '.gh-token'),
+    ]
+    for (const filePath of candidates) {
+      try {
+        if (fs.existsSync(filePath)) {
+          const token = fs.readFileSync(filePath, 'utf-8').trim()
+          if (token) {
+            log.info(`[Updater] GitHub token loaded from file (length: ${token.length})`)
+            return token
+          }
         }
+      } catch (err) {
+        log.warn(`[Updater] Failed to read token file ${filePath}: ${err}`)
       }
-    } catch (err) {
-      log.warn(`[Updater] Failed to read token file ${filePath}: ${err}`)
     }
-  }
 
   // 2) Variables de entorno (útil en CI/CD)
   const envToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN
