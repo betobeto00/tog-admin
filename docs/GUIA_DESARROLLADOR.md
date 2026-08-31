@@ -204,24 +204,41 @@ git push origin v1.0.3
 
 ### Paso 5: Crear Release en GitHub
 
-```bash
-gh release create v1.0.6 \ --repo betobeto00/tog-admin \ --title "TOG Admin v1.0.6" \ --notes "## Cambios - Descripción del cambio 1 - Descripción del cambio 2"
-```
+PowerShell no encadena comandos con `\` final de línea de forma confiable (es un backtick `` ` `` en PowerShell). Además, el formato `--repo owner/repo` requiere la barra `/` entre owner y repo.
 
-
-
-
-### Paso 6: Subir el instalador al Release
+Un solo comando por línea es lo más seguro:
 
 ```bash
-gh release upload v1.0.3 "release/TOG Admin Setup 1.0.3.exe" \ --repo betobeto00 tog-admin --clobber
+gh release create v1.0.6 --repo betobeto00/tog-admin --title "TOG Admin v1.0.6" --notes "Changelog aquí..."
 ```
+
+Si el `--notes` es largo, mejor guardarlo en un archivo y usar `--notes-file`:
+
+```bash
+gh release create v1.0.6 --repo betobeto00/tog-admin --title "TOG Admin v1.0.6" --notes-file release/RELEASE_NOTES.md
+```
+
+### Paso 6: Subir los 3 assets al Release
+
+⚠️ **Importante**: subir 3 archivos (no solo el `.exe`): el instalador, `latest.yml` y el `.exe.blockmap`. Sin los últimos dos, electron-updater no detecta la actualización.
+
+Recomendado: un comando por archivo para evitar problemas de quoting en PowerShell con paths con espacios.
+
+```bash
+gh release upload v1.0.3 "release/TOG Admin Setup 1.0.3.exe" --repo betobeto00/tog-admin --clobber
+gh release upload v1.0.3 "release/latest.yml" --repo betobeto00/tog-admin --clobber
+gh release upload v1.0.3 "release/TOG Admin Setup 1.0.3.exe.blockmap" --repo betobeto00/tog-admin --clobber
+```
+
+`--clobber` reemplaza el archivo si ya existía. Sustituye `v1.0.3` por tu número de versión.
 
 ### Verificar que el Release está correcto
 
 ```bash
 gh release view v1.0.3 --repo betobeto00/tog-admin
 ```
+
+Debe listar 3 assets: el `.exe`, `latest.yml` y el `.exe.blockmap`.
 
 ---
 
@@ -407,15 +424,13 @@ npm run build:installer
 git tag -a v1.0.3 -m "v1.0.3"
 git push origin v1.0.3
 
-# 5. Crear Release en GitHub
-gh release create v1.0.3 \
-  --repo betobeto00/tog-admin \
-  --title "TOG Admin v1.0.3" \
-  --notes "Changelog aquí..."
+# 5. Crear Release en GitHub (un comando por línea, sin \ al final)
+gh release create v1.0.3 --repo betobeto00/tog-admin --title "TOG Admin v1.0.3" --notes-file release/RELEASE_NOTES.md
 
-# 6. Subir el instalador
-gh release upload v1.0.3 "release/TOG Admin Setup 1.0.3.exe" \
-  --repo betobeto00/tog-admin --clobber
+# 6. Subir los 3 assets (instalador + latest.yml + blockmap)
+gh release upload v1.0.3 "release/TOG Admin Setup 1.0.3.exe" --repo betobeto00/tog-admin --clobber
+gh release upload v1.0.3 "release/latest.yml" --repo betobeto00/tog-admin --clobber
+gh release upload v1.0.3 "release/TOG Admin Setup 1.0.3.exe.blockmap" --repo betobeto00/tog-admin --clobber
 ```
 
 Los usuarios con versiones anteriores recibirán la notificación de actualización automáticamente al abrir la app.
