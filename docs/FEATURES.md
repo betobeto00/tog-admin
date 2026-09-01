@@ -5,6 +5,7 @@
 - 🔴 **P0** — MVP, indispensable para operar
 - 🟡 **P1** — Importante, agregar en fase 2
 - 🟢 **P2** — Deseable, agregar después
+- 🔵 **P3** — Futuro, expansión del sistema
 
 ---
 
@@ -30,7 +31,7 @@
 | P3 | Precio unitario editable | 🔴 | ✅ | Permite cambiar precio en venta directamente en el carrito |
 | P4 | Descuento por item | 🔴 | ✅ | Descuento individual por línea (%) |
 | P5 | Descuento global | 🔴 | ✅ | Descuento sobre subtotal (%) |
-| P6 | Múltiples métodos de pago | 🔴 | ✅ | Efectivo, transferencia, pago móvil, mixto, tarjeta |
+| P6 | Múltiples métodos de pago | 🔴 | ✅ | Efectivo, transferencia, pago móvil, mixto, tarjeta (configurable) |
 | P7 | Cálculo de cambio | 🔴 | ✅ | Auto-calcula vuelto en efectivo |
 | P8 | Ticket impreso | 🔴 | ✅ | Preview del ticket + impresión |
 | P9 | Ticket sin imprimir | 🔴 | ✅ | Cerrar modal sin imprimir |
@@ -38,7 +39,7 @@
 | P11 | Modo touch | 🟡 | ⏳ | Botones grandes para pantalla táctil |
 | P12 | Atajos de teclado | 🟡 | ✅ | F2=buscar, F5=cobrar |
 | P13 | Venta a crédito/fiado | 🟡 | ⏳ | Registrar venta sin cobro inmediato |
-| P14 | Tarjeta (VP800) | 🟡 | ✅ | Integración con terminal Valor VP800 |
+| P14 | Tarjeta (VP800) | 🟡 | ✅ | Integración con terminal Valor VP800 (USB/COM) |
 | P15 | Componente CartItem | 🟢 | ✅ | Subcomponente extraído para reutilización |
 | P16 | POS bloqueado sin caja | 🔴 | ✅ | No funciona si no hay caja abierta |
 | P17 | **Escáner código de barras USB** | 🟡 | ✅ | Hook useBarcodeScanner, scan → buscar → agregar al carrito |
@@ -63,6 +64,10 @@
 | I9 | Historial de movimientos | 🟡 | ✅ | Registro de cada ajuste de stock con justificación |
 | I10 | Ajuste de inventario | 🔴 | ✅ | Corregir stock manualmente con justificación |
 | I11 | Productos sin stock | 🟡 | ✅ | Filtro "Stock Bajo" para ver productos por debajo del mínimo |
+| I12 | **Tipo producto/servicio** | 🔴 | ⏳ | Identificar si es producto físico o servicio (Fase 5) |
+| I13 | **Subcategorías** | 🔴 | ⏳ | Subcategorías de productos (Fase 5) |
+| I14 | **Marca del producto** | 🟡 | ⏳ | Campo opcional de marca (Fase 5) |
+| I15 | **Imagen del producto** | 🟡 | ⏳ | Subir imagen del producto (Fase 5) |
 
 ---
 
@@ -101,12 +106,10 @@
 
 | # | Feature | Prioridad | Estado | Descripción |
 |---|---------|-----------|--------|-------------|
-| CO1 | Registrar compra | 🔴 | ✅ | Nuevo ingreso de mercancía |
-| CO2 | Seleccionar proveedor | 🔴 | ✅ | Asociar compra a proveedor |
-| CO3 | Agregar items | 🔴 | ✅ | Búsqueda, cantidad, costo unitario |
-| CO4 | Actualizar stock automático | 🔴 | ✅ | Sumar stock al confirmar compra |
-| CO5 | Historial de compras | 🔴 | ✅ | Con filtros de fecha |
-| CO6 | Nota de entrega | 🟡 | ⏳ | Imprimir documento de recepción |
+| CP1 | Registrar compras | 🔴 | ✅ | Crear compra con items y actualizar stock |
+| CP2 | Historial de compras | 🔴 | ✅ | Lista de compras con filtros |
+| CP3 | Proveedor asociado | 🔴 | ✅ | Seleccionar proveedor al registrar compra |
+| CP4 | Escáner en compras | 🟡 | ✅ | Escanear código de barras para agregar producto |
 
 ---
 
@@ -114,10 +117,23 @@
 
 | # | Feature | Prioridad | Estado | Descripción |
 |---|---------|-----------|--------|-------------|
-| PR1 | CRUD de proveedores | 🔴 | ✅ | Crear, editar, desactivar |
-| PR2 | Contacto (tel, email, dirección) | 🔴 | ✅ | Datos completos del proveedor |
-| PR3 | Tarjetas de proveedores | 🔴 | ✅ | Vista en tarjetas con iconos |
-| PR4 | Búsqueda | 🔴 | ✅ | Por nombre, RIF, teléfono |
+| PR1 | CRUD de proveedores | 🔴 | ✅ | Crear, editar, eliminar proveedores |
+| PR2 | Datos de contacto | 🔴 | ✅ | Nombre, EIN, teléfono, email, dirección |
+| PR3 | Notas | 🟢 | ✅ | Campo de notas para cada proveedor |
+
+---
+
+## Módulo: Cotizaciones 🟡
+
+| # | Feature | Prioridad | Estado | Descripción |
+|---|---------|-----------|--------|-------------|
+| Q1 | Crear cotización | 🟡 | ✅ | Crear presupuesto con items, cliente, validez |
+| Q2 | Lista de cotizaciones | 🟡 | ✅ | Ver todas las cotizaciones con filtros |
+| Q3 | Detalle de cotización | 🟡 | ✅ | Ver items y totales |
+| Q4 | Editar cotización | 🟡 | ✅ | Modificar cotización existente |
+| Q5 | Eliminar cotización | 🟡 | ✅ | Eliminar cotización |
+| Q6 | Exportar cotización a PDF | 🔴 | ⏳ | Generar PDF profesional con template (Fase 6) |
+| Q7 | Convertir cotización a venta | 🟡 | ⏳ | From QuotesPage → crear venta (Fase 6) |
 
 ---
 
@@ -125,16 +141,13 @@
 
 | # | Feature | Prioridad | Estado | Descripción |
 |---|---------|-----------|--------|-------------|
-| R1 | Ventas del día | 🔴 | ✅ | Resumen del día actual |
-| R2 | Ventas por período | 🔴 | ✅ | Gráfico de líneas con ingresos diarios |
-| R3 | Productos más vendidos | 🔴 | ✅ | Top 10 con gráfico de barras |
-| R4 | Métodos de pago | 🔴 | ✅ | Gráfico pie (efectivo/transferencia/móvil) |
-| R5 | Tarjetas resumen | 🔴 | ✅ | Total período, promedio diario, top producto |
-| R6 | Filtros rápidos | 🔴 | ✅ | Últimos 7 días, 30 días, rango custom |
-| R7 | Ventas por categoría | 🟡 | ✅ | Gráfico de barras horizontales por categoría |
-| R8 | Margen de ganancia | 🟡 | ⏳ | Ganancia real vs esperada |
-| R9 | Exportar reportes | 🟡 | ✅ | Exportar CSV + Imprimir PDF desde Reportes |
-| R10 | Últimas ventas (Dashboard) | 🔴 | ✅ | Últimas 10 ventas en dashboard |
+| R1 | Ventas por período | 🔴 | ✅ | Filtrar por rango de fechas |
+| R2 | Productos más vendidos | 🔴 | ✅ | Top productos por cantidad |
+| R3 | Últimas ventas | 🔴 | ✅ | Últimas 10 ventas en Dashboard |
+| R4 | Exportar CSV | 🟡 | ✅ | Exportar datos de reportes a CSV |
+| R5 | Exportar PDF | 🟡 | ✅ | Exportar reportes a PDF |
+| R6 | Gráficas de ventas | 🟡 | ✅ | Recharts con gráficas de tendencia |
+| R7 | Reportes avanzados | 🟡 | ⏳ | Comparativas, tendencias, exportación avanzada |
 
 ---
 
@@ -142,57 +155,16 @@
 
 | # | Feature | Prioridad | Estado | Descripción |
 |---|---------|-----------|--------|-------------|
-| CF1 | Datos del negocio | 🔴 | ✅ | Business name, EIN, address, phone |
-| CF2 | Gestión de usuarios | 🔴 | ✅ | CRUD users, roles admin/cashier |
-| CF3 | Sales Tax | 🔴 | ✅ | Configurable rate by state (default 0%) |
-| CF4 | Moneda | 🔴 | ✅ | Currency symbol (default $ USD) |
-| CF5 | Parámetros de caja | 🟡 | ✅ | Fondo inicial default configurable en Config |
-| CF6 | Backup manual | 🔴 | ✅ | Crear copia de seguridad (.db) |
-| CF7 | Backup automático | 🟡 | ✅ | Backup automático antes de cerrar caja |
-| CF8 | Restaurar backup | 🔴 | ✅ | Cargar archivo .db de respaldo |
-| CF9 | Configurar impresora | 🟡 | ✅ | Campo de nombre de impresora en Config |
-| CF10 | Configurar terminal VP800 | 🔴 | ✅ | Puerto COM, baud rate, conectar/desconectar |
-| CF11 | Reiniciar tutorial | 🟡 | ✅ | Botón para mostrar onboarding a nuevos usuarios |
-| CF12 | **Gestión de permisos por usuario** | 🟡 | ✅ | Modal con toggles de permisos agrupados por categoría |
-| CF13 | **Botón permisos por usuario** | 🟡 | ✅ | Icono Lock en tabla de usuarios para abrir PermissionsModal |
-
----
-
-## Módulo: Quotes / Presupuestos 🔴
-
-| # | Feature | Prioridad | Estado | Descripción |
-|---|---------|-----------|--------|-------------|
-| Q1 | Crear quote | 🔴 | ✅ | Cliente, items, notas, fecha de vencimiento |
-| Q2 | Ver quote | 🔴 | ✅ | Detalle completo con items y totales |
-| Q3 | Editar quote | 🔴 | ✅ | Solo quotes en estado pendiente |
-| Q4 | Cambiar estado | 🔴 | ✅ | Pendiente → Aprobada / Rechazada / Convertida |
-| Q5 | Imprimir quote | 🔴 | ✅ | Genera ticket HTML para imprimir |
-| Q6 | Eliminar quote | 🔴 | ✅ | Solo quotes pendientes |
-| Q7 | Filtros | 🔴 | ✅ | Por estado y búsqueda de cliente |
-| Q8 | Convertir a venta | 🟡 | ⏳ | Marcar como convertida |
-
----
-
-## Módulo: Empaquetado / Distribución 🟡
-
-| # | Feature | Prioridad | Estado | Descripción |
-|---|---------|-----------|--------|-------------|
-| E1 | Instalador NSIS | 🔴 | ✅ | Genera TOG-Admin-Setup.exe con acceso directo |
-| E2 | Desinstalador | 🔴 | ✅ | Se desinstala desde Panel de Control |
-| E3 | Idioma español | 🟡 | ✅ | Instalador en español |
-| E4 | Matar procesos | 🟡 | ✅ | Cierra TOG Admin antes de instalar/desinstalar |
-
----
-
-## Módulo: Dashboard 🔴
-
-| # | Feature | Prioridad | Estado | Descripción |
-|---|---------|-----------|--------|-------------|
-| D1 | Resumen del día | 🔴 | ✅ | Ventas hoy, tickets, promedio |
-| D2 | Últimas ventas | 🔴 | ✅ | Tabla de últimas 10 ventas |
-| D3 | Alertas de stock bajo | 🔴 | ✅ | Productos con stock mínimo |
-| D4 | Productos más vendidos hoy | 🟡 | ⏳ | Top del día |
-| D5 | Comparativa con ayer | 🟢 | ⏳ | Ventas hoy vs ayer |
+| CF1 | Datos del negocio | 🔴 | ✅ | Nombre, dirección, teléfono, EIN, logo |
+| CF2 | Impuestos | 🔴 | ✅ | Configurar tasa de impuesto |
+| CF3 | Impresora | 🟡 | ✅ | Configurar nombre de impresora térmica |
+| CF4 | Fondo inicial default | 🟡 | ✅ | Configurar fondo de caja por defecto |
+| CF5 | Terminal VP800 | 🟡 | ✅ | Configurar puerto COM, baud rate, conectar/desconectar |
+| CF6 | Backup/Restore | 🔴 | ✅ | Crear y restaurar copias de seguridad |
+| CF7 | Gestión de usuarios | 🔴 | ✅ | CRUD de usuarios con roles y permisos |
+| CF8 | Tutorial | 🟢 | ✅ | Onboarding de 5 pasos |
+| CF9 | Métodos de pago | 🟡 | ✅ | Configurar métodos de pago (efectivo, tarjeta, etc.) |
+| CF10 | **Tasa de cambio** | 🔴 | ⏳ | Configurar tasa de cambio y símbolo de moneda (Fase 8) |
 
 ---
 
@@ -200,39 +172,65 @@
 
 | # | Feature | Prioridad | Estado | Descripción |
 |---|---------|-----------|--------|-------------|
-| S1 | Validación Zod en IPC | 🔴 | ✅ | 19 schemas de validación en handlers críticos |
-| S2 | Validación de stock | 🔴 | ✅ | Prevenir stock negativo en ventas |
-| S3 | Notificaciones toast | 🔴 | ✅ | Sistema de feedback al usuario |
-| S4 | Context isolation | 🔴 | ✅ | Electron IPC seguro |
-| S5 | Bcrypt hashing | 🔴 | ✅ | Contraseñas hasheadas con salt |
-| S6 | Sistema de licencias | 🔴 | ✅ | RSA-2048 con validación offline |
-| S7 | ErrorBoundary global | 🔴 | ✅ | Captura errores React + genera crash report |
-| S8 | Crash reports automáticos | 🟡 | ✅ | Reportes de error con info del sistema |
-| S9 | Internacionalización (i18n) | 🟡 | ✅ | 2 idiomas (ES/EN), ~630 keys, todos los componentes traducidos |
-| S10 | Tests automatizados | 🟡 | ✅ | 104 tests (validaciones + componentes + permisos + utils + PermissionsModal) |
-| S11 | **Sistema de permisos por usuario** | 🟡 | ✅ | 28 permisos en 7 categorías, admin tiene todos, cajero tiene defaults |
-| S12 | **Sidebar filtrado por permisos** | 🟡 | ✅ | Ocultar módulos según permisos del usuario |
-| S13 | **Botones protegidos por permisos** | 🟡 | ✅ | Inventario, Compras, Config protegidos con checks de permisos |
+| SEC1 | Sistema de licencias RSA-2048 | 🔴 | ✅ | Licencias offline con validación de firma |
+| SEC2 | Permisos por usuario (28 permisos) | 🟡 | ✅ | 7 categorías de permisos granulares |
+| SEC3 | Rate limiting en login | 🔴 | ✅ | Bloqueo después de 5 intentos |
+| SEC4 | Session timeout | 🔴 | ✅ | 30 min de inactividad |
+| SEC5 | Password hashing (bcrypt) | 🔴 | ✅ | 10 salt rounds |
+| SEC6 | ErrorBoundary + Crash Reports | 🟡 | ✅ | Captura de errores + reportes automáticos |
+| SEC7 | CSP headers | 🟢 | ⏳ | Content Security Policy |
+| SEC8 | Validar origen IPC | 🟢 | ⏳ | webContents.getURL validation |
 
 ---
 
-## Módulo: Ayuda / Onboarding 🟡
+## Módulo: Infraestructura 🔴
 
 | # | Feature | Prioridad | Estado | Descripción |
 |---|---------|-----------|--------|-------------|
-| H1 | Centro de Ayuda | 🟡 | ✅ | 15 secciones detalladas con búsqueda, traducido |
-| H2 | Tutorial de onboarding | 🟡 | ✅ | 5 pasos interactivos para nuevos usuarios |
-| H3 | Notificaciones | 🟡 | ✅ | Campana con alertas de stock bajo y caja |
-| H4 | Copyright / Licencias | 🟡 | ✅ | Botones legales en pantalla de login |
-| H5 | Privacidad / Términos | 🟡 | ✅ | Políticas en modales del login |
+| INF1 | Auto-update (electron-updater) | 🟡 | ✅ | Actualizaciones vía GitHub Releases |
+| INF2 | NSIS installer | 🟡 | ✅ | Instalador Windows con acceso directo |
+| INF3 | i18n (ES/EN) | 🟡 | ✅ | 630+ keys de traducción, 2 idiomas |
+| INF4 | Tests automatizados | 🟡 | ✅ | ~134 tests (Vitest + React Testing Library) |
+| INF5 | Build portable | 🟢 | ✅ | Versión sin instalador |
+| INF6 | Instalador X32 | 🟡 | ⏳ | Instalador para arquitectura de 32 bits |
+| INF7 | Logging estructurado (winston) | 🟡 | ⏳ | Logging centralizado en main process |
+| INF8 | Multi-plataforma (Mac/Linux) | 🟢 | ⏳ | Soporte para macOS y Linux |
 
 ---
 
-## Conteo Total
+## Módulo: Futuro / Expansión 🔵
 
-| Prioridad | Implementadas | Pendientes |
-|-----------|---------------|------------|
-| 🔴 P0 (MVP) | ~45 | ~0 |
-| 🟡 P1 | ~37 | ~3 |
-| 🟢 P2 | ~4 | ~2 |
-| **Total** | **~86** | **~5** |
+| # | Feature | Prioridad | Estado | Descripción |
+|---|---------|-----------|--------|-------------|
+| F1 | Combos de productos | 🔴 | ⏳ | Paquetes de productos con descuento (Fase 6) |
+| F2 | Multi-sucursal | 🟡 | ⏳ | Varias ubicaciones con DB compartida (Fase 7) |
+| F3 | Pantalla auxiliar | 🟢 | ⏳ | Segunda pantalla para clientes (Fase 9) |
+| F4 | Facturación fiscal Venezuela | 🔴 | ⏳ | Comprobante fiscal válido (Fase 8) |
+| F5 | CSV formato SENIAT | 🟡 | ⏳ | Exportar para declaración de impuestos (Fase 8) |
+| F6 | Modo touch | 🟡 | ⏳ | Optimizado para tablet/pantalla táctil (Fase 3) |
+| F7 | Venta a crédito/fiado | 🟡 | ⏳ | Cuentas por cobrar (Fase 3) |
+| F8 | Imprimir etiquetas | 🟡 | ⏳ | Etiquetas con código de barras (Fase 3) |
+| F9 | WiFi para VP800 | 🟡 | ⏳ | Comunicación WiFi vía Valor Connect (Fase 3) |
+
+---
+
+## Resumen de Estado
+
+| Categoría | Total | ✅ Completado | ⏳ Pendiente |
+|-----------|-------|--------------|-------------|
+| Autenticación | 6 | 6 | 0 |
+| POS | 19 | 16 | 3 |
+| Inventario | 15 | 11 | 4 |
+| Caja | 9 | 9 | 0 |
+| Ventas | 8 | 8 | 0 |
+| Compras | 4 | 4 | 0 |
+| Proveedores | 3 | 3 | 0 |
+| Cotizaciones | 7 | 5 | 2 |
+| Reportes | 7 | 6 | 1 |
+| Configuración | 10 | 9 | 1 |
+| Seguridad | 8 | 6 | 2 |
+| Infraestructura | 8 | 5 | 3 |
+| Futuro/Expansión | 9 | 0 | 9 |
+| **TOTAL** | **113** | **88** | **25** |
+
+**Porcentaje completado: 77.9%**
