@@ -24,7 +24,7 @@ import {
 } from './services/crash-reporter'
 import { validateLicense, getLicenseStatus, saveLicense, resetLicenseState } from './services/license'
 import { getLang, setLang, initI18n, t, type SupportedLang } from './i18n'
-import { checkPermission } from './services/permissions'
+import { checkPermission, checkPermissionOrFail } from './services/permissions'
 import { getConfigMap, invalidateConfigCache } from './services/configCache'
 
 /**
@@ -103,7 +103,9 @@ function registerCrashReportHandlers(): void {
     }
   })
 
-  ipcMain.handle('crash-report:list', async () => {
+  ipcMain.handle('crash-report:list', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'crash-report:list', 'config_access')
+    if (fail) return fail
     try {
       return { success: true, reports: listCrashReports() }
     } catch (err: any) {
@@ -111,7 +113,9 @@ function registerCrashReportHandlers(): void {
     }
   })
 
-  ipcMain.handle('crash-report:read', async (_event, data: { filename: string }) => {
+  ipcMain.handle('crash-report:read', async (_event, data: { filename: string; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'crash-report:read', 'config_access')
+    if (fail) return fail
     try {
       const content = readCrashReport(data.filename)
       if (content === null) return { success: false, error: 'Reporte no encontrado' }
@@ -121,7 +125,9 @@ function registerCrashReportHandlers(): void {
     }
   })
 
-  ipcMain.handle('crash-report:delete', async (_event, data: { filename: string }) => {
+  ipcMain.handle('crash-report:delete', async (_event, data: { filename: string; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'crash-report:delete', 'config_access')
+    if (fail) return fail
     try {
       const deleted = deleteCrashReport(data.filename)
       return { success: deleted }
@@ -130,7 +136,9 @@ function registerCrashReportHandlers(): void {
     }
   })
 
-  ipcMain.handle('crash-report:open-folder', async () => {
+  ipcMain.handle('crash-report:open-folder', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'crash-report:open-folder', 'config_access')
+    if (fail) return fail
     try {
       await openCrashReportsFolder()
       return { success: true }
@@ -139,7 +147,9 @@ function registerCrashReportHandlers(): void {
     }
   })
 
-  ipcMain.handle('crash-report:path', async () => {
+  ipcMain.handle('crash-report:path', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'crash-report:path', 'config_access')
+    if (fail) return fail
     return getCrashReportsPath()
   })
 }
@@ -200,6 +210,8 @@ function registerAuthHandlers(): void {
 function registerUsuariosHandlers(): void {
   // Cambio de contraseña (propio usuario)
   ipcMain.handle('usuarios:change-password', async (_event, data: { usuario_id: number; contrasena_actual: string; contrasena_nueva: string }) => {
+    const fail = checkPermissionOrFail(data, 'usuarios:change-password', 'usuarios_change_own_password')
+    if (fail) return fail
     const db = getDatabase()
     const user = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(data.usuario_id) as any
     if (!user) {       return { success: false, error: t('errors.notFound') }
@@ -214,12 +226,16 @@ function registerUsuariosHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('usuarios:list', async () => {
+  ipcMain.handle('usuarios:list', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'usuarios:list', 'usuarios_access')
+    if (fail) return fail
     const db = getDatabase()
     return db.prepare('SELECT id, usuario, nombre, rol, activo, creado_en FROM usuarios ORDER BY nombre').all()
   })
 
   ipcMain.handle('usuarios:create', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'usuarios:create', 'usuarios_access')
+    if (fail) return fail
     const db = getDatabase()
     const hash = bcrypt.hashSync(data.contrasena, 10)
     const result = db.prepare(
@@ -228,7 +244,9 @@ function registerUsuariosHandlers(): void {
     return { id: result.lastInsertRowid }
   })
 
-  ipcMain.handle('usuarios:update', async (_event, data: { id: number; data: any }) => {
+  ipcMain.handle('usuarios:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'usuarios:update', 'usuarios_access')
+    if (fail) return fail
     const db = getDatabase()
     const fields: string[] = []
     const values: any[] = []
@@ -248,14 +266,18 @@ function registerUsuariosHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('usuarios:delete', async (_event, data: { id: number }) => {
+  ipcMain.handle('usuarios:delete', async (_event, data: { id: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'usuarios:delete', 'usuarios_access')
+    if (fail) return fail
     const db = getDatabase()
     db.prepare(`UPDATE usuarios SET activo = 0, actualizado_en = datetime('now') WHERE id = ?`).run(data.id)
     return { success: true }
   })
 
   // Obtener permisos de un usuario
-  ipcMain.handle('usuarios:getPermissions', async (_event, data: { id: number }) => {
+  ipcMain.handle('usuarios:getPermissions', async (_event, data: { id: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'usuarios:getPermissions', 'usuarios_access')
+    if (fail) return fail
     const db = getDatabase()
     const user = db.prepare('SELECT id, usuario, nombre, rol, permisos FROM usuarios WHERE id = ?').get(data.id) as any
     if (!user) return { success: false, error: 'Usuario no encontrado' }
@@ -273,7 +295,9 @@ function registerUsuariosHandlers(): void {
   })
 
   // Establecer permisos de un usuario
-  ipcMain.handle('usuarios:setPermissions', async (_event, data: { id: number; permisos: PermissionKey[] }) => {
+  ipcMain.handle('usuarios:setPermissions', async (_event, data: { id: number; permisos: PermissionKey[]; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'usuarios:setPermissions', 'usuarios_manage_roles')
+    if (fail) return fail
     const db = getDatabase()
     const user = db.prepare('SELECT id, rol FROM usuarios WHERE id = ?').get(data.id) as any
     if (!user) return { success: false, error: 'Usuario no encontrado' }
@@ -294,12 +318,16 @@ function registerUsuariosHandlers(): void {
 // ============================================
 
 function registerCategoriasHandlers(): void {
-  ipcMain.handle('categorias:list', async () => {
+  ipcMain.handle('categorias:list', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'categorias:list', 'inventario_access')
+    if (fail) return fail
     const db = getDatabase()
     return db.prepare('SELECT * FROM categorias WHERE activo = 1 ORDER BY nombre').all()
   })
 
   ipcMain.handle('categorias:create', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'categorias:create', 'inventario_categories')
+    if (fail) return fail
     const db = getDatabase()
     const result = db.prepare('INSERT INTO categorias (nombre, descripcion) VALUES (?, ?)').run(
       data.nombre,
@@ -308,7 +336,9 @@ function registerCategoriasHandlers(): void {
     return { id: result.lastInsertRowid }
   })
 
-  ipcMain.handle('categorias:update', async (_event, data: { id: number; data: any }) => {
+  ipcMain.handle('categorias:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'categorias:update', 'inventario_categories')
+    if (fail) return fail
     const db = getDatabase()
     db.prepare('UPDATE categorias SET nombre = COALESCE(?, nombre), descripcion = COALESCE(?, descripcion) WHERE id = ?').run(
       data.data.nombre || null,
@@ -318,7 +348,9 @@ function registerCategoriasHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('categorias:delete', async (_event, data: { id: number }) => {
+  ipcMain.handle('categorias:delete', async (_event, data: { id: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'categorias:delete', 'inventario_categories')
+    if (fail) return fail
     const db = getDatabase()
     db.prepare('UPDATE categorias SET activo = 0 WHERE id = ?').run(data.id)
     return { success: true }
@@ -330,12 +362,16 @@ function registerCategoriasHandlers(): void {
 // ============================================
 
 function registerUnidadesHandlers(): void {
-  ipcMain.handle('unidades:list', async () => {
+  ipcMain.handle('unidades:list', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'unidades:list', 'inventario_access')
+    if (fail) return fail
     const db = getDatabase()
     return db.prepare('SELECT * FROM unidades_medida WHERE activo = 1 ORDER BY nombre').all()
   })
 
   ipcMain.handle('unidades:create', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'unidades:create', 'inventario_units')
+    if (fail) return fail
     const db = getDatabase()
     const result = db.prepare('INSERT INTO unidades_medida (nombre, abreviatura) VALUES (?, ?)').run(
       data.nombre, data.abreviatura || null
@@ -343,7 +379,9 @@ function registerUnidadesHandlers(): void {
     return { id: result.lastInsertRowid }
   })
 
-  ipcMain.handle('unidades:update', async (_event, data: { id: number; data: any }) => {
+  ipcMain.handle('unidades:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'unidades:update', 'inventario_units')
+    if (fail) return fail
     const db = getDatabase()
     db.prepare('UPDATE unidades_medida SET nombre = COALESCE(?, nombre), abreviatura = COALESCE(?, abreviatura) WHERE id = ?').run(
       data.data.nombre || null, data.data.abreviatura || null, data.id
@@ -351,7 +389,9 @@ function registerUnidadesHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('unidades:delete', async (_event, data: { id: number }) => {
+  ipcMain.handle('unidades:delete', async (_event, data: { id: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'unidades:delete', 'inventario_units')
+    if (fail) return fail
     const db = getDatabase()
     db.prepare('UPDATE unidades_medida SET activo = 0 WHERE id = ?').run(data.id)
     return { success: true }
@@ -364,6 +404,8 @@ function registerUnidadesHandlers(): void {
 
 function registerProductosHandlers(): void {
   ipcMain.handle('productos:list', async (_event, filters?: any) => {
+    const fail = checkPermissionOrFail(filters, 'productos:list', 'inventario_access')
+    if (fail) return fail
     const db = getDatabase()
     let sql = `
       SELECT p.*, c.nombre as categoria_nombre
@@ -388,7 +430,9 @@ function registerProductosHandlers(): void {
     return db.prepare(sql).all(...params)
   })
 
-  ipcMain.handle('productos:getById', async (_event, data: { id: number }) => {
+  ipcMain.handle('productos:getById', async (_event, data: { id: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'productos:getById', 'inventario_access')
+    if (fail) return fail
     const db = getDatabase()
     return db.prepare(`
       SELECT p.*, c.nombre as categoria_nombre
@@ -399,6 +443,8 @@ function registerProductosHandlers(): void {
   })
 
   ipcMain.handle('productos:create', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'productos:create', 'inventario_create')
+    if (fail) return fail
     const parsed = productoCreateSchema.safeParse(data)
     if (!parsed.success) {
       return { success: false, error: parsed.error.errors[0].message }
@@ -423,7 +469,9 @@ function registerProductosHandlers(): void {
     return { id: result.lastInsertRowid }
   })
 
-  ipcMain.handle('productos:update', async (_event, data: { id: number; data: any }) => {
+  ipcMain.handle('productos:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'productos:update', 'inventario_edit')
+    if (fail) return fail
     const db = getDatabase()
     const d = data.data
     db.prepare(`
@@ -449,13 +497,17 @@ function registerProductosHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('productos:delete', async (_event, data: { id: number }) => {
+  ipcMain.handle('productos:delete', async (_event, data: { id: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'productos:delete', 'inventario_delete')
+    if (fail) return fail
     const db = getDatabase()
     db.prepare(`UPDATE productos SET activo = 0, actualizado_en = datetime('now') WHERE id = ?`).run(data.id)
     return { success: true }
   })
 
-  ipcMain.handle('productos:low-stock', async () => {
+  ipcMain.handle('productos:low-stock', async (_event, data?: any) => {
+    const fail = checkPermissionOrFail(data, 'productos:low-stock', 'inventario_access')
+    if (fail) return fail
     const db = getDatabase()
     return db.prepare(`
       SELECT p.*, c.nombre as categoria_nombre
@@ -467,6 +519,8 @@ function registerProductosHandlers(): void {
   })
 
   ipcMain.handle('productos:ajustar', async (_event, data: { producto_id: number; stock_nuevo: number; justificacion: string; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'productos:ajustar', 'inventario_adjust')
+    if (fail) return fail
     const db = getDatabase()
     const ajustar = db.transaction(() => {
       const producto = db!.prepare('SELECT id, nombre, stock FROM productos WHERE id = ?').get(data.producto_id) as any
@@ -490,7 +544,9 @@ function registerProductosHandlers(): void {
     return ajustar()
   })
 
-  ipcMain.handle('productos:ajustes-historial', async (_event, data?: { producto_id?: number; limite?: number }) => {
+  ipcMain.handle('productos:ajustes-historial', async (_event, data?: { producto_id?: number; limite?: number; usuario_id?: number }) => {
+    const fail = checkPermissionOrFail(data, 'productos:ajustes-historial', 'inventario_access')
+    if (fail) return fail
     const db = getDatabase()
     let sql = `
       SELECT a.*, p.nombre as producto_nombre, u.nombre as usuario_nombre
@@ -507,7 +563,9 @@ function registerProductosHandlers(): void {
   })
 
   // Buscar producto por codigo de barras o SKU (para lector USB HID)
-  ipcMain.handle('productos:buscar-por-codigo', async (_event, data: { codigo: string }) => {
+  ipcMain.handle('productos:buscar-por-codigo', async (_event, data: { codigo: string; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'productos:buscar-por-codigo', 'inventario_access')
+    if (fail) return fail
     const db = getDatabase()
     const codigo = data.codigo.trim()
     if (!codigo) return null
@@ -539,12 +597,16 @@ function registerProductosHandlers(): void {
 // ============================================
 
 function registerProveedoresHandlers(): void {
-  ipcMain.handle('proveedores:list', async () => {
+  ipcMain.handle('proveedores:list', async (_event, data?: any) => {
+    const fail = checkPermissionOrFail(data, 'proveedores:list', 'compras_access')
+    if (fail) return fail
     const db = getDatabase()
     return db.prepare('SELECT * FROM proveedores WHERE activo = 1 ORDER BY nombre').all()
   })
 
   ipcMain.handle('proveedores:create', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'proveedores:create', 'compras_suppliers')
+    if (fail) return fail
     const db = getDatabase()
     const result = db.prepare(
       'INSERT INTO proveedores (nombre, ein, telefono, email, direccion, notas) VALUES (?, ?, ?, ?, ?, ?)'
@@ -552,7 +614,9 @@ function registerProveedoresHandlers(): void {
     return { id: result.lastInsertRowid }
   })
 
-  ipcMain.handle('proveedores:update', async (_event, data: { id: number; data: any }) => {
+  ipcMain.handle('proveedores:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'proveedores:update', 'compras_suppliers')
+    if (fail) return fail
     const db = getDatabase()
     const d = data.data
     db.prepare(`
@@ -565,7 +629,9 @@ function registerProveedoresHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('proveedores:delete', async (_event, data: { id: number }) => {
+  ipcMain.handle('proveedores:delete', async (_event, data: { id: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'proveedores:delete', 'compras_suppliers')
+    if (fail) return fail
     const db = getDatabase()
     db.prepare('UPDATE proveedores SET activo = 0 WHERE id = ?').run(data.id)
     return { success: true }
@@ -578,6 +644,8 @@ function registerProveedoresHandlers(): void {
 
 function registerVentasHandlers(): void {
   ipcMain.handle('ventas:list', async (_event, filters?: any) => {
+    const fail = checkPermissionOrFail(filters, 'ventas:list', 'pos_access')
+    if (fail) return fail
     const db = getDatabase()
     let sql = `
       SELECT v.*, u.nombre as usuario_nombre
@@ -600,7 +668,9 @@ function registerVentasHandlers(): void {
     return db.prepare(sql).all(...params)
   })
 
-  ipcMain.handle('ventas:getById', async (_event, data: { id: number }) => {
+  ipcMain.handle('ventas:getById', async (_event, data: { id: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'ventas:getById', 'pos_access')
+    if (fail) return fail
     const db = getDatabase()
     const venta = db.prepare(`
       SELECT v.*, u.nombre as usuario_nombre
@@ -622,6 +692,8 @@ function registerVentasHandlers(): void {
   })
 
   ipcMain.handle('ventas:create', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'ventas:create', 'pos_access')
+    if (fail) return fail
     const parsed = ventaCreateSchema.safeParse(data)
     if (!parsed.success) {
       return { success: false, error: parsed.error.errors[0].message }
@@ -713,7 +785,9 @@ function registerVentasHandlers(): void {
     return { success: true, ...result }
   })
 
-  ipcMain.handle('ventas:anular', async (_event, data: { id: number; motivo: string }) => {
+  ipcMain.handle('ventas:anular', async (_event, data: { id: number; motivo: string; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'ventas:anular', 'pos_void_sale')
+    if (fail) return fail
     const db = getDatabase()
 
     const anularVenta = db.transaction(() => {
@@ -742,7 +816,9 @@ function registerVentasHandlers(): void {
     return anularVenta()
   })
 
-  ipcMain.handle('ventas:resumen-dia', async (_event, data?: { fecha?: string }) => {
+  ipcMain.handle('ventas:resumen-dia', async (_event, data?: { fecha?: string; usuario_id?: number }) => {
+    const fail = checkPermissionOrFail(data, 'ventas:resumen-dia', 'caja_report_x')
+    if (fail) return fail
     const db = getDatabase()
     const fecha = data?.fecha || new Date().toISOString().split('T')[0]
 
@@ -767,6 +843,8 @@ function registerVentasHandlers(): void {
 
 function registerComprasHandlers(): void {
   ipcMain.handle('compras:list', async (_event, filters?: any) => {
+    const fail = checkPermissionOrFail(filters, 'compras:list', 'compras_access')
+    if (fail) return fail
     const db = getDatabase()
     let sql = `
       SELECT c.*, p.nombre as proveedor_nombre, u.nombre as usuario_nombre
@@ -791,6 +869,8 @@ function registerComprasHandlers(): void {
   })
 
   ipcMain.handle('compras:create', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'compras:create', 'compras_create')
+    if (fail) return fail
     const parsed = compraCreateSchema.safeParse(data)
     if (!parsed.success) {
       return { success: false, error: parsed.error.errors[0].message }
@@ -847,7 +927,9 @@ function registerComprasHandlers(): void {
 // ============================================
 
 function registerCajaHandlers(): void {
-  ipcMain.handle('caja:status', async () => {
+  ipcMain.handle('caja:status', async (_event, data?: any) => {
+    const fail = checkPermissionOrFail(data, 'caja:status', 'caja_access')
+    if (fail) return fail
     const db = getDatabase()
     return db.prepare(`
       SELECT c.*, u.nombre as usuario_nombre
@@ -860,6 +942,8 @@ function registerCajaHandlers(): void {
   })
 
   ipcMain.handle('caja:abrir', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'caja:abrir', 'caja_open')
+    if (fail) return fail
     const db = getDatabase()
 
     // Verificar que no haya caja abierta
@@ -876,6 +960,8 @@ function registerCajaHandlers(): void {
   })
 
   ipcMain.handle('caja:cerrar', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'caja:cerrar', 'caja_close')
+    if (fail) return fail
     const db = getDatabase()
 
     const cerrarCaja = db.transaction(() => {
@@ -904,6 +990,8 @@ function registerCajaHandlers(): void {
   })
 
   ipcMain.handle('caja:movimiento', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'caja:movimiento', 'caja_movement')
+    if (fail) return fail
     const db = getDatabase()
 
     const cajaAbierta = db.prepare("SELECT id FROM caja WHERE estado = 'abierta' LIMIT 1").get() as any
@@ -927,6 +1015,8 @@ function registerCajaHandlers(): void {
   })
 
   ipcMain.handle('caja:historial', async (_event, filters?: any) => {
+    const fail = checkPermissionOrFail(filters, 'caja:historial', 'caja_access')
+    if (fail) return fail
     const db = getDatabase()
     let sql = `
       SELECT c.*, u.nombre as usuario_nombre
@@ -956,6 +1046,8 @@ function registerCajaHandlers(): void {
 
 function registerQuotesHandlers(): void {
   ipcMain.handle('quotes:list', async (_event, filters?: any) => {
+    const fail = checkPermissionOrFail(filters, 'quotes:list', 'quotes_access')
+    if (fail) return fail
     const db = getDatabase()
     let sql = `SELECT q.*, u.nombre as usuario_nombre FROM quotes q LEFT JOIN usuarios u ON q.usuario_id = u.id WHERE 1=1`
     const params: any[] = []
@@ -968,7 +1060,9 @@ function registerQuotesHandlers(): void {
     return db.prepare(sql).all(...params)
   })
 
-  ipcMain.handle('quotes:getById', async (_event, data: { id: number }) => {
+  ipcMain.handle('quotes:getById', async (_event, data: { id: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'quotes:getById', 'quotes_access')
+    if (fail) return fail
     const db = getDatabase()
     const quote = db.prepare(`SELECT q.*, u.nombre as usuario_nombre FROM quotes q LEFT JOIN usuarios u ON q.usuario_id = u.id WHERE q.id = ?`).get(data.id) as any
     if (quote) {
@@ -978,6 +1072,8 @@ function registerQuotesHandlers(): void {
   })
 
   ipcMain.handle('quotes:create', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'quotes:create', 'quotes_create')
+    if (fail) return fail
     const db = getDatabase()
     const createQuote = db.transaction(() => {
       const lastNum = db!.prepare('SELECT MAX(numero_cotizacion) as max_num FROM quotes').get() as any
@@ -996,7 +1092,9 @@ function registerQuotesHandlers(): void {
     return createQuote()
   })
 
-  ipcMain.handle('quotes:update', async (_event, data: { id: number; data: any }) => {
+  ipcMain.handle('quotes:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'quotes:update', 'quotes_edit')
+    if (fail) return fail
     const db = getDatabase()
     const d = data.data
     db.prepare(`
@@ -1017,7 +1115,9 @@ function registerQuotesHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('quotes:delete', async (_event, data: { id: number }) => {
+  ipcMain.handle('quotes:delete', async (_event, data: { id: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'quotes:delete', 'quotes_delete')
+    if (fail) return fail
     const db = getDatabase()
     db.prepare('DELETE FROM quote_detalles WHERE quote_id = ?').run(data.id)
     db.prepare('DELETE FROM quotes WHERE id = ?').run(data.id)
@@ -1031,6 +1131,8 @@ function registerQuotesHandlers(): void {
 
 function registerReportesHandlers(): void {
   ipcMain.handle('reportes:ventas-periodo', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'reportes:ventas-periodo', 'reportes_access')
+    if (fail) return fail
     const db = getDatabase()
     return db.prepare(`
       SELECT
@@ -1045,6 +1147,8 @@ function registerReportesHandlers(): void {
   })
 
   ipcMain.handle('reportes:productos-mas-vendidos', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'reportes:productos-mas-vendidos', 'reportes_access')
+    if (fail) return fail
     const db = getDatabase()
     const limite = data.limite || 10
     return db.prepare(`
@@ -1063,7 +1167,9 @@ function registerReportesHandlers(): void {
     `).all(data.fecha_inicio, data.fecha_fin, limite)
   })
 
-  ipcMain.handle('reportes:ultimas-ventas', async (_event, data?: { limite?: number }) => {
+  ipcMain.handle('reportes:ultimas-ventas', async (_event, data?: { limite?: number; usuario_id?: number }) => {
+    const fail = checkPermissionOrFail(data, 'reportes:ultimas-ventas', 'reportes_access')
+    if (fail) return fail
     const db = getDatabase()
     const limite = data?.limite || 10
     return db.prepare(`
@@ -1077,6 +1183,8 @@ function registerReportesHandlers(): void {
   })
 
   ipcMain.handle('reportes:ventas-por-categoria', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'reportes:ventas-por-categoria', 'reportes_access')
+    if (fail) return fail
     const db = getDatabase()
     return db.prepare(`
       SELECT
@@ -1107,14 +1215,18 @@ function getDbPath(): string {
 }
 
 function registerConfigHandlers(): void {
-  ipcMain.handle('config:get', async () => {
+  ipcMain.handle('config:get', async (_event, data?: any) => {
+    const fail = checkPermissionOrFail(data, 'config:get', 'config_access')
+    if (fail) return fail
     const map = getConfigMap()
     return Array.from(map, ([clave, valor]) => ({ clave, valor })).sort((a, b) =>
       a.clave.localeCompare(b.clave)
     )
   })
 
-  ipcMain.handle('config:set', async (_event, data: { clave: string; valor: string }) => {
+  ipcMain.handle('config:set', async (_event, data: { clave: string; valor: string; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'config:set', 'config_edit')
+    if (fail) return fail
     const db = getDatabase()
     db.prepare(
       "INSERT OR REPLACE INTO configuracion (clave, valor, actualizado_en) VALUES (?, ?, datetime('now'))"
@@ -1129,7 +1241,9 @@ function registerConfigHandlers(): void {
 // ============================================
 
 function registerMetodosPagoHandlers(): void {
-  ipcMain.handle('metodos-pago:list', async (_event, data: { activoOnly?: boolean } | undefined) => {
+  ipcMain.handle('metodos-pago:list', async (_event, data: { activoOnly?: boolean; usuario_id?: number } | undefined) => {
+    const fail = checkPermissionOrFail(data, 'metodos-pago:list', 'config_access')
+    if (fail) return fail
     const db = getDatabase()
     const rows = data?.activoOnly
       ? db.prepare('SELECT * FROM metodos_pago WHERE activo = 1 ORDER BY orden, id').all()
@@ -1138,6 +1252,8 @@ function registerMetodosPagoHandlers(): void {
   })
 
   ipcMain.handle('metodos-pago:create', async (_event, data: any) => {
+    const fail = checkPermissionOrFail(data, 'metodos-pago:create', 'config_edit')
+    if (fail) return fail
     const db = getDatabase()
     if (!data.clave || !data.nombre) return { success: false, error: 'clave y nombre son requeridos' }
     const clave = String(data.clave).toLowerCase().replace(/\s+/g, '_')
@@ -1151,7 +1267,9 @@ function registerMetodosPagoHandlers(): void {
     }
   })
 
-  ipcMain.handle('metodos-pago:update', async (_event, data: { id: number; data: any }) => {
+  ipcMain.handle('metodos-pago:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'metodos-pago:update', 'config_edit')
+    if (fail) return fail
     const db = getDatabase()
     const fields: string[] = []
     const values: any[] = []
@@ -1169,13 +1287,17 @@ function registerMetodosPagoHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('metodos-pago:delete', async (_event, data: { id: number }) => {
+  ipcMain.handle('metodos-pago:delete', async (_event, data: { id: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'metodos-pago:delete', 'config_edit')
+    if (fail) return fail
     const db = getDatabase()
     db.prepare('UPDATE metodos_pago SET activo = 0 WHERE id = ?').run(data.id)
     return { success: true }
   })
 
-  ipcMain.handle('metodos-pago:procesar-tarjeta', async (_event, data: { monto: number }) => {
+  ipcMain.handle('metodos-pago:procesar-tarjeta', async (_event, data: { monto: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'metodos-pago:procesar-tarjeta', 'pos_access')
+    if (fail) return fail
     const { getTerminalService } = await import('./services/valorTerminal')
     const terminal = getTerminalService()
     if (!terminal.isConnected()) {
@@ -1202,7 +1324,9 @@ function registerMetodosPagoHandlers(): void {
 // ============================================
 
 function registerBackupHandlers(): void {
-  ipcMain.handle('backup:create', async (_event, data?: { ruta?: string }) => {
+  ipcMain.handle('backup:create', async (_event, data?: { ruta?: string; usuario_id?: number }) => {
+    const fail = checkPermissionOrFail(data, 'backup:create', 'config_backup')
+    if (fail) return fail
     try {
       const dbPath = getDbPath()
       if (!fs.existsSync(dbPath)) {         return { success: false, error: t('errors.dbNotFound') }
@@ -1234,7 +1358,9 @@ function registerBackupHandlers(): void {
     }
   })
 
-  ipcMain.handle('backup:restore', async (_event, data?: { ruta?: string }) => {
+  ipcMain.handle('backup:restore', async (_event, data?: { ruta?: string; usuario_id?: number }) => {
+    const fail = checkPermissionOrFail(data, 'backup:restore', 'config_backup')
+    if (fail) return fail
     try {
       let sourcePath = data?.ruta
       if (!sourcePath) {
@@ -1294,7 +1420,9 @@ function registerBackupHandlers(): void {
   })
 
   // Reset DB (dangerous - only admin)
-  ipcMain.handle('db:reset', async () => {
+  ipcMain.handle('db:reset', async (_event, data?: any) => {
+    const fail = checkPermissionOrFail(data, 'db:reset', 'config_db_reset')
+    if (fail) return fail
     try {
       const dbPath = getDbPath()
       if (!fs.existsSync(dbPath)) {
@@ -1331,7 +1459,9 @@ function registerBackupHandlers(): void {
 function registerTerminalHandlers(): void {
   const terminal = getTerminalService()
 
-  ipcMain.handle('terminal:conectar', async (_event, data: { puerto: string; baudRate?: number }) => {
+  ipcMain.handle('terminal:conectar', async (_event, data: { puerto: string; baudRate?: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'terminal:conectar', 'config_terminal')
+    if (fail) return fail
     try {
       await terminal.connect(data.puerto, data.baudRate || 9600)
       return { success: true }
@@ -1340,16 +1470,22 @@ function registerTerminalHandlers(): void {
     }
   })
 
-  ipcMain.handle('terminal:desconectar', async () => {
+  ipcMain.handle('terminal:desconectar', async (_event, data?: any) => {
+    const fail = checkPermissionOrFail(data, 'terminal:desconectar', 'config_terminal')
+    if (fail) return fail
     terminal.disconnect()
     return { success: true }
   })
 
-  ipcMain.handle('terminal:estado', async () => {
+  ipcMain.handle('terminal:estado', async (_event, data?: any) => {
+    const fail = checkPermissionOrFail(data, 'terminal:estado', 'config_terminal')
+    if (fail) return fail
     return terminal.consultarEstado()
   })
 
-  ipcMain.handle('terminal:procesar-pago', async (_event, data: { monto: number; timeoutMs?: number }) => {
+  ipcMain.handle('terminal:procesar-pago', async (_event, data: { monto: number; timeoutMs?: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'terminal:procesar-pago', 'pos_access')
+    if (fail) return fail
     try {
       const resultado = await terminal.enviarCobro(data.monto, data.timeoutMs)
 
@@ -1388,11 +1524,15 @@ function registerLicenseHandlers(): void {
     return validateLicense()
   })
 
-  ipcMain.handle('license:import', async (_event, fileContent: string) => {
+  ipcMain.handle('license:import', async (_event, fileContent: string, data?: any) => {
+    const fail = checkPermissionOrFail(data, 'license:import', 'license_manage')
+    if (fail) return fail
     return saveLicense(fileContent)
   })
 
-  ipcMain.handle('license:reset-state', async () => {
+  ipcMain.handle('license:reset-state', async (_event, data?: any) => {
+    const fail = checkPermissionOrFail(data, 'license:reset-state', 'license_manage')
+    if (fail) return fail
     resetLicenseState()
     return { success: true }
   })
@@ -1403,7 +1543,9 @@ function registerLicenseHandlers(): void {
 // ============================================
 
 function registerProductosCsvHandlers(): void {
-  ipcMain.handle('productos:export-csv', async () => {
+  ipcMain.handle('productos:export-csv', async (_event, data?: any) => {
+    const fail = checkPermissionOrFail(data, 'productos:export-csv', 'reportes_export')
+    if (fail) return fail
     try {
       const result = await dialog.showSaveDialog({
         title: 'Exportar Productos',
@@ -1437,7 +1579,9 @@ function registerProductosCsvHandlers(): void {
     }
   })
 
-  ipcMain.handle('productos:import-csv', async (_event, filePath: string) => {
+  ipcMain.handle('productos:import-csv', async (_event, filePath: string, data?: any) => {
+    const fail = checkPermissionOrFail(data, 'productos:import-csv', 'inventario_create')
+    if (fail) return fail
     try {
       const content = fs.readFileSync(filePath, 'utf8')
       const lines = content.split('\n').filter((l) => l.trim())
@@ -1490,7 +1634,9 @@ function registerProductosCsvHandlers(): void {
 // ============================================
 
 function registerCajaExtraHandlers(): void {
-  ipcMain.handle('caja:reporte-x', async () => {
+  ipcMain.handle('caja:reporte-x', async (_event, data?: any) => {
+    const fail = checkPermissionOrFail(data, 'caja:reporte-x', 'caja_report_x')
+    if (fail) return fail
     try {
       const db = getDatabase()
       const caja = db.prepare("SELECT * FROM caja WHERE estado = 'abierta' LIMIT 1").get() as any
@@ -1533,7 +1679,9 @@ function registerCajaExtraHandlers(): void {
     }
   })
 
-  ipcMain.handle('caja:backup-auto', async () => {
+  ipcMain.handle('caja:backup-auto', async (_event, data?: any) => {
+    const fail = checkPermissionOrFail(data, 'caja:backup-auto', 'config_backup')
+    if (fail) return fail
     try {
       const dbPath = app.isPackaged
         ? path.join(app.getPath('userData'), 'tog-admin.db')
@@ -1560,7 +1708,9 @@ function registerCajaExtraHandlers(): void {
 // ============================================
 
 function registerAjustesHandlers(): void {
-  ipcMain.handle('ajustes:historial', async (_event, data?: { producto_id?: number; limite?: number }) => {
+  ipcMain.handle('ajustes:historial', async (_event, data?: { producto_id?: number; limite?: number; usuario_id?: number }) => {
+    const fail = checkPermissionOrFail(data, 'ajustes:historial', 'inventario_access')
+    if (fail) return fail
     const db = getDatabase()
     let sql = `
       SELECT a.*, p.nombre as producto_nombre, u.nombre as usuario_nombre

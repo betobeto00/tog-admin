@@ -55,3 +55,35 @@ export function extractUserId(data: any): number | null {
   if (data?.id && typeof data.id === 'number') return data.id
   return null
 }
+
+/**
+ * Verifica permiso y devuelve un objeto compatible con el patrón actual de los handlers
+ * ({ success: false, error: ... }) o null si pasa. Usar al inicio de cada handler:
+ *
+ *   const fail = checkPermissionOrFail(data, 'ventas:create', 'pos_access')
+ *   if (fail) return fail
+ *
+ * Acepta usuario_id en `data` (prioridad), `payload`, o en `data.usuario_id`.
+ */
+export function checkPermissionOrFail(
+  data: any,
+  channel: string,
+  permission: PermissionKey,
+): { success: false; error: string; channel: string } | null {
+  const userId = extractUserId(data)
+  if (userId == null) {
+    return {
+      success: false,
+      error: `Canal '${channel}' requiere usuario autenticado (no se proporcionó usuario_id).`,
+      channel,
+    }
+  }
+  if (!checkPermission(userId, permission)) {
+    return {
+      success: false,
+      error: `Permiso denegado: '${permission}' requerido para '${channel}'.`,
+      channel,
+    }
+  }
+  return null
+}

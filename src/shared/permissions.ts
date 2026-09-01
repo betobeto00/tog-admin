@@ -183,6 +183,30 @@ export const PERMISSIONS = {
     category: { es: 'Administración', en: 'Administration' },
     description: { es: 'Modificar permisos de otros usuarios', en: 'Modify other users permissions' },
   },
+  usuarios_change_own_password: {
+    label: { es: 'Cambiar propia contraseña', en: 'Change Own Password' },
+    category: { es: 'Administración', en: 'Administration' },
+    description: { es: 'Permite a cualquier usuario cambiar su propia contraseña', en: 'Allows any user to change their own password' },
+  },
+
+  // === COTIZACIONES (granularidad fina) ===
+  quotes_edit: {
+    label: { es: 'Editar Cotizaciones', en: 'Edit Quotes' },
+    category: { es: 'Cotizaciones', en: 'Quotes' },
+    description: { es: 'Modificar cotizaciones existentes', en: 'Modify existing quotes' },
+  },
+  quotes_delete: {
+    label: { es: 'Eliminar Cotizaciones', en: 'Delete Quotes' },
+    category: { es: 'Cotizaciones', en: 'Quotes' },
+    description: { es: 'Eliminar cotizaciones (acción destructiva)', en: 'Delete quotes (destructive action)' },
+  },
+
+  // === LICENCIA ===
+  license_manage: {
+    label: { es: 'Gestionar Licencia', en: 'Manage License' },
+    category: { es: 'Administración', en: 'Administration' },
+    description: { es: 'Importar, resetear o manipular la licencia del producto', en: 'Import, reset or manipulate the product license' },
+  },
 } as const
 
 export type PermissionKey = keyof typeof PERMISSIONS
@@ -208,6 +232,7 @@ export const ROLE_DEFAULTS: Record<string, PermissionKey[]> = {
     'quotes_access',
     'quotes_create',
     'reportes_access',
+    'usuarios_change_own_password',
   ],
 }
 
