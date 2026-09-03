@@ -203,3 +203,17 @@ export const clienteCreateSchema = z.object({
   limite_credito: z.number().min(0).default(0).optional(),
   notas: z.string().max(1000).optional(),
 })
+
+export const pedidoCreateSchema = z.object({
+  cliente_id: z.number().int().positive('Selecciona un cliente'),
+  notas: z.string().max(1000).optional().or(z.literal('')),
+  items: z
+    .array(
+      z.object({
+        producto_id: z.number().int().positive(),
+        cantidad: z.number().positive('La cantidad debe ser mayor a 0'),
+        precio: z.number().min(0).default(0),
+      }),
+    )
+    .min(1, 'Agrega al menos un producto al pedido'),
+})

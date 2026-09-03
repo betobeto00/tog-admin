@@ -6,6 +6,7 @@ import {
   productoCreateSchema,
   proveedorCreateSchema,
   clienteCreateSchema,
+  pedidoCreateSchema,
   ventaCreateSchema,
   compraCreateSchema,
   cajaAbrirSchema,
@@ -335,5 +336,36 @@ describe('clienteCreateSchema', () => {
   it('rejects invalid email', () => {
     const result = clienteCreateSchema.safeParse({ nombre: 'Test', email: 'no-es-un-email' })
     expect(result.success).toBe(false)
+  })
+})
+
+describe('pedidoCreateSchema', () => {
+  it('accepts a valid order with items', () => {
+    const result = pedidoCreateSchema.safeParse({
+      cliente_id: 1,
+      notas: 'Entrega en la mañana',
+      items: [
+        { producto_id: 10, cantidad: 2, precio: 5.5 },
+        { producto_id: 11, cantidad: 1, precio: 100 },
+      ],
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects order without items', () => {
+    const result = pedidoCreateSchema.safeParse({ cliente_id: 1, items: [] })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects missing client', () => {
+    const result = pedidoCreateSchema.safeParse({ items: [{ producto_id: 1, cantidad: 1, precio: 5 }] })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects zero or negative quantity', () => {
+    const zero = pedidoCreateSchema.safeParse({ cliente_id: 1, items: [{ producto_id: 1, cantidad: 0, precio: 5 }] })
+    expect(zero.success).toBe(false)
+    const neg = pedidoCreateSchema.safeParse({ cliente_id: 1, items: [{ producto_id: 1, cantidad: -1, precio: 5 }] })
+    expect(neg.success).toBe(false)
   })
 })
