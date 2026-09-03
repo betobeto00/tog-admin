@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '../stores/auth.store'
+import { useAuthStore } from '@core/auth/store'
 import { Lock, User, Eye, EyeOff, Download, RefreshCw } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import { changeLang } from '../i18n'
+import { callApi } from '../lib/api-client'
 
 export default function LoginPage() {
   const { t, i18n } = useTranslation()
@@ -18,13 +19,13 @@ export default function LoginPage() {
 
   // Obtener versión al montar
   useEffect(() => {
-    window.api.app.getVersion().then((v: string | null) => setAppVersion(v || '1.0.1')).catch(() => {})
+    callApi<string | null>('app:version').then((v) => setAppVersion(v || '1.0.1')).catch(() => {})
   }, [])
 
   const handleCheckUpdate = async () => {
     setCheckingUpdate(true)
     try {
-      const result = await window.api.updater.checkForUpdates()
+      const result = await callApi<{ available: boolean; version?: string; currentVersion?: string; error?: string }>('update:check')
       setUpdateInfo(result)
     } catch {}
     setCheckingUpdate(false)

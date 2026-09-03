@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Plus, Search, Edit2, Trash2, Truck, Phone, Mail, MapPin } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import { callApi } from '../lib/api-client'
 
 interface Proveedor {
   id: number; nombre: string; ein: string | null; telefono: string | null
@@ -25,7 +26,7 @@ export default function ProveedoresPage() {
   useEffect(() => { loadData() }, [])
 
   const loadData = async () => {
-    setProveedores(await window.api.proveedores.list())
+    setProveedores(await callApi<Proveedor[]>('proveedores:list'))
   }
 
   const filtered = proveedores.filter((p) =>
@@ -46,14 +47,14 @@ export default function ProveedoresPage() {
     setSaving(true)
     try {
       const data = { ...form, ein: form.ein || undefined, telefono: form.telefono || undefined, email: form.email || undefined, direccion: form.direccion || undefined, notas: form.notas || undefined }
-      if (editing) { await window.api.proveedores.update(editing.id, data) }
-      else { await window.api.proveedores.create(data) }
+      if (editing) { await callApi('proveedores:update', { id: editing.id, data }) }
+      else { await callApi('proveedores:create', data) }
       setModalOpen(false)
       await loadData()
     } finally { setSaving(false) }
   }
 
-  const remove = async (id: number) => { await window.api.proveedores.delete(id); await loadData() }
+  const remove = async (id: number) => { await callApi('proveedores:delete', { id }); await loadData() }
 
   return (
     <div className="space-y-4">

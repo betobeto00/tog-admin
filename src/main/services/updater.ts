@@ -1,5 +1,5 @@
 import { autoUpdater, UpdateInfo } from 'electron-updater'
-import { app, BrowserWindow, dialog, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import log from 'electron-log'
 
 // Configurar logging
@@ -135,4 +135,14 @@ export function downloadUpdate(): void {
  */
 export function installUpdate(): void {
   autoUpdater.quitAndInstall(false, true)
+}
+
+export function registerUpdaterHandlers(): void {
+  ipcMain.handle('update:check', () => checkForUpdatesManual())
+  ipcMain.handle('update:download', () => {
+    downloadUpdate()
+  })
+  ipcMain.handle('update:install', () => {
+    installUpdate()
+  })
 }

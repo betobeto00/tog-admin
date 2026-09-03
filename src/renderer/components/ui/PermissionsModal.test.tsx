@@ -12,17 +12,18 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
-// Mock window.api
+// Mock window.api.invoke (called by callApi wrapper)
 const mockGetPermissions = vi.fn()
 const mockSetPermissions = vi.fn()
 
 beforeEach(() => {
   vi.clearAllMocks()
   ;(window as any).api = {
-    usuarios: {
-      getPermissions: mockGetPermissions,
-      setPermissions: mockSetPermissions,
-    },
+    invoke: vi.fn((channel: string, payload?: any) => {
+      if (channel === 'usuarios:getPermissions') return mockGetPermissions(payload)
+      if (channel === 'usuarios:setPermissions') return mockSetPermissions(payload)
+      return Promise.resolve(null)
+    }),
   }
   mockGetPermissions.mockResolvedValue({
     success: true,
@@ -59,7 +60,7 @@ describe('PermissionsModal', () => {
     await waitFor(() => {
       expect(screen.getByText(/permisos activos/)).toBeInTheDocument()
     })
-    expect(mockGetPermissions).toHaveBeenCalledWith(1)
+    expect(mockGetPermissions).toHaveBeenCalledWith({ id: 1 })
   })
 
   it('shows permission counter', async () => {

@@ -3,10 +3,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import React from 'react'
 import ForcePasswordChange from './ForcePasswordChange'
-import { useAuthStore } from '../stores/auth.store'
+import { useAuthStore } from '@core/auth/store'
 
 // Mock the auth store
-vi.mock('../stores/auth.store', () => ({
+vi.mock('@core/auth/store', () => ({
   useAuthStore: vi.fn(),
 }))
 

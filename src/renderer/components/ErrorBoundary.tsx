@@ -1,4 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react'
+import { callApi } from '../lib/api-client'
 
 interface Props {
   children: ReactNode
@@ -36,7 +37,7 @@ export class ErrorBoundary extends Component<Props, State> {
   private async saveReport(error: Error, errorInfo: ErrorInfo) {
     this.setState({ reportSaving: true })
     try {
-      const result = await window.api.crashReport.save({
+      const result = await callApi<{ success: boolean; path?: string; error?: string }>('crash-report:save', {
         type: 'renderer-error',
         message: error.message || String(error),
         stack: error.stack,
@@ -55,7 +56,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private async handleOpenFolder() {
-    await window.api.crashReport.openFolder()
+    await callApi('crash-report:open-folder')
   }
 
   private handleCopyDetails() {

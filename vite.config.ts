@@ -20,6 +20,9 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src/renderer'),
       '@shared': path.resolve(__dirname, './src/shared'),
+      '@stores': path.resolve(__dirname, './src/renderer/core'),
+      '@core': path.resolve(__dirname, './src/renderer/core'),
+      '@lib': path.resolve(__dirname, './src/renderer/lib'),
     },
   },
   build: {

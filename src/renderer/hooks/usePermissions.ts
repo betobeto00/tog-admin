@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useAuthStore } from '../stores/auth.store'
+import { useAuthStore } from '@core/auth/store'
+import { callApi } from '../lib/api-client'
 
 // Default permissions for cajero role (same as shared/permissions.ts ROLE_DEFAULTS)
 const DEFAULT_CAJERO = [
@@ -48,7 +49,7 @@ export function usePermissions() {
     }
 
     try {
-      const result = await window.api.usuarios.getPermissions(usuario.id)
+      const result = await callApi<{ success: boolean; permisos?: string[] }>('usuarios:getPermissions', { id: usuario.id })
       if (result.success && result.permisos) {
         setPermissions(result.permisos)
       } else {

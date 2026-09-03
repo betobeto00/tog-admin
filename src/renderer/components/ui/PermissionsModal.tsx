@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, Shield, Check } from 'lucide-react'
 import Modal from './Modal'
+import { callApi } from '../../lib/api-client'
 
 // Permission definitions (duplicated from shared/permissions.ts for renderer)
 const PERMISSIONS: Record<string, {
@@ -86,7 +87,7 @@ export default function PermissionsModal({ open, onClose, userId, userName, user
 
   const loadPermissions = async () => {
     setLoading(true)
-    const result = await window.api.usuarios.getPermissions(userId)
+    const result = await callApi<{ success: boolean; permisos?: string[]; rol?: string; error?: string }>('usuarios:getPermissions', { id: userId })
     if (result.success && result.permisos) {
       setPermisos(result.permisos)
     }
@@ -117,7 +118,7 @@ export default function PermissionsModal({ open, onClose, userId, userName, user
 
   const save = async () => {
     setSaving(true)
-    await window.api.usuarios.setPermissions(userId, permisos)
+    await callApi('usuarios:setPermissions', { id: userId, permisos })
     setSaving(false)
     onSave()
     onClose()

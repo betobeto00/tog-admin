@@ -1,5 +1,5 @@
-import { getDatabase } from '../db/database'
-import { ROLE_DEFAULTS, type PermissionKey } from '../../shared/permissions'
+import { getDatabase } from '../../db/database'
+import { ROLE_DEFAULTS, type PermissionKey } from '../../../shared/permissions'
 
 /**
  * Obtiene los permisos de un usuario desde la base de datos.
@@ -10,12 +10,10 @@ export function getUserPermissions(userId: number): PermissionKey[] {
   const user = db.prepare('SELECT rol, permisos FROM usuarios WHERE id = ?').get(userId) as any
   if (!user) return []
 
-  // Admin tiene todos los permisos
   if (user.rol === 'admin') {
-    return Object.keys(ROLE_DEFAULTS.admin) as PermissionKey[]
+    return ROLE_DEFAULTS.admin
   }
 
-  // Parsear permisos del JSON
   if (user.permisos) {
     try {
       return JSON.parse(user.permisos) as PermissionKey[]
@@ -29,7 +27,6 @@ export function getUserPermissions(userId: number): PermissionKey[] {
 
 /**
  * Verifica si un usuario tiene un permiso específico.
- * Retorna true si tiene el permiso, false si no.
  */
 export function checkPermission(userId: number, permission: PermissionKey): boolean {
   const permissions = getUserPermissions(userId)
@@ -38,7 +35,6 @@ export function checkPermission(userId: number, permission: PermissionKey): bool
 
 /**
  * Lanza un error si el usuario no tiene el permiso requerido.
- * Usar en IPC handlers para validar antes de ejecutar.
  */
 export function requirePermission(userId: number, permission: PermissionKey): void {
   if (!checkPermission(userId, permission)) {
@@ -48,22 +44,18 @@ export function requirePermission(userId: number, permission: PermissionKey): vo
 
 /**
  * Extrae el usuario_id de los argumentos IPC.
- * Los handlers reciben (event, data) donde data puede tener usuario_id.
+ * Los handlers reciben (event, data) donde data debe tener usuario_id explícito.
+ * No se hace fallback a data.id: eso permite escalación de privilegios cuando
+ * el id del payload es de otro recurso (producto, venta, etc.).
  */
 export function extractUserId(data: any): number | null {
-  if (data?.usuario_id) return data.usuario_id
-  if (data?.id && typeof data.id === 'number') return data.id
+  if (data && typeof data.usuario_id === 'number') return data.usuario_id
   return null
 }
 
 /**
  * Verifica permiso y devuelve un objeto compatible con el patrón actual de los handlers
- * ({ success: false, error: ... }) o null si pasa. Usar al inicio de cada handler:
- *
- *   const fail = checkPermissionOrFail(data, 'ventas:create', 'pos_access')
- *   if (fail) return fail
- *
- * Acepta usuario_id en `data` (prioridad), `payload`, o en `data.usuario_id`.
+ * ({ success: false, error: ... }) o null si pasa.
  */
 export function checkPermissionOrFail(
   data: any,

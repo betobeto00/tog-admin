@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '../../stores/auth.store'
+import { useAuthStore } from '@core/auth/store'
 import {
   LayoutDashboard,
   ShoppingCart,

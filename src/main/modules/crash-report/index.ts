@@ -1,0 +1,1 @@
+export { registerCrashReportHandlers } from './handlers'

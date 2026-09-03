@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '../stores/auth.store'
+import { useAuthStore } from '@core/auth/store'
 import { Lock, Eye, EyeOff, Shield } from 'lucide-react'
 
 export default function ForcePasswordChange() {

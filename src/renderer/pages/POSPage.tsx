@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '../stores/auth.store'
+import { useAuthStore } from '@core/auth/store'
 import {
   Search, ShoppingCart, Plus, Minus, Trash2, X,
   DollarSign, CreditCard, Smartphone, Check, Printer,
@@ -11,6 +11,7 @@ import CartItem from '../components/pos/CartItem'
 import { formatCurrency, formatTicketNumber } from '../lib/utils'
 import { useToast } from '../components/ui/Toast'
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner'
+import { callApi } from '../lib/api-client'
 
 interface Producto {
   id: number; nombre: string; codigo_barras: string | null
@@ -74,7 +75,7 @@ export default function POSPage() {
 
   const checkCaja = async () => {
     try {
-      const caja = await window.api.caja.status()
+      const caja = await callApi('caja:status')
       setCajaAbierta(caja)
     } catch { setCajaAbierta(null) }
     finally { setCajaLoading(false) }
@@ -88,13 +89,13 @@ export default function POSPage() {
   }, [focusSearch])
 
   const loadProducts = async () => {
-    const prods = await window.api.productos.list()
+    const prods = await callApi<Producto[]>('productos:list')
     setProductos(prods.filter((p: Producto) => p.stock > 0 || p.unidad === 'servicio'))
   }
 
   const loadMetodosPago = async () => {
     try {
-      const metodos = await window.api.metodosPago.list(true)
+      const metodos = await callApi<MetodoPagoDB[]>('metodos-pago:list', { activoOnly: true })
       setMetodosPago(metodos || [])
       if (metodos && metodos.length > 0 && !metodos.find((m: any) => m.clave === metodoPago)) {
         setMetodoPago(metodos[0].clave)
@@ -112,7 +113,7 @@ export default function POSPage() {
   // Handler para escaneo de codigo de barras
   const handleBarcodeScan = async (barcode: string) => {
     try {
-      const producto = await window.api.productos.buscarPorCodigo(barcode)
+      const producto = await callApi<Producto | null>('productos:buscar-por-codigo', { codigo: barcode })
       if (producto && (producto.stock > 0 || producto.unidad === 'servicio')) {
         addToCart(producto)
         toast.success(`${producto.nombre} - ${formatCurrency(producto.precio_venta)}`)
@@ -159,7 +160,7 @@ export default function POSPage() {
   const subtotalConGlobal = subtotal - descuentoGlobalMonto
   const [taxRate, setTaxRate] = useState(0)
   useEffect(() => {
-    window.api.config.get().then((cfg: any[]) => {
+    callApi<any[]>('config:get').then((cfg: any[]) => {
       const rate = cfg.find((c: any) => c.clave === 'sales_tax_rate')
       if (rate && rate.valor) {
         const parsed = parseFloat(rate.valor)
@@ -264,7 +265,7 @@ export default function POSPage() {
       let datosTarjeta: any = null
       if (metodo?.requiere_terminal) {
         setEsperandoTarjeta(true)
-        const resp = await window.api.metodosPago.procesarTarjeta(total)
+        const resp = await callApi<{ success: boolean; authCode?: string; refNum?: string; cardType?: string; maskedPan?: string; responseText?: string; error?: string }>('metodos-pago:procesar-tarjeta', { monto: total })
         setEsperandoTarjeta(false)
         if (!resp.success) {
           toast.error(resp.error || 'Error procesando pago con tarjeta')
@@ -275,7 +276,7 @@ export default function POSPage() {
         toast.success(`Pago aprobado${resp.maskedPan ? ` •••• ${resp.maskedPan}` : ''}`)
       }
 
-      const result = await window.api.ventas.create({
+      const result = await callApi<{ success: boolean; id?: number; numero_venta?: number; error?: string }>('ventas:create', {
         usuario_id: usuario!.id,
         subtotal: subtotalConGlobal,
         impuesto,
@@ -562,7 +563,7 @@ export default function POSPage() {
                 <p className="col-span-2 text-sm text-gray-400 text-center py-2">
                   {t('config.noPaymentMethods') || 'Sin métodos de pago configurados'}
                 </p>
-              ) : metodosPago.map((m) => {
+              ) : Array.isArray(metodosPago) && metodosPago.map((m) => {
                 const Icon = ICON_MAP[m.icono] || DollarSign
                 return (
                   <button

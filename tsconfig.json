@@ -19,7 +19,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/renderer/*"],
-      "@shared/*": ["./src/shared/*"]
+      "@shared/*": ["./src/shared/*"],
+      "@stores/*": ["./src/renderer/core/*"],
+      "@core/*": ["./src/renderer/core/*"],
+      "@lib/*": ["./src/renderer/lib/*"]
     }
   },
   "include": ["src/renderer/**/*", "src/shared/**/*"],

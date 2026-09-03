@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '../stores/auth.store'
+import { useAuthStore } from '@core/auth/store'
 import {
   Lock, Unlock, DollarSign, ArrowUpCircle, ArrowDownCircle,
   Clock, AlertTriangle, CheckCircle, History, Calculator, Printer
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import { formatCurrency, formatDateTime } from '../lib/utils'
+import { callApi } from '../lib/api-client'
 
 interface CajaState {
   id: number; fecha_apertura: string; fondo_inicial: number
@@ -36,7 +37,7 @@ export default function CajaPage() {
   const [fondoDefault, setFondoDefault] = useState('')
 
   useEffect(() => {
-    window.api.config.get().then((cfg: any[]) => {
+    callApi<any[]>('config:get').then((cfg: any[]) => {
       const fd = cfg.find((c: any) => c.clave === 'fondo_inicial_default')
       if (fd?.valor) setFondoDefault(fd.valor)
     })
@@ -58,8 +59,8 @@ export default function CajaPage() {
   const loadCaja = async () => {
     setLoading(true)
     const [status, hist] = await Promise.all([
-      window.api.caja.status(),
-      window.api.caja.historial(),
+      callApi<CajaState | null>('caja:status'),
+      callApi<HistorialCaja[]>('caja:historial'),
     ])
     setCaja(status || null)
     setHistorial(hist)
@@ -75,7 +76,7 @@ export default function CajaPage() {
   const abrirCaja = async () => {
     const fondo = parseFloat(fondoInicial)
     if (isNaN(fondo) || fondo < 0) return
-    await window.api.caja.abrir({ usuario_id: usuario!.id, fondo_inicial: fondo })
+    await callApi('caja:abrir', { usuario_id: usuario!.id, fondo_inicial: fondo })
     setAperturaOpen(false)
     setFondoInicial('')
     await loadCaja()
@@ -85,7 +86,7 @@ export default function CajaPage() {
   const registrarMovimiento = async () => {
     const monto = parseFloat(movMonto)
     if (isNaN(monto) || monto <= 0 || !movDesc.trim()) return
-    await window.api.caja.movimiento({ tipo: movTipo, monto, descripcion: movDesc })
+    await callApi('caja:movimiento', { tipo: movTipo, monto, descripcion: movDesc })
     setMovOpen(false)
     setMovMonto('')
     setMovDesc('')
@@ -97,8 +98,8 @@ export default function CajaPage() {
     const real = parseFloat(totalReal)
     if (isNaN(real) || !caja) return
     // Backup automático antes de cerrar
-    try { await window.api.caja.backupAuto() } catch {}
-    await window.api.caja.cerrar({
+    try { await callApi('caja:backup-auto') } catch {}
+    await callApi('caja:cerrar', {
       caja_id: caja.id,
       total_real: real,
       notas: cierreNotas || undefined,
@@ -114,7 +115,7 @@ export default function CajaPage() {
   const [reporteX, setReporteX] = useState<any>(null)
 
   const verReporteX = async () => {
-    const result = await window.api.caja.reporteX()
+    const result = await callApi<any>('caja:reporte-x')
     if (result?.success) {
       setReporteX(result)
       setReporteXOpen(true)

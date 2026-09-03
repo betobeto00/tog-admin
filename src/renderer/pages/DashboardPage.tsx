@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '../stores/auth.store'
+import { useAuthStore } from '@core/auth/store'
 import { formatCurrency, formatDateTime, formatTicketNumber } from '../lib/utils'
+import { callApi } from '../lib/api-client'
 import {
   ShoppingCart,
   DollarSign,
@@ -48,9 +49,9 @@ export default function DashboardPage() {
   const cargarDatos = async () => {
     try {
       const [resumenData, stockData, ventasRecientes] = await Promise.all([
-        window.api.ventas.resumenDia(),
-        window.api.productos.lowStock(),
-        window.api.reportes.ultimasVentas(10),
+        callApi<ResumenDia>('ventas:resumen-dia'),
+        callApi<StockBajo[]>('productos:low-stock'),
+        callApi<VentaReciente[]>('reportes:ultimas-ventas', { limite: 10 }),
       ])
       setResumen(resumenData)
       setStockBajo(stockData)
@@ -116,7 +117,7 @@ export default function DashboardPage() {
           icon={<AlertTriangle className="w-6 h-6 text-orange-600" />}
           bg="bg-orange-50"
           label={t('dashboard.lowStock')}
-          value={stockBajo.length.toString()}
+          value={Array.isArray(stockBajo) ? stockBajo.length.toString() : '0'}
           sub={t('dashboard.lowStock')}
         />
       </div>
@@ -136,14 +137,14 @@ export default function DashboardPage() {
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">⚠️ {t('dashboard.lowStock')}</h2>
-          {stockBajo.length === 0 ? (
+{stockBajo.length === 0 ? (
             <div className="text-center py-8 text-gray-400">
               <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
               <p>{t('dashboard.allStockOk')}</p>
             </div>
           ) : (
             <div className="space-y-3 max-h-64 overflow-y-auto">
-              {stockBajo.map((p) => (
+              {Array.isArray(stockBajo) && stockBajo.map((p) => (
                 <div key={p.id} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{p.nombre}</p>

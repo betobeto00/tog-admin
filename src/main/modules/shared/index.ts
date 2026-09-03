@@ -1,0 +1,1 @@
+export { registerAppHandlers, registerI18nHandlers } from './handlers'

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '../stores/auth.store'
+import { useAuthStore } from '@core/auth/store'
 import {
   Plus, Search, Edit2, Trash2, Package, Tag,
   ChevronDown, AlertTriangle, Filter, Download, Upload, History, EyeOff, ScanBarcode
@@ -10,6 +10,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { formatCurrency } from '../lib/utils'
 import { useToast } from '../components/ui/Toast'
 import { usePermissions } from '../hooks/usePermissions'
+import { callApi } from '../lib/api-client'
 
 interface Producto {
   id: number; codigo_barras: string | null; sku: string | null
@@ -143,9 +144,9 @@ export default function InventarioPage() {
 
   const loadData = async () => {
     const [prods, cats, unids] = await Promise.all([
-      window.api.productos.list(),
-      window.api.categorias.list(),
-      window.api.unidades.list(),
+      callApi<Producto[]>('productos:list'),
+      callApi<Categoria[]>('categorias:list'),
+      callApi<UnidadMedida[]>('unidades:list'),
     ])
     setProductos(prods)
     setCategorias(cats)
@@ -165,7 +166,7 @@ export default function InventarioPage() {
 
   // ======== IMPORT/EXPORT CSV ========
   const exportCsv = async () => {
-    const result = await window.api.productos.exportCsv()
+    const result = await callApi<{ success: boolean; path?: string; count?: number; error?: string }>('productos:export-csv')
     if (result?.success) {
       alert(`Exportados ${result.count} productos a:\n${result.path}`)
     } else if (result?.error !== 'Cancelado') {
@@ -182,7 +183,7 @@ export default function InventarioPage() {
       if (!file) return
       setImporting(true)
       try {
-        const result = await window.api.productos.importCsv(file.path)
+        const result = await callApi<{ success: boolean; imported?: number; skipped?: number; total?: number; error?: string }>('productos:import-csv', file.path)
         if (result?.success) {
           alert(`Importados: ${result.imported}, Omitidos: ${result.skipped} de ${result.total} filas`)
           await loadData()
@@ -196,7 +197,7 @@ export default function InventarioPage() {
 
   // ======== HISTORIAL DE AJUSTES ========
   const loadAjustes = async () => {
-    const hist = await window.api.productos.ajustesHistorial({ limite: 50 })
+    const hist = await callApi<any[]>('productos:ajustes-historial', { limite: 50 })
     setAjustesHistorial(hist)
     setShowAjustes(true)
   }
@@ -240,9 +241,9 @@ export default function InventarioPage() {
         categoria_id: form.categoria_id || undefined,
       }
       if (editing) {
-        await window.api.productos.update(editing.id, data)
+        await callApi('productos:update', { id: editing.id, data })
       } else {
-        await window.api.productos.create(data)
+        await callApi('productos:create', data)
       }
       setModalOpen(false)
       await loadData()
@@ -252,7 +253,7 @@ export default function InventarioPage() {
   }
 
   const deleteProduct = async (id: number) => {
-    await window.api.productos.delete(id)
+    await callApi('productos:delete', { id })
     await loadData()
   }
 
@@ -269,7 +270,7 @@ export default function InventarioPage() {
     if (!ajusteTarget || !ajusteJustificacion.trim() || ajustando) return
     setAjustando(true)
     try {
-      const result = await window.api.productos.ajustar({
+      const result = await callApi<{ success: boolean; error?: string }>('productos:ajustar', {
         producto_id: ajusteTarget.id,
         stock_nuevo: Number(ajusteStock),
         justificacion: ajusteJustificacion,
@@ -303,16 +304,16 @@ export default function InventarioPage() {
   const saveCategory = async () => {
     if (!catForm.nombre.trim()) return
     if (editingCat) {
-      await window.api.categorias.update(editingCat.id, catForm)
+      await callApi('categorias:update', { id: editingCat.id, data: catForm })
     } else {
-      await window.api.categorias.create(catForm)
+      await callApi('categorias:create', catForm)
     }
     setCatModalOpen(false)
     await loadData()
   }
 
   const deleteCategory = async (id: number) => {
-    await window.api.categorias.delete(id)
+    await callApi('categorias:delete', { id })
     await loadData()
   }
 
@@ -333,23 +334,23 @@ export default function InventarioPage() {
   const saveUnidad = async () => {
     if (!unidForm.nombre.trim()) return
     if (editingUnid) {
-      await window.api.unidades.update(editingUnid.id, unidForm)
+      await callApi('unidades:update', { id: editingUnid.id, data: unidForm })
     } else {
-      await window.api.unidades.create(unidForm)
+      await callApi('unidades:create', unidForm)
     }
     setUnidModalOpen(false)
     await loadData()
   }
 
   const deleteUnidad = async (id: number) => {
-    await window.api.unidades.delete(id)
+    await callApi('unidades:delete', { id })
     await loadData()
   }
 
   // Quick-add: crear unidad desde el dropdown del producto
   const quickAddUnidad = async () => {
     if (!quickUnidad.nombre.trim()) return
-    const result = await window.api.unidades.create(quickUnidad)
+    const result = await callApi('unidades:create', quickUnidad)
     setQuickUnidad({ nombre: '', abreviatura: '' })
     setShowQuickUnidad(false)
     await loadData()

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '../stores/auth.store'
+import { useAuthStore } from '@core/auth/store'
 import {
   Plus, Search, Trash2, Truck, Package, Calendar, Eye, ScanBarcode
 } from 'lucide-react'
@@ -9,6 +9,7 @@ import { formatCurrency, formatDateTime } from '../lib/utils'
 import { useToast } from '../components/ui/Toast'
 import { usePermissions } from '../hooks/usePermissions'
 import type { Producto as ProductoFull } from '../../shared/types'
+import { callApi } from '../lib/api-client'
 
 interface Proveedor { id: number; nombre: string }
 interface CompraItem {
@@ -123,9 +124,9 @@ export default function ComprasPage() {
   const loadData = async () => {
     setLoading(true)
     const [comprasData, prods, provs] = await Promise.all([
-      window.api.compras.list({ fecha_inicio: fechaInicio, fecha_fin: fechaFin }),
-      window.api.productos.list(),
-      window.api.proveedores.list(),
+      callApi<CompraRecord[]>('compras:list', { fecha_inicio: fechaInicio, fecha_fin: fechaFin }),
+      callApi<ProductoFull[]>('productos:list'),
+      callApi<Proveedor[]>('proveedores:list'),
     ])
     setCompras(comprasData)
     setProductos(prods)
@@ -152,7 +153,7 @@ export default function ComprasPage() {
   const subtotal = items.reduce((acc, i) => acc + i.subtotal, 0)
   const [taxRate, setTaxRate] = useState(0)
   useEffect(() => {
-    window.api.config.get().then((cfg: any[]) => {
+    callApi<any[]>('config:get').then((cfg: any[]) => {
       const rate = cfg.find((c: any) => c.clave === 'sales_tax_rate')
       if (rate && rate.valor) {
         const parsed = parseFloat(rate.valor)
@@ -167,7 +168,7 @@ export default function ComprasPage() {
     if (items.length === 0 || saving) return
     setSaving(true)
     try {
-      await window.api.compras.create({
+      await callApi('compras:create', {
         proveedor_id: proveedorId || undefined,
         usuario_id: usuario!.id,
         subtotal, impuesto, total,

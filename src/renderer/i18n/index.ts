@@ -3,6 +3,7 @@ import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import esTranslation from './locales/es/translation.json'
 import enTranslation from './locales/en/translation.json'
+import { callApi } from '../lib/api-client'
 
 export const SUPPORTED_LANGS = ['es', 'en'] as const
 export type Lang = (typeof SUPPORTED_LANGS)[number]
@@ -11,7 +12,7 @@ let initialLang: Lang = 'en'
 
 export async function getInitialLang(): Promise<Lang> {
   try {
-    const lang = await window.api.i18n.getLang()
+    const lang = await callApi<'es' | 'en'>('i18n:get-lang')
     if (lang === 'es' || lang === 'en') return lang
   } catch (err) {
     console.warn('[i18n] Could not get lang from main:', err)
@@ -53,7 +54,7 @@ export async function initI18n(): Promise<typeof i18n> {
 export async function changeLang(lang: Lang): Promise<void> {
   await i18n.changeLanguage(lang)
   try {
-    await window.api.i18n.setLang(lang)
+    await callApi('i18n:set-lang', { lang })
   } catch (err) {
     console.warn('[i18n] Could not persist lang to main:', err)
   }

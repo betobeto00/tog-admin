@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import React from 'react'
 import { ErrorBoundary } from './ErrorBoundary'
 
-// Mock window.api.crashReport
+// Mock window.api.invoke (called by callApi wrapper)
 const mockSave = vi.fn()
 const mockOpenFolder = vi.fn()
 const mockClipboard = vi.fn()
@@ -12,10 +12,11 @@ const mockClipboard = vi.fn()
 beforeEach(() => {
   vi.clearAllMocks()
   ;(window as any).api = {
-    crashReport: {
-      save: mockSave,
-      openFolder: mockOpenFolder,
-    },
+    invoke: vi.fn((channel: string, payload?: any) => {
+      if (channel === 'crash-report:save') return mockSave(payload)
+      if (channel === 'crash-report:open-folder') return mockOpenFolder()
+      return Promise.resolve(null)
+    }),
   }
   ;(navigator as any).clipboard = { writeText: mockClipboard }
   mockSave.mockResolvedValue({ success: true, path: '/tmp/crash-test.txt' })

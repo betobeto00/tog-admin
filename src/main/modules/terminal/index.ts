@@ -1,0 +1,1 @@
+export { registerTerminalHandlers } from './handlers'

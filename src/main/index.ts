@@ -1,10 +1,10 @@
-import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage } from 'electron'
+import { app, BrowserWindow, Tray, Menu, nativeImage } from 'electron'
 import path from 'path'
 import { initializeDatabase } from './db/database'
 import { registerIpcHandlers } from './ipc-handlers'
 import { initI18n, t as i18nT } from './i18n'
 import { saveCrashReport, captureLog } from './services/crash-reporter'
-import { setupAutoUpdater, checkForUpdatesManual, downloadUpdate, installUpdate } from './services/updater'
+import { setupAutoUpdater } from './services/updater'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -23,16 +23,16 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      webSecurity: true, // Habilitar web security para producción
-      allowRunningInsecureContent: false,
+      webSecurity: !isDev,
+      allowRunningInsecureContent: isDev,
     },
     show: false,
   })
 
-  // En desarrollo, cargar desde Vite dev server
+// En desarrollo, cargar desde Vite dev server
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
-    mainWindow.webContents.openDevTools()
+    mainWindow.webContents.openDevTools({ mode: 'detach' })
   } else {
     const htmlPath = path.join(__dirname, '../../dist/index.html')
     console.log('[TOG Admin] Loading from:', htmlPath)
@@ -162,31 +162,37 @@ process.on('unhandledRejection', (reason) => {
 
 // App lifecycle
 app.whenReady().then(() => {
-  // Inicializar i18n (lee .lang del NSIS installer o de userData)
-  const lang = initI18n()
-  console.log(`[TOG Admin] i18n: ${i18nT('logs.appStarting')} (${lang})`)
+  console.log('[TOG Admin] app ready')
+  try {
+    // Inicializar i18n (lee .lang del NSIS installer o de userData)
+    const lang = initI18n()
+    console.log(`[TOG Admin] i18n: ${i18nT('logs.appStarting')} (${lang})`)
 
-  // Inicializar base de datos
-  initializeDatabase()
-  console.log(`[TOG Admin] ${i18nT('logs.dbInitialized')}`)
+    // Inicializar base de datos
+    initializeDatabase()
+    console.log(`[TOG Admin] ${i18nT('logs.dbInitialized')}`)
 
-  // Registrar handlers IPC
-  registerIpcHandlers()
-  console.log(`[TOG Admin] ${i18nT('logs.ipcRegistered')}`)
+    // Registrar handlers IPC
+    registerIpcHandlers()
+    console.log(`[TOG Admin] ${i18nT('logs.ipcRegistered')}`)
 
-  // Crear ventana
-  createWindow()
-  console.log(`[TOG Admin] ${i18nT('logs.windowCreated')}`)
+    // Crear ventana
+    createWindow()
+    console.log(`[TOG Admin] ${i18nT('logs.windowCreated')}`)
+  } catch (err) {
+    console.error('[TOG Admin] FATAL during init:', err)
+    saveCrashReport({
+      type: 'uncaught-exception',
+      message: 'FATAL during init: ' + (err instanceof Error ? err.message : String(err)),
+      stack: err instanceof Error ? err.stack : undefined,
+    })
+    app.quit()
+  }
 
   // Iniciar auto-updater
   if (mainWindow) {
     setupAutoUpdater(mainWindow)
   }
-
-  // Handlers IPC para updater
-  ipcMain.handle('update:check', () => checkForUpdatesManual())
-  ipcMain.handle('update:download', () => { downloadUpdate() })
-  ipcMain.handle('update:install', () => { installUpdate() })
 
   // Crear tray (opcional, descomentar si se desea)
   // createTray()
@@ -198,6 +204,8 @@ app.whenReady().then(() => {
       mainWindow?.show()
     }
   })
+}).catch((err) => {
+  console.error('[TOG Admin] FATAL whenReady rejected:', err)
 })
 
 app.on('window-all-closed', () => {

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '../../stores/auth.store'
+import { useAuthStore } from '@core/auth/store'
 import { Search, Bell, AlertTriangle, X, ShoppingCart } from 'lucide-react'
+import { callApi } from '../../lib/api-client'
 
 interface Notificacion {
   id: string
@@ -9,6 +10,11 @@ interface Notificacion {
   titulo: string
   mensaje: string
   leida: boolean
+}
+
+interface CajaHeaderStatus {
+  id: number
+  estado: string
 }
 
 export default function Header() {
@@ -28,7 +34,7 @@ export default function Header() {
 
     // Verificar stock bajo
     try {
-      const lowStock = await window.api.productos.lowStock()
+      const lowStock = await callApi<any[]>('productos:low-stock')
       if (lowStock && lowStock.length > 0) {
         notifs.push({
           id: 'stock_bajo',
@@ -42,7 +48,7 @@ export default function Header() {
 
     // Verificar caja
     try {
-      const caja = await window.api.caja.status()
+      const caja = await callApi<CajaHeaderStatus | null>('caja:status')
       if (!caja) {
         notifs.push({
           id: 'caja_cerrada',

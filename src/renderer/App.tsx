@@ -1,6 +1,6 @@
 import { Suspense, useState, useEffect } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useAuthStore } from './stores/auth.store'
+import { useAuthStore } from '@core/auth/store'
 
 // Imports estáticos — sin lazy loading para compatibilidad con Electron file://
 import LoginPage from './pages/LoginPage'

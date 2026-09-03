@@ -7,6 +7,7 @@ import {
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { formatCurrency, formatDateTime, formatTicketNumber } from '../lib/utils'
+import { callApi } from '../lib/api-client'
 
 interface Venta {
   id: number; numero_venta: number; fecha: string; usuario_nombre: string
@@ -46,13 +47,13 @@ export default function VentasPage() {
 
   const loadVentas = async () => {
     setLoading(true)
-    const data = await window.api.ventas.list({ fecha_inicio: fechaInicio, fecha_fin: fechaFin })
+    const data = await callApi<Venta[]>('ventas:list', { fecha_inicio: fechaInicio, fecha_fin: fechaFin })
     setVentas(data)
     setLoading(false)
   }
 
   const openDetalle = async (venta: Venta) => {
-    const completa = await window.api.ventas.getById(venta.id)
+    const completa = await callApi<Venta & { detalles: VentaDetalle[] }>('ventas:getById', { id: venta.id })
     setDetalleVenta(completa)
     setDetalleOpen(true)
   }
@@ -61,7 +62,7 @@ export default function VentasPage() {
     if (!anularTarget || !anularMotivo.trim()) return
     setAnulando(true)
     try {
-      await window.api.ventas.anular(anularTarget.id, anularMotivo)
+      await callApi('ventas:anular', { id: anularTarget.id, motivo: anularMotivo })
       setAnularTarget(null)
       setAnularMotivo('')
       await loadVentas()
@@ -195,7 +196,7 @@ export default function VentasPage() {
                       </button>
                       {v.estado === 'completada' && (
                         <>
-                          <button onClick={() => window.api.ventas.getById(v.id).then((venta: any) => {
+                          <button onClick={() => callApi<Venta & { detalles: VentaDetalle[] }>('ventas:getById', { id: v.id }).then((venta) => {
                             if (venta?.detalles) {
                               const ticketWin = window.open('', '_blank', 'width=320,height=600')
                               if (ticketWin) {

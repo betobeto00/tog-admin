@@ -1,4 +1,5 @@
 import { create, type StateCreator } from 'zustand'
+import { callApi } from '@lib/api-client'
 
 interface Usuario {
   id: number
@@ -30,7 +31,7 @@ const authCreator: StateCreator<AuthState> = (set) => ({
     set({ isLoading: true, error: null })
 
     try {
-      const result = await window.api.auth.login({ usuario, contrasena })
+      const result = await callApi<{ success: boolean; usuario?: any; error?: string }>('auth:login', { usuario, contrasena })
 
       if (result.success && result.usuario) {
         set({
@@ -64,7 +65,7 @@ const authCreator: StateCreator<AuthState> = (set) => ({
     const user = useAuthStore.getState().usuario
     if (!user) return { success: false, error: 'No logged in user' }
     try {
-      const result = await window.api.usuarios.changePassword({
+      const result = await callApi<{ success: boolean; error?: string }>('usuarios:change-password', {
         usuario_id: user.id,
         contrasena_actual: contrasenaActual,
         contrasena_nueva: contrasenaNueva,

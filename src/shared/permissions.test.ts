@@ -56,6 +56,21 @@ describe('ROLE_DEFAULTS', () => {
     expect(ROLE_DEFAULTS.cajero.length).toBeLessThan(Object.keys(PERMISSIONS).length)
   })
 
+  it('admin defaults are the real permission keys, not array indexes (regression: Object.keys over an array)', () => {
+    const allKeys = Object.keys(PERMISSIONS)
+    expect(ROLE_DEFAULTS.admin).toEqual(allKeys)
+    for (const key of ROLE_DEFAULTS.admin) {
+      expect(key in PERMISSIONS).toBe(true)
+      expect(/^\d+$/.test(key)).toBe(false)
+    }
+  })
+
+  it('every default permission in cajero exists in PERMISSIONS', () => {
+    for (const key of ROLE_DEFAULTS.cajero) {
+      expect(key in PERMISSIONS).toBe(true)
+    }
+  })
+
   it('cajero has pos_access', () => {
     expect(ROLE_DEFAULTS.cajero).toContain('pos_access')
   })

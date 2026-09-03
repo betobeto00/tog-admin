@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '../stores/auth.store'
+import { useAuthStore } from '@core/auth/store'
 import {
   Plus, Search, Eye, Edit2, Trash2, FileText, Send, Clock, CheckCircle,
   XCircle, Printer, Mail, DollarSign
@@ -8,6 +8,7 @@ import {
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { formatCurrency, formatDateTime } from '../lib/utils'
+import { callApi } from '../lib/api-client'
 
 interface Quote { id: number; numero_cotizacion: number; fecha: string; fecha_vencimiento: string | null; cliente_nombre: string; cliente_email: string | null; cliente_telefono: string | null; cliente_direccion: string | null; subtotal: number; impuesto: number; descuento: number; total: number; notas: string | null; estado: string; usuario_nombre: string; creado_en: string }
 interface QuoteDetalle { id?: number; producto_id: number | null; producto_nombre?: string; descripcion: string; cantidad: number; precio_unitario: number; descuento: number; subtotal: number }
@@ -46,8 +47,8 @@ export default function QuotesPage() {
     setLoading(true)
     try {
       const [q, p] = await Promise.all([
-        window.api.quotes.list({ estado: filterStatus || undefined, search: search || undefined }),
-        window.api.productos.list(),
+        callApi('quotes:list', { estado: filterStatus || undefined, search: search || undefined }),
+        callApi('productos:list'),
       ])
       setQuotes(Array.isArray(q) ? q : [])
       setProductos(Array.isArray(p) ? p : [])
@@ -87,7 +88,7 @@ export default function QuotesPage() {
   const subtotal = items.reduce((acc, i) => acc + i.subtotal, 0)
   const [taxRate, setTaxRate] = useState(0)
   useEffect(() => {
-    window.api.config.get().then((cfg: any[]) => {
+    callApi<any[]>('config:get').then((cfg: any[]) => {
       const r = cfg.find((c: any) => c.clave === 'sales_tax_rate')
       if (r && r.valor) {
         const parsed = parseFloat(r.valor)
@@ -104,7 +105,7 @@ export default function QuotesPage() {
   }
 
   const openEdit = async (q: Quote) => {
-    const completa = await window.api.quotes.getById(q.id)
+    const completa = await callApi<Quote & { detalles: QuoteDetalle[] }>('quotes:getById', { id: q.id })
     setEditingQuote(q)
     setCliente({ nombre: completa.cliente_nombre, email: completa.cliente_email || '', telefono: completa.cliente_telefono || '', direccion: completa.cliente_direccion || '' })
     setItems(completa.detalles || [])
@@ -113,7 +114,7 @@ export default function QuotesPage() {
   }
 
   const openView = async (q: Quote) => {
-    const completa = await window.api.quotes.getById(q.id)
+    const completa = await callApi<Quote & { detalles: QuoteDetalle[] }>('quotes:getById', { id: q.id })
     setViewQuote(completa); setViewOpen(true)
   }
 
@@ -127,25 +128,25 @@ export default function QuotesPage() {
         usuario_id: usuario!.id,
         detalles: items.map((i) => ({ producto_id: i.producto_id, descripcion: i.descripcion, cantidad: i.cantidad, precio_unitario: i.precio_unitario, descuento: i.descuento, subtotal: i.subtotal })),
       }
-      if (editingQuote) { await window.api.quotes.update(editingQuote.id, { ...data, estado: editingQuote.estado }) }
-      else { await window.api.quotes.create(data) }
+      if (editingQuote) { await callApi('quotes:update', { id: editingQuote.id, data: { ...data, estado: editingQuote.estado } }) }
+      else { await callApi('quotes:create', data) }
       setModalOpen(false); await loadData()
     } finally { setSaving(false) }
   }
 
   const changeStatus = async (id: number, estado: string) => {
-    await window.api.quotes.update(id, { estado })
+    await callApi('quotes:update', { id, data: { estado } })
     await loadData()
-    if (viewQuote?.id === id) { const updated = await window.api.quotes.getById(id); setViewQuote(updated) }
+    if (viewQuote?.id === id) { const updated = await callApi<Quote & { detalles: QuoteDetalle[] }>('quotes:getById', { id }); setViewQuote(updated) }
   }
 
   const removeQuote = async (id: number) => {
-    await window.api.quotes.delete(id); await loadData()
+    await callApi('quotes:delete', { id }); await loadData()
   }
 
   const loadAndPrint = async (id: number) => {
     try {
-      const full = await window.api.quotes.getById(id)
+      const full = await callApi<Quote & { detalles: QuoteDetalle[] }>('quotes:getById', { id })
       printQuote(full)
     } catch (e) {
       console.error('Failed to load quote for printing', e)
@@ -160,7 +161,7 @@ export default function QuotesPage() {
     // Cargar datos del negocio para logo y contacto
     let logo = '', bizName = '', bizAddr = '', bizPhone = '', bizEin = ''
     try {
-      const cfg = await window.api.config.get()
+      const cfg = await callApi<any[]>('config:get')
       const get = (k: string) => cfg.find((c: any) => c.clave === k)?.valor || ''
       logo = get('logo_path')
       bizName = get('nombre_negocio')

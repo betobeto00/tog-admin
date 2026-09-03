@@ -1,0 +1,1 @@
+export { registerLicenseHandlers } from './handlers'

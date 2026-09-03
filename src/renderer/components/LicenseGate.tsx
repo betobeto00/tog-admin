@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Shield, AlertTriangle, Upload, Key, Clock } from 'lucide-react'
 import { useToast } from './ui/Toast'
+import { callApi } from '../lib/api-client'
 
 interface LicenseStatus {
   valid: boolean
@@ -24,7 +25,7 @@ export default function LicenseGate({ children }: { children: React.ReactNode })
 
   const checkLicense = async () => {
     try {
-      const s = await window.api.license.status() as LicenseStatus
+      const s = await callApi<LicenseStatus>('license:status')
       setStatus(s)
     } catch (err) {
       setStatus({
@@ -52,7 +53,7 @@ export default function LicenseGate({ children }: { children: React.ReactNode })
         setImporting(true)
         try {
           const content = await file.text()
-          const result = await window.api.license.import(content)
+          const result = await callApi<{ success: boolean; error?: string }>('license:import', content)
           if (result.success) {
             toast.success('Licencia importada exitosamente')
             await checkLicense()

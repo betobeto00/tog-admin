@@ -6,6 +6,7 @@ import {
 } from 'recharts'
 import { BarChart3, TrendingUp, Package, Calendar, Download, FileText } from 'lucide-react'
 import { formatCurrency, formatDateTime } from '../lib/utils'
+import { callApi } from '../lib/api-client'
 
 interface VentaDiaria { fecha: string; total_ventas: number; monto_total: number }
 interface TopProducto { nombre: string; total_vendido: number; total_ingreso: number }
@@ -30,10 +31,10 @@ export default function ReportesPage() {
   const loadReportes = async () => {
     setLoading(true)
     const [diarias, top, res, cat] = await Promise.all([
-      window.api.reportes.ventasPeriodo(fechaInicio, fechaFin),
-      window.api.reportes.productosMasVendidos(fechaInicio, fechaFin, 10),
-      window.api.ventas.resumenDia(),
-      window.api.reportes.ventasPorCategoria(fechaInicio, fechaFin),
+      callApi<VentaDiaria[]>('reportes:ventas-periodo', { fecha_inicio: fechaInicio, fecha_fin: fechaFin }),
+      callApi<TopProducto[]>('reportes:productos-mas-vendidos', { fecha_inicio: fechaInicio, fecha_fin: fechaFin, limite: 10 }),
+      callApi<ResumenDia>('ventas:resumen-dia'),
+      callApi<VentaCategoria[]>('reportes:ventas-por-categoria', { fecha_inicio: fechaInicio, fecha_fin: fechaFin }),
     ])
     setVentasDiarias(diarias)
     setTopProductos(top)
