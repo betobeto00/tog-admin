@@ -75,7 +75,34 @@
     "quotes": "Cotizaciones",
     "settings": "Configuración",
     "help": "Ayuda",
+    "clients": "Clientes",
+    "orders": "Pedidos",
     "logout": "Cerrar Sesión"
+  },
+  "clientes": {
+    "title": "Clientes",
+    "registered": "clientes registrados",
+    "new": "Nuevo Cliente",
+    "edit": "Editar Cliente",
+    "searchPlaceholder": "Buscar por nombre, RIF o teléfono...",
+    "empty": "No se encontraron clientes",
+    "phone": "Teléfono",
+    "email": "Email",
+    "address": "Dirección",
+    "creditLimit": "Límite de Crédito",
+    "creditLimitHint": "0 = sin crédito",
+    "deleteTitle": "Eliminar cliente",
+    "deleteMessage": "¿Estás seguro? Esta acción no se puede deshacer.",
+    "notActiveTitle": "Módulo Distribuidor no activo",
+    "notActiveHint": "Activa el módulo Distribuidor en tu licencia para gestionar clientes."
+  },
+  "pedidos": {
+    "title": "Pedidos",
+    "subtitle": "Módulo Distribuidor — pedidos a clientes",
+    "notActiveTitle": "Módulo Distribuidor no activo",
+    "notActiveHint": "Activa el módulo Distribuidor en tu licencia para gestionar pedidos.",
+    "comingSoonTitle": "Pedidos (en construcción)",
+    "comingSoonBody": "Esta sección del módulo Distribuidor se habilita en la próxima iteración."
   },
   "login": {
     "title": "Iniciar Sesión",

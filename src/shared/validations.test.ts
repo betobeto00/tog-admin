@@ -5,6 +5,7 @@ import {
   categoriaCreateSchema,
   productoCreateSchema,
   proveedorCreateSchema,
+  clienteCreateSchema,
   ventaCreateSchema,
   compraCreateSchema,
   cajaAbrirSchema,
@@ -286,6 +287,53 @@ describe('quoteCreateSchema', () => {
       usuario_id: 1,
       detalles: [],
     })
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('clienteCreateSchema', () => {
+  it('accepts valid client', () => {
+    const result = clienteCreateSchema.safeParse({
+      nombre: 'Distribuidora Los Andes',
+      rif: 'J-12345678-9',
+      telefono: '+58 412-1234567',
+      email: 'ventas@andes.com',
+      direccion: 'Av. Principal',
+      limite_credito: 500,
+      notas: 'Cliente mayorista',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts minimal client (only name)', () => {
+    const result = clienteCreateSchema.safeParse({ nombre: 'Cliente de Prueba' })
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts empty strings for optional fields', () => {
+    const result = clienteCreateSchema.safeParse({
+      nombre: 'Test',
+      rif: '',
+      email: '',
+      telefono: '',
+      direccion: '',
+      notas: '',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects empty name', () => {
+    const result = clienteCreateSchema.safeParse({ nombre: '' })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects negative credit limit', () => {
+    const result = clienteCreateSchema.safeParse({ nombre: 'Test', limite_credito: -1 })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects invalid email', () => {
+    const result = clienteCreateSchema.safeParse({ nombre: 'Test', email: 'no-es-un-email' })
     expect(result.success).toBe(false)
   })
 })

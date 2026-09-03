@@ -14,6 +14,8 @@ import VentasPage from './pages/VentasPage'
 import CajaPage from './pages/CajaPage'
 import ComprasPage from './pages/ComprasPage'
 import ProveedoresPage from './pages/ProveedoresPage'
+import ClientesPage from './pages/ClientesPage'
+import PedidosPage from './pages/PedidosPage'
 import ReportesPage from './pages/ReportesPage'
 import ConfigPage from './pages/ConfigPage'
 import QuotesPage from './pages/QuotesPage'
@@ -75,6 +77,8 @@ export default function App() {
           <Route path="caja" element={<CajaPage />} />
           <Route path="compras" element={<ComprasPage />} />
           <Route path="proveedores" element={<ProveedoresPage />} />
+          <Route path="clientes" element={<ClientesPage />} />
+          <Route path="pedidos" element={<PedidosPage />} />
           <Route path="reportes" element={<ReportesPage />} />
           <Route path="cotizaciones" element={<QuotesPage />} />
           <Route path="configuracion" element={<ConfigPage />} />

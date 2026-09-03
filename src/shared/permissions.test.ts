@@ -19,6 +19,10 @@ describe('PERMISSIONS', () => {
     expect(keys).toContain('reportes_access')
     expect(keys).toContain('config_access')
     expect(keys).toContain('usuarios_access')
+    expect(keys).toContain('distribuidor_clientes_view')
+    expect(keys).toContain('distribuidor_clientes_edit')
+    expect(keys).toContain('distribuidor_pedidos_view')
+    expect(keys).toContain('distribuidor_pedidos_edit')
   })
 
   it('every permission has label, category, and description in es and en', () => {
@@ -34,7 +38,7 @@ describe('PERMISSIONS', () => {
 
   it('categories are from a known set', () => {
     const validCategories = new Set([
-      'Ventas', 'Caja', 'Inventario', 'Compras', 'Cotizaciones', 'Reportes', 'Administración',
+      'Ventas', 'Caja', 'Inventario', 'Compras', 'Cotizaciones', 'Reportes', 'Distribuidor', 'Administración',
     ])
     for (const perm of Object.values(PERMISSIONS)) {
       expect(validCategories.has(perm.category.es)).toBe(true)

@@ -14,15 +14,20 @@ import {
   Settings,
   LogOut,
   HelpCircle,
+  Contact,
+  ClipboardList,
 } from 'lucide-react'
+import type { ModuleId } from '@shared/modules'
 import { usePermissions } from '../../hooks/usePermissions'
+import { useActiveModules } from '../../hooks/useModules'
 
 export default function Sidebar() {
   const { t } = useTranslation()
   const { usuario, logout } = useAuthStore()
   const { has } = usePermissions()
+  const { isActive } = useActiveModules()
 
-  const allMenuItems = [
+  const allMenuItems: { to: string; icon: any; label: string; permission: string | null; modulo?: ModuleId }[] = [
     { to: '/', icon: LayoutDashboard, label: t('nav.dashboard'), permission: null as string | null },
     { to: '/pos', icon: ShoppingCart, label: t('nav.pos'), permission: 'pos_access' },
     { to: '/caja', icon: Lock, label: t('nav.cash'), permission: 'caja_access' },
@@ -30,14 +35,17 @@ export default function Sidebar() {
     { to: '/ventas', icon: Receipt, label: t('nav.sales'), permission: 'pos_access' },
     { to: '/compras', icon: Truck, label: t('nav.purchases'), permission: 'compras_access' },
     { to: '/proveedores', icon: Users, label: t('nav.suppliers'), permission: 'compras_suppliers' },
+    { to: '/clientes', icon: Contact, label: t('nav.clients'), permission: 'distribuidor_clientes_view', modulo: 'distribuidor' as ModuleId },
+    { to: '/pedidos', icon: ClipboardList, label: t('nav.orders'), permission: 'distribuidor_pedidos_view', modulo: 'distribuidor' as ModuleId },
     { to: '/cotizaciones', icon: FileText, label: t('nav.quotes'), permission: 'quotes_access' },
     { to: '/reportes', icon: BarChart3, label: t('nav.reports'), permission: 'reportes_access' },
     { to: '/configuracion', icon: Settings, label: t('nav.settings'), permission: 'config_access' },
     { to: '/ayuda', icon: HelpCircle, label: t('nav.help'), permission: null as string | null },
   ]
 
-  // Filtrar menú según permisos del usuario
+  // Filtrar menú según módulos activos de la licencia y permisos del usuario
   const menuItems = allMenuItems.filter((item) => {
+    if (item.modulo && !isActive(item.modulo)) return false
     if (!item.permission) return true // Dashboard y Ayuda siempre visibles
     return has(item.permission as any)
   })

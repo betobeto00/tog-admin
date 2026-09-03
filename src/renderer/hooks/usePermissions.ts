@@ -23,6 +23,8 @@ const ALL_PERMISSIONS = [
   'reportes_access', 'reportes_export',
   'config_access', 'config_edit', 'config_terminal', 'config_backup', 'config_db_reset',
   'usuarios_access', 'usuarios_manage_roles',
+  'distribuidor_clientes_view', 'distribuidor_clientes_edit',
+  'distribuidor_pedidos_view', 'distribuidor_pedidos_edit',
 ]
 
 export function usePermissions() {

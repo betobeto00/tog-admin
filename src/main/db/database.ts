@@ -386,6 +386,70 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
           ('tarjeta', 'Tarjeta (VP800)', 'CreditCard', 1, 2);
       `,
     },
+    {
+      nombre: '015_distribuidor',
+      sql: `
+        CREATE TABLE IF NOT EXISTS clientes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nombre TEXT NOT NULL,
+          rif TEXT,
+          telefono TEXT,
+          email TEXT,
+          direccion TEXT,
+          limite_credito REAL NOT NULL DEFAULT 0,
+          notas TEXT,
+          activo INTEGER NOT NULL DEFAULT 1,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+          actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS pedidos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          numero TEXT NOT NULL UNIQUE,
+          cliente_id INTEGER NOT NULL REFERENCES clientes(id),
+          fecha TEXT NOT NULL DEFAULT (datetime('now')),
+          estado TEXT NOT NULL DEFAULT 'pendiente',
+          subtotal REAL NOT NULL DEFAULT 0,
+          impuesto REAL NOT NULL DEFAULT 0,
+          total REAL NOT NULL DEFAULT 0,
+          notas TEXT,
+          usuario_id INTEGER REFERENCES usuarios(id),
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS pedido_detalles (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          pedido_id INTEGER NOT NULL REFERENCES pedidos(id),
+          producto_id INTEGER NOT NULL REFERENCES productos(id),
+          cantidad REAL NOT NULL,
+          precio REAL NOT NULL,
+          subtotal REAL NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS remitos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          numero TEXT NOT NULL UNIQUE,
+          pedido_id INTEGER REFERENCES pedidos(id),
+          cliente_id INTEGER NOT NULL REFERENCES clientes(id),
+          fecha TEXT NOT NULL DEFAULT (datetime('now')),
+          estado TEXT NOT NULL DEFAULT 'pendiente',
+          observaciones TEXT,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS listas_precio (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nombre TEXT NOT NULL,
+          factor REAL NOT NULL DEFAULT 1,
+          activo INTEGER NOT NULL DEFAULT 1,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_pedidos_cliente ON pedidos(cliente_id);
+        CREATE INDEX IF NOT EXISTS idx_pedidos_fecha ON pedidos(fecha);
+        CREATE INDEX IF NOT EXISTS idx_remitos_cliente ON remitos(cliente_id);
+      `,
+    },
   ]
 }
 

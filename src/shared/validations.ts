@@ -188,3 +188,17 @@ export const changePasswordSchema = z.object({
   contrasena_actual: z.string().min(1),
   contrasena_nueva: z.string().min(6, 'Mínimo 6 caracteres'),
 })
+
+// ============================================
+// DISTRIBUIDOR
+// ============================================
+
+export const clienteCreateSchema = z.object({
+  nombre: z.string().min(1, 'Nombre del cliente requerido').max(200),
+  rif: z.string().max(30).optional().or(z.literal('')),
+  telefono: z.string().max(30).optional(),
+  email: z.string().email('Email inválido').max(200).optional().or(z.literal('')),
+  direccion: z.string().max(500).optional(),
+  limite_credito: z.number().min(0).default(0).optional(),
+  notas: z.string().max(1000).optional(),
+})

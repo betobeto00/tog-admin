@@ -41,6 +41,10 @@ const PERMISSIONS: Record<string, {
   config_db_reset: { label: { es: 'Resetear Base de Datos', en: 'Reset Database' }, category: { es: 'Administración', en: 'Administration' }, description: { es: 'Borrar y reiniciar la DB (PELIGROSO)', en: 'Delete and reset database (DANGEROUS)' } },
   usuarios_access: { label: { es: 'Gestionar Usuarios', en: 'Manage Users' }, category: { es: 'Administración', en: 'Administration' }, description: { es: 'Crear, editar, eliminar usuarios', en: 'Create, edit, delete users' } },
   usuarios_manage_roles: { label: { es: 'Asignar Permisos', en: 'Assign Permissions' }, category: { es: 'Administración', en: 'Administration' }, description: { es: 'Modificar permisos de otros usuarios', en: 'Modify other users permissions' } },
+  distribuidor_clientes_view: { label: { es: 'Ver Clientes', en: 'View Clients' }, category: { es: 'Distribuidor', en: 'Distributor' }, description: { es: 'Ver clientes del módulo Distribuidor', en: 'View Distributor module clients' } },
+  distribuidor_clientes_edit: { label: { es: 'Crear/Editar Clientes', en: 'Create/Edit Clients' }, category: { es: 'Distribuidor', en: 'Distributor' }, description: { es: 'Crear y editar clientes del módulo Distribuidor', en: 'Create and edit Distributor clients' } },
+  distribuidor_pedidos_view: { label: { es: 'Ver Pedidos', en: 'View Orders' }, category: { es: 'Distribuidor', en: 'Distributor' }, description: { es: 'Ver pedidos del módulo Distribuidor', en: 'View Distributor orders' } },
+  distribuidor_pedidos_edit: { label: { es: 'Crear/Editar Pedidos', en: 'Create/Edit Orders' }, category: { es: 'Distribuidor', en: 'Distributor' }, description: { es: 'Crear, editar y despachar pedidos', en: 'Create, edit and dispatch orders' } },
 }
 
 const CATEGORIES = [
@@ -50,6 +54,7 @@ const CATEGORIES = [
   { key: 'Compras', icon: '🚚', color: 'orange' as const },
   { key: 'Cotizaciones', icon: '📝', color: 'cyan' as const },
   { key: 'Reportes', icon: '📊', color: 'indigo' as const },
+  { key: 'Distribuidor', icon: '🚚', color: 'teal' as const },
   { key: 'Administración', icon: '⚙️', color: 'red' as const },
 ]
 
@@ -62,6 +67,7 @@ const colorMap: Record<string, { bg: string; border: string; text: string; toggl
   cyan: { bg: 'bg-cyan-50', border: 'border-cyan-200', text: 'text-cyan-700', toggle: 'bg-cyan-600' },
   indigo: { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700', toggle: 'bg-indigo-600' },
   red: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', toggle: 'bg-red-600' },
+  teal: { bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-700', toggle: 'bg-teal-600' },
 }
 
 interface PermissionsModalProps {

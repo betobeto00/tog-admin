@@ -207,6 +207,28 @@ export const PERMISSIONS = {
     category: { es: 'Administración', en: 'Administration' },
     description: { es: 'Importar, resetear o manipular la licencia del producto', en: 'Import, reset or manipulate the product license' },
   },
+
+  // === DISTRIBUIDOR ===
+  distribuidor_clientes_view: {
+    label: { es: 'Ver Clientes', en: 'View Clients' },
+    category: { es: 'Distribuidor', en: 'Distributor' },
+    description: { es: 'Ver clientes del módulo Distribuidor', en: 'View Distributor module clients' },
+  },
+  distribuidor_clientes_edit: {
+    label: { es: 'Crear/Editar Clientes', en: 'Create/Edit Clients' },
+    category: { es: 'Distribuidor', en: 'Distributor' },
+    description: { es: 'Crear y editar clientes del módulo Distribuidor', en: 'Create and edit Distributor clients' },
+  },
+  distribuidor_pedidos_view: {
+    label: { es: 'Ver Pedidos', en: 'View Orders' },
+    category: { es: 'Distribuidor', en: 'Distributor' },
+    description: { es: 'Ver pedidos del módulo Distribuidor', en: 'View Distributor orders' },
+  },
+  distribuidor_pedidos_edit: {
+    label: { es: 'Crear/Editar Pedidos', en: 'Create/Edit Orders' },
+    category: { es: 'Distribuidor', en: 'Distributor' },
+    description: { es: 'Crear, editar y despachar pedidos', en: 'Create, edit and dispatch orders' },
+  },
 } as const
 
 export type PermissionKey = keyof typeof PERMISSIONS
@@ -244,6 +266,7 @@ export const PERMISSION_CATEGORIES = [
   { key: 'Compras', icon: '🚚', color: 'orange' },
   { key: 'Cotizaciones', icon: '📝', color: 'cyan' },
   { key: 'Reportes', icon: '📊', color: 'indigo' },
+  { key: 'Distribuidor', icon: '🚚', color: 'orange' },
   { key: 'Administración', icon: '⚙️', color: 'red' },
 ] as const
 

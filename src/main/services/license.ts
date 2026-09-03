@@ -295,6 +295,18 @@ export function getLicenseStatus() {
 }
 
 /**
+ * Módulos activos según la licencia vigente (el módulo base siempre está activo).
+ */
+export function getActiveModules(): ModuleId[] {
+  const validation = validateLicense()
+  const modulos = normalizeModules(validation.license?.modules)
+  if (!modulos.includes('comercializador')) {
+    modulos.unshift('comercializador')
+  }
+  return modulos
+}
+
+/**
  * Resetea el estado de tracking (al importar nueva licencia)
  */
 export function resetLicenseState(): void {

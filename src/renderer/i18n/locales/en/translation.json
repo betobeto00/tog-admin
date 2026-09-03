@@ -75,7 +75,34 @@
     "quotes": "Quotes",
     "settings": "Settings",
     "help": "Help",
+    "clients": "Clients",
+    "orders": "Orders",
     "logout": "Log Out"
+  },
+  "clientes": {
+    "title": "Clients",
+    "registered": "registered clients",
+    "new": "New Client",
+    "edit": "Edit Client",
+    "searchPlaceholder": "Search by name, RIF or phone...",
+    "empty": "No clients found",
+    "phone": "Phone",
+    "email": "Email",
+    "address": "Address",
+    "creditLimit": "Credit Limit",
+    "creditLimitHint": "0 = no credit",
+    "deleteTitle": "Delete client",
+    "deleteMessage": "Are you sure? This action cannot be undone.",
+    "notActiveTitle": "Distributor module not active",
+    "notActiveHint": "Activate the Distributor module in your license to manage clients."
+  },
+  "pedidos": {
+    "title": "Orders",
+    "subtitle": "Distributor module — customer orders",
+    "notActiveTitle": "Distributor module not active",
+    "notActiveHint": "Activate the Distributor module in your license to manage orders.",
+    "comingSoonTitle": "Orders (under construction)",
+    "comingSoonBody": "This section of the Distributor module will be enabled in the next iteration."
   },
   "login": {
     "title": "Sign In",
