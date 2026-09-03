@@ -84,7 +84,7 @@
     "registered": "clientes registrados",
     "new": "Nuevo Cliente",
     "edit": "Editar Cliente",
-    "searchPlaceholder": "Buscar por nombre, RIF o teléfono...",
+    "searchPlaceholder": "Buscar por nombre, documento o teléfono...",
     "empty": "No se encontraron clientes",
     "phone": "Teléfono",
     "email": "Email",
@@ -94,7 +94,9 @@
     "deleteTitle": "Eliminar cliente",
     "deleteMessage": "¿Estás seguro? Esta acción no se puede deshacer.",
     "notActiveTitle": "Módulo Distribuidor no activo",
-    "notActiveHint": "Activa el módulo Distribuidor en tu licencia para gestionar clientes."
+    "notActiveHint": "Activa el módulo Distribuidor en tu licencia para gestionar clientes.",
+    "documento": "Documento (RIF, RFC, EIN…)",
+    "documentoPlaceholder": "RIF, RFC, EIN, CUIT, CNPJ…"
   },
   "pedidos": {
     "title": "Pedidos",

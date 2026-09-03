@@ -295,7 +295,7 @@ describe('clienteCreateSchema', () => {
   it('accepts valid client', () => {
     const result = clienteCreateSchema.safeParse({
       nombre: 'Distribuidora Los Andes',
-      rif: 'J-12345678-9',
+      documento: 'J-12345678-9',
       telefono: '+58 412-1234567',
       email: 'ventas@andes.com',
       direccion: 'Av. Principal',
@@ -313,7 +313,7 @@ describe('clienteCreateSchema', () => {
   it('accepts empty strings for optional fields', () => {
     const result = clienteCreateSchema.safeParse({
       nombre: 'Test',
-      rif: '',
+      documento: '',
       email: '',
       telefono: '',
       direccion: '',

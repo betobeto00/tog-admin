@@ -7,12 +7,12 @@ import { callApi } from '../lib/api-client'
 import { useActiveModules } from '../hooks/useModules'
 
 interface Cliente {
-  id: number; nombre: string; rif: string | null; telefono: string | null
+  id: number; nombre: string; documento: string | null; telefono: string | null
   email: string | null; direccion: string | null; limite_credito: number | null
   notas: string | null; activo: number; creado_en: string
 }
 
-const emptyForm = { nombre: '', rif: '', telefono: '', email: '', direccion: '', limite_credito: '', notas: '' }
+const emptyForm = { nombre: '', documento: '', telefono: '', email: '', direccion: '', limite_credito: '', notas: '' }
 
 export default function ClientesPage() {
   const { t } = useTranslation()
@@ -33,7 +33,7 @@ export default function ClientesPage() {
 
   const filtered = clientes.filter((c) =>
     !search || c.nombre.toLowerCase().includes(search.toLowerCase()) ||
-    c.rif?.toLowerCase().includes(search.toLowerCase()) ||
+    c.documento?.toLowerCase().includes(search.toLowerCase()) ||
     c.telefono?.includes(search)
   )
 
@@ -41,7 +41,7 @@ export default function ClientesPage() {
   const openEdit = (c: Cliente) => {
     setEditing(c)
     setForm({
-      nombre: c.nombre, rif: c.rif || '', telefono: c.telefono || '',
+      nombre: c.nombre, documento: c.documento || '', telefono: c.telefono || '',
       email: c.email || '', direccion: c.direccion || '',
       limite_credito: c.limite_credito ? String(c.limite_credito) : '',
       notas: c.notas || '',
@@ -55,7 +55,7 @@ export default function ClientesPage() {
     try {
       const data = {
         ...form,
-        rif: form.rif || undefined, telefono: form.telefono || undefined,
+        documento: form.documento || undefined, telefono: form.telefono || undefined,
         email: form.email || undefined, direccion: form.direccion || undefined,
         limite_credito: form.limite_credito ? Number(form.limite_credito) : undefined,
         notas: form.notas || undefined,
@@ -109,7 +109,7 @@ export default function ClientesPage() {
             <div className="flex items-start justify-between mb-3">
               <div>
                 <h3 className="font-semibold text-gray-900">{c.nombre}</h3>
-                {c.rif && <p className="text-xs text-gray-400 mt-0.5">RIF: {c.rif}</p>}
+                {c.documento && <p className="text-xs text-gray-400 mt-0.5">{t('clientes.documento')}: {c.documento}</p>}
               </div>
               <div className="flex gap-1">
                 <button onClick={() => openEdit(c)} className="p-1.5 hover:bg-gray-100 rounded-lg"><Edit2 className="w-4 h-4 text-gray-500" /></button>
@@ -140,8 +140,9 @@ export default function ClientesPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">RIF</label>
-              <input value={form.rif} onChange={(e) => setForm({ ...form, rif: e.target.value })}
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('clientes.documento')}</label>
+              <input value={form.documento} onChange={(e) => setForm({ ...form, documento: e.target.value })}
+                placeholder={t('clientes.documentoPlaceholder')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>

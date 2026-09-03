@@ -32,10 +32,10 @@ export function registerClientesHandlers(): void {
     }
     const db = getDatabase()
     const result = db.prepare(
-      'INSERT INTO clientes (nombre, rif, telefono, email, direccion, limite_credito, notas) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO clientes (nombre, documento, telefono, email, direccion, limite_credito, notas) VALUES (?, ?, ?, ?, ?, ?, ?)'
     ).run(
       data.nombre,
-      data.rif || null,
+      data.documento || null,
       data.telefono || null,
       data.email || null,
       data.direccion || null,
@@ -54,12 +54,12 @@ export function registerClientesHandlers(): void {
     const d = data.data
     db.prepare(`
       UPDATE clientes SET
-        nombre = COALESCE(?, nombre), rif = COALESCE(?, rif),
+        nombre = COALESCE(?, nombre), documento = COALESCE(?, documento),
         telefono = COALESCE(?, telefono), email = COALESCE(?, email),
         direccion = COALESCE(?, direccion), limite_credito = COALESCE(?, limite_credito),
         notas = COALESCE(?, notas)
       WHERE id = ?
-    `).run(d.nombre ?? null, d.rif ?? null, d.telefono ?? null, d.email ?? null, d.direccion ?? null, d.limite_credito ?? null, d.notas ?? null, data.id)
+    `).run(d.nombre ?? null, d.documento ?? null, d.telefono ?? null, d.email ?? null, d.direccion ?? null, d.limite_credito ?? null, d.notas ?? null, data.id)
     return { success: true }
   })
 

@@ -195,7 +195,8 @@ export const changePasswordSchema = z.object({
 
 export const clienteCreateSchema = z.object({
   nombre: z.string().min(1, 'Nombre del cliente requerido').max(200),
-  rif: z.string().max(30).optional().or(z.literal('')),
+  // Documento de registro/tributario libre: RIF, RFC, EIN, CUIT… (mercado internacional)
+  documento: z.string().max(40).optional().or(z.literal('')),
   telefono: z.string().max(30).optional(),
   email: z.string().email('Email inválido').max(200).optional().or(z.literal('')),
   direccion: z.string().max(500).optional(),

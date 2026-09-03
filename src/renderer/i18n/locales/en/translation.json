@@ -84,7 +84,7 @@
     "registered": "registered clients",
     "new": "New Client",
     "edit": "Edit Client",
-    "searchPlaceholder": "Search by name, RIF or phone...",
+    "searchPlaceholder": "Search by name, document or phone...",
     "empty": "No clients found",
     "phone": "Phone",
     "email": "Email",
@@ -94,7 +94,9 @@
     "deleteTitle": "Delete client",
     "deleteMessage": "Are you sure? This action cannot be undone.",
     "notActiveTitle": "Distributor module not active",
-    "notActiveHint": "Activate the Distributor module in your license to manage clients."
+    "notActiveHint": "Activate the Distributor module in your license to manage clients.",
+    "documento": "Reg. document (RIF, RFC, EIN…)",
+    "documentoPlaceholder": "RIF, RFC, EIN, CUIT, CNPJ…"
   },
   "pedidos": {
     "title": "Orders",

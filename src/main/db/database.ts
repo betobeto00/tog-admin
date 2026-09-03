@@ -450,6 +450,12 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
         CREATE INDEX IF NOT EXISTS idx_remitos_cliente ON remitos(cliente_id);
       `,
     },
+    {
+      nombre: '016_clientes_documento',
+      sql: `
+        ALTER TABLE clientes RENAME COLUMN rif TO documento;
+      `,
+    },
   ]
 }
 
