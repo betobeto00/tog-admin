@@ -12,6 +12,7 @@ import { useToast } from '../components/ui/Toast'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import PermissionsModal from '../components/ui/PermissionsModal'
+import LicenseSyncForm from '../components/LicenseSyncForm'
 import { usePermissions } from '../hooks/usePermissions'
 import { callApi } from '../lib/api-client'
 
@@ -906,6 +907,7 @@ const ts = await callApi('terminal:estado')
                       const result = await callApi<{ success: boolean; error?: string }>('license:import', content)
                       if (result.success) {
                         toast.success('Licencia importada exitosamente')
+                        window.dispatchEvent(new Event('tog:license-updated'))
 const ls = await callApi('license:status')
                         setLicenseStatus(ls)
                       } else {
@@ -918,6 +920,13 @@ const ls = await callApi('license:status')
                 >
                   <Upload className="w-4 h-4" /> Importar Nueva Licencia
                 </button>
+                <div className="pt-4 mt-4 border-t border-green-200">
+                  <LicenseSyncForm
+                    onSynced={() => {
+                      callApi('license:status').then(setLicenseStatus).catch(() => {})
+                    }}
+                  />
+                </div>
               </div>
             ) : (
               <p className="text-sm text-gray-500">{t('config.noLicenseStatus')}</p>

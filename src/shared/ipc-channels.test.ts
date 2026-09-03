@@ -7,6 +7,7 @@ describe('PREAUTH_CHANNELS', () => {
     // app from the lock screen, before any user is logged in.
     expect(PREAUTH_CHANNELS).toContain('license:import')
     expect(PREAUTH_CHANNELS).toContain('license:status')
+    expect(PREAUTH_CHANNELS).toContain('license:sync')
     expect(PREAUTH_CHANNELS).toContain('license:validate')
   })
 

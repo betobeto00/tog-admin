@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Shield, AlertTriangle, Upload, Key, Clock } from 'lucide-react'
 import { useToast } from './ui/Toast'
+import LicenseSyncForm from './LicenseSyncForm'
 import { callApi } from '../lib/api-client'
 
 interface LicenseStatus {
@@ -56,6 +57,7 @@ export default function LicenseGate({ children }: { children: React.ReactNode })
           const result = await callApi<{ success: boolean; error?: string }>('license:import', content)
           if (result.success) {
             toast.success('Licencia importada exitosamente')
+            window.dispatchEvent(new Event('tog:license-updated'))
             await checkLicense()
           } else {
             toast.error(result.error || 'Error importando licencia')
@@ -171,6 +173,16 @@ export default function LicenseGate({ children }: { children: React.ReactNode })
             <Upload className="w-5 h-5" />
             {importing ? 'Importando...' : 'Importar Licencia'}
           </button>
+
+          <div className="flex items-center gap-3 my-4">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs text-gray-400">o</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          <div className="bg-white rounded-xl border border-blue-100 p-3">
+            <LicenseSyncForm compact onSynced={checkLicense} />
+          </div>
 
           <p className="text-center text-xs text-gray-400 mt-4">
             Coloca el archivo <strong>license.key</strong> junto al .exe de la app,

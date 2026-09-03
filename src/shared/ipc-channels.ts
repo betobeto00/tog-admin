@@ -34,6 +34,7 @@ export type IpcChannel =
   | 'license:import'
   | 'license:reset-state'
   | 'license:status'
+  | 'license:sync'
   | 'license:validate'
   | 'metodos-pago:create'
   | 'metodos-pago:delete'
@@ -99,6 +100,7 @@ export const PREAUTH_CHANNELS: readonly IpcChannel[] = [
   'i18n:get-lang',
   'i18n:set-lang',
   'license:status',
+  'license:sync',
   'license:validate',
   'license:import',
 ] as const

@@ -9,6 +9,7 @@ const PREAUTH_CHANNELS: ReadonlySet<string> = new Set([
   'i18n:get-lang',
   'i18n:set-lang',
   'license:status',
+  'license:sync',
   'license:validate',
   'license:import',
 ])
