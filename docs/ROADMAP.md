@@ -1,5 +1,7 @@
 # Roadmap — TOG Admin
 
+> 🕓 **Documento histórico** — registro de fases y decisiones hasta **v1.0.8** (POS legacy). El estado actual del proyecto vive en `FEATURES.md`, `ARCHITECTURE.md`, `MODULOS.md` y `LICENCIAMIENTO.md`. ⚠️ Los “Detalles técnicos” con **migraciones propuestas 015–019 no coinciden** con la numeración real (015/016 = módulo Distribuidor); no aplicar esos SQL.
+
 ## Visión General
 
 ```

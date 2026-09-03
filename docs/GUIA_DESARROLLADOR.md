@@ -1,5 +1,7 @@
 # 🛠️ Guía del Desarrollador — TOG Admin
 
+> 📌 **Procedimientos vigentes** (comandos, scripts, build, releases). El árbol de `src/` evolucionó (handlers por módulo en `src/main/modules/*`, auth en `src/main/core/auth/`); para la estructura actual ver `ARCHITECTURE.md`.
+
 Guía completa de comandos, scripts y procedimientos para el desarrollo de TOG Admin.
 
 ---

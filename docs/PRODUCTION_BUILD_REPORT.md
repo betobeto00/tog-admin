@@ -1,5 +1,7 @@
 # Reporte: Problema de Build de Producción
 
+> 🕓 **Reporte histórico de un incidente ya resuelto (28-Ago-2026).** Describe el bug de pantalla blanca en producción y su fix; el pipeline de build puede haber cambiado desde entonces (ver `README.md` → Build).
+
 **Fecha:** 28-Ago-2026
 **Estado:** ✅ RESUELTO
 **Síntoma:** La app funcionaba en `npm run dev` pero mostraba pantalla blanca en `TOG Admin.exe`

@@ -1,3 +1,5 @@
+> 🕓 **Borrador original (referencia histórica)** del flujo de pago automático con Stripe. El diseño evolucionó: la versión vigente (marcada **EN ESPERA**) está en `FACTURACION-STRIPE.md` y su implementación en el repo hermano `tog-platform`.
+
 ¡Hola! Revisé tu repo `tog-admin` y veo que ya tienes una base sólida con un sistema de licencias (`license.ts`) y autenticación. Vamos a planear cómo añadir la renovación automática con tarjeta de crédito.
 
 Lo primero y más importante: **nunca** proceses pagos directamente desde la app de escritorio (Electron). Toda la lógica sensible (como las claves secretas de Stripe) debe estar en un **backend seguro** que tú controles. La app de escritorio solo se comunicará con ese backend.

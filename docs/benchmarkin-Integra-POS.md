@@ -1,3 +1,5 @@
+> 🕓 **Análisis de mercado (referencia histórica).** Comparativa Integra-POS vs. TOG Admin al momento de escribirse; los datos/páginas pueden haber cambiado. No es especificación del producto.
+
 Claro. Aquí tienes un informe de benchmarking comparando **Integra-POS** (https://www.integra-pos.com/) y tu repositorio público **TOG Admin** (https://github.com/betobeto00/tog-admin).
 
 Este análisis se basa exclusivamente en la información pública disponible en sus respectivos sitios web y repositorio de código.

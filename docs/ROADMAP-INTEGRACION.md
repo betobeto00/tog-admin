@@ -1,3 +1,5 @@
+> 🕓 **Borrador histórico** — exportación de una conversación de planificación previa al roadmap actual. Varias ideas quedaron superadas o re-priorizadas; no usar como lista de pendientes. Ver `ROADMAP.md` (histórico) y, para el estado real, `FEATURES.md` / `MODULOS.md`.
+
 ¡Excelente lista de funcionalidades! Te voy a ayudar a estructurar este roadmap de desarrollo para TOG Admin, priorizando y organizando las tareas en fases lógicas. He analizado cada característica y las he clasificado por complejidad, dependencias y valor para el negocio.
 
 ## 🗺️ Roadmap de Desarrollo para TOG Admin

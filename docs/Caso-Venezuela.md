@@ -1,3 +1,5 @@
+> 🕓 **Análisis regulatorio de referencia** (normativa SNAT / Providencia 2026). La ley venezolana puede cambiar: **validar antes de implementar** la fase fiscal (Fase 8). Nota: el sistema ya no identifica empresas solo con RIF — usa `pais` + documento de registro internacional (ver `MODULOS.md`).
+
 ¡Perfecto! Vamos a revisar todo el contexto actualizado con la **Providencia SNAT/2026/00084** y cómo afecta a **TOG Admin**, tu sistema POS.
 
 ---

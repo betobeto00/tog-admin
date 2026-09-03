@@ -1,5 +1,7 @@
 # Knowledge Base — TOG Admin: Papelería, Centro de Copiado e Impresión
 
+> 📌 **Referencia viva de dominio** (papelería / centro de copiado / impresión): sigue siendo válida para entender el negocio y los casos de uso. Las secciones de diagnóstico de problemas ya “resueltos” son notas históricas.
+
 ## El Negocio
 
 Una papelería/centro de copiado e impresión es un negocio que ofrece:
