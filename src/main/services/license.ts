@@ -5,6 +5,7 @@ import os from 'os'
 import { app } from 'electron'
 import { t } from '../i18n'
 import { normalizeModules, type ModuleId } from '../../shared/modules'
+import { LICENSE_PUBLIC_KEY, verifyLicenseSignature } from './license-crypto'
 
 interface LicenseData {
   cliente: string
@@ -31,18 +32,6 @@ interface LicenseValidation {
   error: string | null
   daysRemaining: number | null
 }
-
-// Public key embebida en la app (generada con generate-keys.js)
-// Esta key se integra en el código fuente y viaja con el .exe
-const PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA39zIsIGhsA5K+BgIT03C
-l96QmwXiDykF5KXj7vmMqXwE6am9bPbcAKBC+pBRdiGHreo+ND8Bpjt0MOSCC5pJ
-RLIwU9VreGvyMoD+gFoLiIVWbYNUaxG57RvCOjDfwKhz0cGUmy7ahe2YY/gsGK8J
-p2lpCrKA9hf7VoevShjyKCpGYYBYPAWdWZ6scebodH9KDEMpk9fV4V9mjjD44Ouz
-7pXWCKBNYEUQa02FcnhX5ff+W9GSdvfzT3ID8wayKac93IP8nOczY9nSirOC+0TJ
-DvZrxqLgZP9h4uAeYeZAlUn4SbtDahbJfA2tolW6punhkKZSXgtsMw5tIeYzqPl1
-TQIDAQAB
------END PUBLIC KEY-----`
 
 // Ruta del archivo de licencia
 function getLicensePath(): string {
@@ -102,10 +91,7 @@ export function validateLicense(): LicenseValidation {
     }
 
     // Verificar firma RSA
-    const { firma, ...dataToVerify } = license
-    const verify = crypto.createVerify('SHA256')
-    verify.update(JSON.stringify(dataToVerify))
-    const firmaValida = verify.verify(PUBLIC_KEY, firma, 'base64')
+    const firmaValida = verifyLicenseSignature(license)
 
     if (!firmaValida) {
       return {
@@ -249,10 +235,7 @@ export function saveLicense(fileContent: string): { success: boolean; error?: st
     }
 
     // Verificar firma
-    const { firma, ...dataToVerify } = license
-    const verify = crypto.createVerify('SHA256')
-    verify.update(JSON.stringify(dataToVerify))
-    const firmaValida = verify.verify(PUBLIC_KEY, firma, 'base64')
+    const firmaValida = verifyLicenseSignature(license)
 
     if (!firmaValida) {
       return { success: false, error: t('errors.licenseSignatureInvalid') }
