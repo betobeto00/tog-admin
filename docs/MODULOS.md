@@ -1,6 +1,8 @@
 # TOG Platform — Catálogo de Módulos y Activación por Licencia
 
-> Documento de **visión de producto**. Define los módulos que componen TOG Platform, cómo se activan por licencia y cómo se relacionan entre sí. La implementación técnica vive en `ARQUITECTURA-MODULAR.md`; el flujo de pago en `FACTURACION-STRIPE.md`.
+> Documento de **visión de producto**. Define los módulos que componen TOG Platform, cómo se activan por licencia y cómo se relacionan entre sí. La implementación técnica vive en `ARCHITECTURE.md` (este repo) y el flujo de pago en `FACTURACION-STRIPE.md`.
+>
+> 📌 **Este archivo es un espejo** del mismo documento en el repo hermano `tog-platform/docs/MODULOS.md`, donde el catálogo se mantiene al día junto al backend. Al editar, actualiza ambos.
 
 ---
 
@@ -25,7 +27,7 @@ La visión de **TOG Platform** es que cada eslabón sea un **módulo activable p
 | 1 | **Productor** | 🟡 Diseño | Siembra, costos de campo, estimación de cosecha, logística de acopio | Core |
 | 2 | **Procesador** | 🟡 Diseño | Recepción de materia prima, recetas/BOM, transformación, mermas, lote de salida | Core + Productor (opcional) |
 | 3 | **Comercializador** | ✅ Parcial (`tog-admin`) | Inventario, compras, ventas, cotizaciones, caja, POS | Core |
-| 4 | **Distribuidor** | ✅ MVP — CRUD de clientes (migración 015/016, gating por licencia); pedidos en construcción | Clientes (con documento de registro internacional: RIF, RFC, EIN…), pedidos, remitos, listas de precio, crédito. Rutas, flotas y despachos pendientes | Core + Comercializador |
+| 4 | **Distribuidor** | ✅ MVP v1 — clientes + pedidos CRUD (migraciones 015/016, gating por licencia y permisos, tests) | Clientes (con documento de registro internacional: RIF, RFC, EIN…), pedidos con estados y numeración. Pendientes: remitos, listas de precio, crédito; rutas, flotas y despachos | Core + Comercializador |
 | 5 | **Postventa** | 🟡 Diseño | Tickets de soporte, devoluciones, garantías, notas de crédito | Core + Comercializador |
 
 **Leyenda**: ✅ existe · 🟡 en diseño · ⚪ no iniciado
@@ -43,7 +45,8 @@ Una licencia es un JSON firmado RSA (la clave pública ya está embebida en `lic
 ```json
 {
   "empresa": "AgroMaíz C.A.",
-  "rif": "J-12345678-9",
+  "pais": "VE",
+  "documento": "J-12345678-9",
   "issued_at": "2025-01-15",
   "expires_at": "2026-01-15",
   "modules": ["core", "comercializador", "distribuidor"],
@@ -54,7 +57,10 @@ Una licencia es un JSON firmado RSA (la clave pública ya está embebida en `lic
 }
 ```
 
-> ⚠️ **Estado real (2-Sep-2026):** TOG Admin ya soporta el campo `modules` en la licencia (v2, ver `LICENCIAMIENTO.md`) y muestra el catálogo en `Configuración → Sistema → Módulos de TOG Platform` (catálogo en `src/shared/modules.ts`). Aún **no** existen `empresa`/`rif`/`edition`/`max_usuarios`, no hay backend ni gating de features por módulo: los módulos son aditivos y el base Comercializador (todo lo que la app incluye hoy) no se desactiva.
+> ⚠️ **Estado real (2-Sep-2026):** este JSON es la **visión** (identidad de empresa = `pais` ISO 3166-1 alpha-2 + `documento` de registro libre — RIF, EIN, RFC, CNPJ…). En código hoy:
+> - La licencia **v2** que la app guarda/valida tiene el formato de `LICENCIAMIENTO.md` (`cliente`, `expira`, `modules`, `firma`…); `src/shared/modules.ts` es el catálogo y Config → Sistema → Módulos de TOG Platform lo muestra.
+> - El **backend TOG Platform** (`tog-platform` repo) da de alta empresas por `pais + documento` y emite licencias firmadas con la misma clave pública que la app valida. El gating **sí existe**: rutas e IPC del Distribuidor se ocultan si el módulo no viene en la licencia (`useActiveModules`) o sin permiso (`usePermissions`).
+> - El botón **“Sincronizar”** (canal pre-auth `license:sync`, Config y pantalla de bloqueo) descarga la licencia activa del backend y la re-valida por firma antes de guardar. El flujo de pago online (Stripe) está **EN ESPERA** (ver `FACTURACION-STRIPE.md`).
 
 El **Core** siempre está implícito. Si el cliente desactiva "Comercializador", el módulo sigue instalado pero el Sidebar y los handlers se ocultan.
 
@@ -74,9 +80,11 @@ Las ediciones son **bundles comerciales**. Internamente, la licencia sigue siend
 
 ### 3.3 Cómo se entrega una licencia nueva / activación de módulo
 
-**Hoy (offline, manual)**: tú generas la clave firmada y la envías por correo/WhatsApp; el cliente la importa desde la pantalla de bloqueo o desde Configuración y reinicia. En TOG Admin el generador es `scripts/generate-license.js` (este repo) y el formato actual de licencia es el de `LICENCIAMIENTO.md`, no el de la sección 3.1.
+**Hoy (v1 manual)**: dos caminos equivalentes, ambos con validación RSA local:
+1. **Offline** — tú generas la clave firmada (`scripts/generate-license.js`, formato de `LICENCIAMIENTO.md`) y la envías por correo/WhatsApp; el cliente la importa desde la pantalla de bloqueo o desde Configuración.
+2. **Online (Sincronizar)** — das de alta la empresa y emites su licencia en el backend TOG Platform; el cliente presiona **Config → Licencia → Sincronizar** (URL + ID de empresa + API Key) y la app la descarga y valida. Verificado end-to-end por `scripts/qa-sync.ts`.
 
-**Mañana (online, automático)**: Roberto paga con tarjeta vía Stripe Checkout. El webhook de Stripe llega a tu backend, el backend actualiza el estado de la empresa y le entrega la nueva clave. Detalle en `FACTURACION-STRIPE.md`.
+**En espera (online automático con pago)**: Roberto paga con tarjeta vía Stripe Checkout; el webhook reactiva/renueva la licencia automáticamente. El código existe y está testeado en `tog-platform`, pero **pausado** hasta que un cliente quiera pagar online (decisión anti-overengineering). Detalle en `FACTURACION-STRIPE.md`.
 
 ### 3.4 Offline-first, online-cuando-puede
 
@@ -170,16 +178,18 @@ Estos números son una **referencia para el roadmap**, no la tabla de precios fi
 
 ## 7. Roadmap por módulo
 
-### Inmediato (mes 0–2): habilitar el catálogo
-- [ ] Estandarizar `window.api.modules` desde la licencia activa.
-- [ ] Sidebar filtra items según módulos.
-- [ ] Config → Licencia muestra catálogo de módulos disponibles (algunos en gris "No adquirido").
-- [ ] Backend admin web (Vercel + Postgres) con CRUD de empresas y licencias.
+### Inmediato (mes 0–2): habilitar el catálogo — ✅ hecho (2-Sep-2026)
+- [x] Catálogo de módulos desde la licencia activa (`src/shared/modules.ts` + hook `useActiveModules`).
+- [x] Sidebar/Router/IPC filtran según módulos de la licencia y permisos.
+- [x] Config → Licencia muestra catálogo y estado de módulos.
+- [x] Backend TOG Platform (SQLite, repo `tog-platform`) con CRUD de empresas (pais + documento) y emisión de licencias firmadas.
 
 ### Corto plazo (mes 2–6): Distribuidor + Stripe
-- [ ] Módulo Distribuidor: tabla `clientes`, `pedidos`, `remitos`, `rutas`, `listas_precio`.
-- [ ] Integración Stripe Checkout + webhooks.
-- [ ] Renovación automática online.
+- [x] Módulo Distribuidor: tablas `clientes`, `pedidos`, `pedido_detalles`, `remitos`, `listas_precio` (migraciones 015/016).
+- [x] CRUD de clientes y pedidos (numeración secuencial, estados: pendiente/despachado/entregado/anulado) con tests.
+- [ ] Remitos y listas de precio con UI; crédito a clientes; rutas/flotas/despachos.
+- [x] Integración Stripe Checkout + webhooks (implementada y testeada en `tog-platform`) — ⏸️ **EN ESPERA** de cliente que pague online.
+- [ ] Renovación automática online (idem, EN ESPERA).
 
 ### Medio plazo (mes 6–12): Productor + Procesador
 - [ ] Módulo Productor: siembras, cosechas, costos de campo.
@@ -205,6 +215,8 @@ Estos números son una **referencia para el roadmap**, no la tabla de precios fi
 ## 9. Documentos relacionados
 
 - `ARQUITECTURA-MODULAR.md` — cómo se monta el `ModuleLoader`, el contrato Core↔módulos, el sistema de permisos por módulo.
-- `FACTURACION-STRIPE.md` — sincronización licencia↔pago, webhooks, modelo offline-first.
+- `FACTURACION-STRIPE.md` — sincronización licencia↔pago, webhooks, modelo offline-first (estado: EN ESPERA).
+- `QA-SYNC.md` — QA end-to-end del flujo “Sincronizar licencia” (automatizado + checklist manual).
+- `LICENCIAMIENTO.md` — formato real de la licencia v2 y guía offline.
 - `auto-license-stripe.md` — borrador original del flujo Stripe (referencia).
 - `INFORME-ERP.md` — auditoría arquitectónica del estado actual de TOG Admin.

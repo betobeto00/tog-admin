@@ -5,7 +5,7 @@
 **Contexto:** Una sola PC, una sola caja, sin interconexión entre cajas  
 **Versión:** 1.0.5
 
-> ⚠️ Medición histórica (snapshot v1.0.5). Las cifras del análisis (28 permisos, 630+ keys i18n) describen esa versión; el catálogo actual es 35 permisos en 7 categorías y ~1,277 keys por idioma (ES/EN).
+> ⚠️ Medición histórica (snapshot v1.0.5). Las cifras del análisis (28 permisos, 630+ keys i18n) describen esa versión; el catálogo actual es 39 permisos en 10 categorías y ~1,329 keys por idioma (ES/EN).
 
 ---
 

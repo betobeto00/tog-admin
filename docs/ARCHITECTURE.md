@@ -23,7 +23,7 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │              SQLite Database                         │    │
 │  │         (tog-admin.db — archivo local)               │    │
-│  │         14 migraciones · 16 tablas · 22+ índices     │    │
+│  │         16 migraciones · 21 tablas · 22+ índices     │    │
 │  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -44,7 +44,9 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 | `modules/<modulo>/` | Handlers IPC por módulo: inventario, ventas, configuracion, caja-extra, license, distribuidor, terminal, crash-report, shared |
 | `db/database.ts` | SQLite + migraciones + seeds |
 | `services/valorTerminal.ts` | Comunicación serial VP800 (USB/COM) |
-| `services/license.ts` | Validación licencias RSA-2048 |
+| `services/license.ts` | Validación de licencias (consume `license-crypto`) |
+| `services/license-crypto.ts` | Cripto RSA pura (clave pública embebida, verificación de firma) — testeable fuera de Electron |
+| `services/license-sync.ts` | Sincronización con TOG Platform (canal `license:sync`): descarga, re-valida firma RSA y guarda |
 | `services/crash-reporter.ts` | Sistema de reportes de error |
 | `services/updater.ts` | Auto-actualizaciones vía GitHub (`update:*`) |
 | `services/configCache.ts` | Cache de configuración |
@@ -65,6 +67,8 @@ Router (HashRouter)
 ├── /caja               → CajaPage (Reporte X + backup automático)
 ├── /compras            → ComprasPage (barcode scanner)
 ├── /proveedores        → ProveedoresPage
+├── /clientes           → ClientesPage (módulo Distribuidor — gating por licencia + permisos)
+├── /pedidos            → PedidosPage (módulo Distribuidor — gating por licencia + permisos)
 ├── /reportes           → ReportesPage (exportar CSV + PDF)
 ├── /cotizaciones       → QuotesPage
 ├── /configuracion      → ConfigPage (Terminal + Licencia + Impresora + Tutorial + Métodos de Pago)
@@ -77,7 +81,7 @@ Router (HashRouter)
 - **Un solo archivo:** `tog-admin.db` en `%APPDATA%/tog-admin/`
 - **Sin servidor:** No necesita MySQL ni nada externo
 - **Respaldo:** Copiar el archivo `.db` = respaldo completo
-- **Migraciones:** Sistema de versionado de esquema (14 migraciones)
+- **Migraciones:** Sistema de versionado de esquema (16 migraciones)
 - **WAL mode:** Permite lectura mientras escribe
 
 ### 4. Comunicación IPC
@@ -111,12 +115,13 @@ Renderer (React)                    Main (Node.js)
 | Compras | `compras:list`, `create` |
 | Caja | `caja:status`, `abrir`, `cerrar`, `movimiento`, `historial`, `reporte-x`, `backup-auto` |
 | Quotes | `quotes:list`, `getById`, `create`, `update`, `delete` |
+| Distribuidor | `clientes:list`, `create`, `update`, `delete` · `pedidos:list`, `catalogo`, `create`, `update` (cambio de estado / notas) |
 | Reportes | `reportes:ventas-periodo`, `productos-mas-vendidos`, `ultimas-ventas`, `ventas-por-categoria` |
 | Config | `config:get`, `config:set` |
 | Métodos de Pago | `metodos-pago:list`, `create`, `update`, `delete`, `procesar-tarjeta` |
 | Backup / DB | `backup:create`, `backup:restore`, `db:reset` |
 | Terminal | `terminal:conectar`, `desconectar`, `estado`, `procesar-pago` |
-| Licencia | `license:status`, `validate`, `import`, `reset-state` |
+| Licencia | `license:status`, `validate`, `import`, `sync` (pre-auth), `reset-state` |
 | Crash Reports | `crash-report:save`, `list`, `read`, `delete`, `open-folder`, `path` |
 | i18n | `i18n:get-lang`, `i18n:set-lang` |
 | Updater | `update:check`, `download`, `install` |
@@ -125,7 +130,7 @@ Renderer (React)                    Main (Node.js)
 
 ---
 
-## Modelo de Datos (14 Migraciones)
+## Modelo de Datos (16 Migraciones)
 
 ### Migraciones
 
@@ -145,6 +150,8 @@ Renderer (React)                    Main (Node.js)
 | 012 | ajustes_inventario | `ajustes_inventario` + 2 índices |
 | 013 | usuario_permisos | `usuarios.permisos` |
 | 014 | metodos_pago | `metodos_pago` |
+| 015 | distribuidor | `clientes`, `pedidos`, `pedido_detalles`, `remitos`, `listas_precio` + 3 índices |
+| 016 | clientes_documento | renombra `clientes.rif` → `clientes.documento` (identidad internacional) |
 
 ### Tablas Principales
 
@@ -166,6 +173,11 @@ Renderer (React)                    Main (Node.js)
 | `configuracion` | 5-15 | Configuración del sistema |
 | `ajustes_inventario` | 10-200 | Historial de ajustes de stock |
 | `metodos_pago` | 2-10 | Métodos de pago configurables |
+| `clientes` | 10-1000 | Clientes del Distribuidor — `documento` de registro libre (RIF, RFC, EIN, CNPJ…) |
+| `pedidos` | 10-5000 | Pedidos de clientes (estados: `pendiente`, `despachado`, `entregado`, `anulado`) |
+| `pedido_detalles` | 50-25000 | Líneas de cada pedido |
+| `remitos` | 10-1000 | Remitos (creada en 015; sin UI aún) |
+| `listas_precio` | 1-20 | Listas de precio (creada en 015; sin UI aún) |
 
 ### Índices (22+)
 
@@ -194,6 +206,7 @@ Todos los índices están optimizados para los patrones de consulta típicos del
 |------|---------|---------|
 | `useBarcodeScanner` | `hooks/useBarcodeScanner.ts` | Captura global de escáner USB HID |
 | `usePermissions` | `hooks/usePermissions.ts` | Verificación de permisos (has, hasAny, hasAll) |
+| `useActiveModules` | `hooks/useModules.ts` | Módulos activos según la licencia (refresca en vivo con el evento `tog:license-updated`) |
 
 ---
 
@@ -209,9 +222,9 @@ Todos los índices están optimizados para los patrones de consulta típicos del
 | Validación IPC | 19 schemas Zod en handlers críticos |
 | Licencias | RSA-2048 con validación offline |
 | Error handling | ErrorBoundary global + crash reports + logging diagnóstico |
-| Internacionalización | i18n con 2 idiomas (ES/EN), ~1,277 keys por idioma |
+| Internacionalización | i18n con 2 idiomas (ES/EN), ~1,329 keys por idioma |
 | Backup automático | Al cerrar caja se crea backup de la DB |
-| Permisos | 35 permisos en 7 categorías, control granular por usuario |
+| Permisos | 39 permisos en 10 categorías (`pos`, `caja`, `inventario`, `compras`, `quotes`, `reportes`, `config`, `usuarios`, `license`, `distribuidor`), control granular por usuario |
 
 ---
 

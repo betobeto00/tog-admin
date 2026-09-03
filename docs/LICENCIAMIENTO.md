@@ -265,6 +265,19 @@ Si la app ya tiene una licencia válida pero el cliente necesita renovar:
 3. Clic en **"Importar Nueva Licencia"**
 4. Selecciona el nuevo archivo `.key`
 
+### 5.4 Opción D: Sincronizar desde el servidor (TOG Platform)
+
+Si el cliente fue dado de alta en el backend **TOG Platform** (empresa con `pais` + `documento` + `api_key`) y ya tiene licencia emitida, puede activarla o renovarla **sin recibir ningún archivo**:
+
+1. TOG Admin → **Config → Licencia → Sincronizar** (el formulario también aparece en la pantalla de bloqueo, antes del login).
+2. Carga la URL del backend, el ID de empresa y la API Key.
+3. La app descarga la licencia activa (`GET /api/empresas/:id/licencia`), **re-valida la firma RSA localmente** y la guarda.
+
+Notas:
+- Es el camino de activación **online** y funciona sin sesión (canal pre-auth `license:sync`).
+- La URL debe ser alcanzable desde la PC del cliente: `http://localhost:3001` solo sirve en tu máquina. Para clientes remotos haría falta desplegar el backend (ver README de `tog-platform`); mientras tanto, offline = Opciones A/B/C.
+- Verificación end-to-end: `scripts/qa-sync.ts` + checklist manual en `docs/QA-SYNC.md`.
+
 ---
 
 ## 6. Renovación de Licencias
@@ -293,6 +306,8 @@ La app muestra la **pantalla de bloqueo** con:
 3. Envías el nuevo .key al cliente
 4. El cliente lo importa desde la pantalla de bloqueo o desde Configuración
 ```
+
+**Alternativa online:** si el cliente usa **Sincronizar** (Opción D), la renovación es tú emitiendo la licencia nueva en TOG Platform → el cliente presiona Sincronizar y queda renovado, sin archivos de por medio.
 
 ---
 
@@ -372,9 +387,9 @@ El script actual solo acepta un `machine_id`. Para múltiples PCs, necesitarías
 Si la licencia tiene `machine_id`, necesitas generar una nueva licencia para la nueva PC. Si no tiene `machine_id`, simplemente copia el mismo `license.key`.
 
 ### ¿Puedo revocar una licencia?
-No directamente. La validación es local (offline). Para "revocar":
-1. El cliente tendría que eliminar manualmente el `license.key`
-2. O podrías actualizar la `public.key` en una nueva versión del .exe (las licencias firmadas con la clave antigua dejarían de funcionar)
+Con la validación **local offline**, no directamente: el `license.key` ya firmado sigue funcionando en esa PC (para "revocar" offline: que el cliente elimine el `license.key`, o rotar la `public.key` en una nueva versión del .exe para invalidar firmas viejas).
+
+Con el **backend TOG Platform** sí hay revocación efectiva para clientes que sincronizan: si la empresa queda sin licencia activa (p. ej. impago tras el grace period), la próxima vez que presione **Sincronizar** el servidor responde `402` y la app muestra el motivo. La excepción sigue siendo un cliente 100% offline que nunca sincroniza.
 
 ### ¿Cuánto cuesta el sistema de licencias?
 **$0.** Usa crypto nativo de Node.js. No necesitas servidores, APIs externas, ni servicios de terceros.

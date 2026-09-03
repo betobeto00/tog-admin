@@ -123,6 +123,19 @@
 
 ---
 
+## Módulo: Distribuidor 🟡 (adicional por licencia)
+
+| # | Feature | Prioridad | Estado | Descripción |
+|---|---------|-----------|--------|-------------|
+| D1 | CRUD de clientes | 🔴 | ✅ | Crear, editar, eliminar (borrado lógico); documento de registro internacional (RIF, RFC, EIN, CNPJ…) |
+| D2 | Listado y búsqueda de clientes | 🔴 | ✅ | Filtrar por nombre, documento o teléfono |
+| D3 | Crear pedido con líneas | 🔴 | ✅ | Catálogo de productos del Core (no requiere permiso de inventario); precio autocompletado |
+| D4 | Numeración secuencial de pedidos | 🔴 | ✅ | `configuracion.pedido_numero`, idempotente |
+| D5 | Estados de pedido | 🔴 | ✅ | `pendiente` → `despachado` → `entregado`; anulación; validación de transiciones |
+| D6 | Gating por licencia y permisos | 🔴 | ✅ | Menú/rutas/handlers solo si el módulo viene en la licencia y el usuario tiene permiso `distribuidor_*` |
+
+---
+
 ## Módulo: Cotizaciones 🟡
 
 | # | Feature | Prioridad | Estado | Descripción |
@@ -165,7 +178,7 @@
 | CF8 | Tutorial | 🟢 | ✅ | Onboarding de 5 pasos |
 | CF9 | Métodos de pago | 🟡 | ✅ | Configurar métodos de pago (efectivo, tarjeta, etc.) |
 | CF10 | **Tasa de cambio** | 🔴 | ⏳ | Configurar tasa de cambio y símbolo de moneda (Fase 8) |
-| CF11 | **Tienda de módulos TOG Platform** | 🔴 | ✅ | Catálogo de módulos por licencia (estado, contratar, importar licencia v2) |
+| CF11 | **Módulos de TOG Platform** | 🔴 | ✅ | Catálogo de módulos por licencia (estado, importar v2, **Sincronizar** desde el backend) |
 
 ---
 
@@ -173,8 +186,8 @@
 
 | # | Feature | Prioridad | Estado | Descripción |
 |---|---------|-----------|--------|-------------|
-| SEC1 | Sistema de licencias RSA-2048 | 🔴 | ✅ | Licencias offline con validación de firma |
-| SEC2 | Permisos por usuario (35 permisos) | 🟡 | ✅ | 7 categorías de permisos granulares |
+| SEC1 | Sistema de licencias RSA-2048 | 🔴 | ✅ | Licencias offline con validación de firma + **Sincronizar** (canal pre-auth `license:sync`, re-validación RSA local) |
+| SEC2 | Permisos por usuario (39 permisos) | 🟡 | ✅ | 10 categorías de permisos granulares (incl. `distribuidor_*`) |
 | SEC3 | Rate limiting en login | 🔴 | ✅ | Bloqueo después de 5 intentos |
 | SEC4 | Session timeout | 🔴 | ✅ | 30 min de inactividad |
 | SEC5 | Password hashing (bcrypt) | 🔴 | ✅ | 10 salt rounds |
@@ -190,8 +203,8 @@
 |---|---------|-----------|--------|-------------|
 | INF1 | Auto-update (electron-updater) | 🟡 | ✅ | Actualizaciones vía GitHub Releases |
 | INF2 | NSIS installer | 🟡 | ✅ | Instalador Windows con acceso directo |
-| INF3 | i18n (ES/EN) | 🟡 | ✅ | ~1,277 keys por idioma (ES/EN) |
-| INF4 | Tests automatizados | 🟡 | ✅ | 112 tests (Vitest + React Testing Library) |
+| INF3 | i18n (ES/EN) | 🟡 | ✅ | ~1,329 keys por idioma (ES/EN) |
+| INF4 | Tests automatizados | 🟡 | ✅ | 159 tests (Vitest: validaciones, servicios, handlers IPC, componentes) |
 | INF5 | Build portable | 🟢 | ✅ | Versión sin instalador |
 | INF6 | Instalador X32 | 🟡 | ⏳ | Instalador para arquitectura de 32 bits |
 | INF7 | Logging estructurado (winston) | 🟡 | ⏳ | Logging centralizado en main process |
@@ -226,12 +239,13 @@
 | Ventas | 8 | 8 | 0 |
 | Compras | 4 | 4 | 0 |
 | Proveedores | 3 | 3 | 0 |
+| Distribuidor | 6 | 6 | 0 |
 | Cotizaciones | 7 | 5 | 2 |
 | Reportes | 7 | 6 | 1 |
 | Configuración | 11 | 10 | 1 |
 | Seguridad | 8 | 6 | 2 |
 | Infraestructura | 8 | 5 | 3 |
 | Futuro/Expansión | 9 | 0 | 9 |
-| **TOTAL** | **114** | **89** | **25** |
+| **TOTAL** | **120** | **95** | **25** |
 
-**Porcentaje completado: 78.1%**
+**Porcentaje completado: 79.2%**

@@ -1,6 +1,8 @@
 # TOG Platform — Facturación y Sincronización de Licencia con Stripe
 
 > Documento técnico de la integración entre **pagos (Stripe)** y **licencias (TOG Platform)**. El flujo de licenciamiento puro está en `MODULOS.md`; la arquitectura modular está en `ARQUITECTURA-MODULAR.md`. Este doc los conecta.
+>
+> 🅿️ **Estado (2-Sep-2026): flujo EN ESPERA** por decisión de alcance (anti-overengineering). La implementación (no este diseño) vive en el repo hermano **`tog-platform`**: `src/server.js`, `src/schema.sql`, `src/stripe.js`, webhooks idempotentes con grace period — testeada (19 tests) pero **pausada** hasta que un cliente quiera pagar online. Hoy se opera con el flujo manual + botón **Sincronizar** (ver `QA-SYNC.md`). Los esquemas SQL/Postgres y el “stack sugerido” abajo son **referencia conceptual**; el esquema real es SQLite (`tog-platform/src/schema.sql`) con empresa = `pais` (ISO 3166-1) + `documento` de registro libre.
 
 ---
 
@@ -60,10 +62,12 @@
 CREATE TABLE empresas (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nombre          TEXT NOT NULL,
-  rif             TEXT UNIQUE NOT NULL,
+  pais            TEXT NOT NULL DEFAULT 'VE',   -- ISO 3166-1 alpha-2
+  documento       TEXT NOT NULL,                 -- RIF, EIN, RFC, NIT, CUIT, CNPJ, VAT…
   email_contacto  TEXT NOT NULL,
   stripe_customer_id TEXT UNIQUE,
-  created_at      TIMESTAMPTZ DEFAULT NOW()
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (pais, documento)                      -- mismo nº en países distintos = empresas distintas
 );
 
 -- Licencias emitidas (historial completo, no solo la actual)
@@ -266,7 +270,7 @@ export function verifyLicense(licenseString: string): LicensePayload | null {
 | Riesgo | Mitigación |
 |--------|-----------|
 | `STRIPE_SECRET_KEY` se filtra | Variables de entorno, nunca en código. Rotar si se filtra. |
-| Licencia firmada es interceptada y reusada | La licencia lleva `empresa.rif` + (opcional) fingerprint del PC. Si dos PCs distintos usan la misma licencia con la misma `rif`, válido. Si PCs distintos de empresas distintas, fraude. |
+| Licencia firmada es interceptada y reusada | La licencia identifica a la empresa por `pais` + `documento` (RIF, EIN, RFC…) + (opcional) fingerprint del PC. Si dos PCs usan la licencia de la misma empresa, válido; de empresas distintas, fraude. |
 | Cliente modifica el `.exe` para bypassear validación | `license.ts` ya tiene anti-tampering básico. Mejorar con checksums firmados del binario. No es perfecto, pero sube el costo. |
 | Cliente paga y no recibe licencia | Webhook → DB → API idempotente. Si pasa >5 min y no se actualizó, "Sincronizar" fuerza pull. |
 | Cliente no paga pero sigue usando | Backend revoca, próxima vez que la app sincroniza (o cada N días) la licencia cae. Sin internet, el cliente puede seguir indefinidamente offline — es el costo de ser offline-first. Mitigable con check-in obligatorio cada 30 días. |
@@ -326,16 +330,16 @@ A 10 clientes en Distribuidor: **$234/mes pasivos**. A 50: **$1170/mes pasivos**
 
 ## 12. Roadmap de implementación
 
-| Sprint | Qué |
-|--------|-----|
-| 0 (1 sem) | Crear backend mínimo (Express + Postgres), endpoint `GET /licencia` que devuelve JSON firmado |
-| 1 (2 sem) | TOG Admin → Config → Licencia → botón "Sincronizar" que descarga la licencia |
-| 2 (2 sem) | Stripe Checkout para 1 módulo (Distribuidor). Webhook básico. |
-| 3 (1 sem) | Grace period + emails (Resend). |
-| 4 (2 sem) | Customer Portal link + cambio de tarjeta. |
-| 5 (2 sem) | Panel admin web mínimo (lista de empresas, ver suscripción, revocar). |
+| Sprint | Qué | Estado (2-Sep-2026) |
+|--------|-----|---------------------|
+| 0 | Backend mínimo (Node + SQLite) + `GET /api/empresas/:id/licencia` que devuelve la licencia firmada | ✅ hecho en `tog-platform` |
+| 1 | TOG Admin → Config → Licencia → botón "Sincronizar" que descarga la licencia | ✅ hecho (`license:sync`, pre-auth) |
+| 2 | Stripe Checkout para 1 módulo (Distribuidor) + webhook básico | ✅ implementado — ⏸️ **EN ESPERA** |
+| 3 | Grace period (14 días, configurable) + emails (Resend) | 🟡 grace ✅ / emails ⏳ — EN ESPERA |
+| 4 | Customer Portal link + cambio de tarjeta | ⏳ pendiente — EN ESPERA |
+| 5 | Panel admin web mínimo (lista de empresas, ver suscripción, revocar) | ⏳ pendiente (existe API admin, no UI) — EN ESPERA |
 
-**Total MVP**: ~10 semanas para tener Roberto pagando con tarjeta y recibiendo su módulo automáticamente.
+**Estado real:** la parte que ya opera es el flujo **manual + Sincronizar** (sin servidor público, sin Stripe). El cobro online con tarjeta queda **en pausa** hasta que exista un cliente que lo pida — decisión documentada en `tog-platform/README.md` (“Qué es HOY… y qué está EN ESPERA”).
 
 ---
 

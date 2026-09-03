@@ -23,6 +23,8 @@ Desktop app construida con Electron + React + TypeScript + SQLite. Una PC, una c
 - 🚚 Purchases with suppliers and automatic stock updates
 - 👥 Supplier management (EIN, phone, email, address)
 - 📈 Reports with charts: daily sales, top products, payment methods
+- 📦 **Distribuidor module** (license-gated): client registry (international tax/reg. document) + sales orders with sequential numbering and states (pendiente → despachado/entregado/anulado)
+- 🔐 **Licensing v2**: offline RSA-2048 keys **and** a **Sincronizar** button that downloads the active license from the TOG Platform backend and re-validates its signature locally
 - ⚙️ Settings: business name, EIN, address, Sales Tax, currency
 - 👤 User management with roles (admin / cashier) + password change
 - 🔒 **Forced password change** on first login (admin)
@@ -33,13 +35,14 @@ Desktop app construida con Electron + React + TypeScript + SQLite. Una PC, una c
 - ✅ **Zod validation** on critical IPC handlers
 - 🛡️ **Session timeout** — 30 min auto-logout
 - 🐛 **Crash reports** — automatic error reports with system info
-- ✅ **50 automated tests** — validation schemas + React components
+- 🔑 **License sync** — pre-auth channel `license:sync` (works from the lock screen): URL + empresa ID + api key → download → RSA re-validation → save
+- ✅ **159 automated tests** — validations, services, IPC handlers, React components
 
 ### UI/UX
 - 🎨 **Hero background** — imagen de fondo en pantalla de login
 - 🏷️ **Logo real** — logo de la empresa en Login, Sidebar e instalador
 - 🖼️ **Icono transparente** — icono sin fondo para el instalador
-- 🌐 **i18n (Internationalization)** — English/Spanish with 500+ translation keys
+- 🌐 **i18n (Internationalization)** — English/Spanish with ~1,329 translation keys per language
 - 📋 **Release Notes** — historial de versiones visible desde el login
 
 ### Actualizaciones
@@ -137,9 +140,11 @@ Para más detalles, ver [docs/GUIA_DESARROLLADOR.md](docs/GUIA_DESARROLLADOR.md)
 ```
 tog-admin/
 ├── docs/                    # Documentación del proyecto
-│   ├── GUIA_DESARROLLADOR.md
-│   ├── ROADMAP.md
-│   └── LICENCIAMIENTO.md
+│   ├── ARCHITECTURE.md       # Arquitectura real (migraciones, IPC, módulos)
+│   ├── LICENCIAMIENTO.md     # Guía de licencias (offline + Sincronizar)
+│   ├── MODULOS.md            # Catálogo de módulos TOG Platform
+│   ├── QA-SYNC.md            # QA del flujo Sincronizar
+│   └── ...
 ├── packaging/
 │   └── installer.nsh        # Script NSIS (custom)
 ├── public/                  # Assets estáticos
@@ -153,7 +158,9 @@ tog-admin/
 │   ├── main/                # Electron main process (Node.js)
 │   │   ├── index.ts         # Entry point
 │   │   ├── preload.ts       # API segura para renderer
-│   │   ├── ipc-handlers.ts  # Todos los handlers IPC
+│   │   ├── ipc-handlers.ts  # Registro central: delega en cada register*Handlers()
+│   │   ├── core/auth/       # auth-service.ts + permissions.ts (checkPermissionOrFail)
+│   │   ├── modules/         # Handlers IPC por módulo (inventario, ventas, license, distribuidor…)
 │   │   ├── db/
 │   │   │   ├── database.ts  # SQLite + migraciones + seeds
 │   │   │   └── migrate.ts
@@ -161,13 +168,15 @@ tog-admin/
 │   │   │   └── locales/     # es.json, en.json
 │   │   └── services/
 │   │       ├── valorTerminal.ts  # Servicio VP800
-│   │       ├── license.ts        # Validación licencias
+│   │       ├── license.ts        # Validación de licencias
+│   │       ├── license-crypto.ts # Cripto RSA pura (tests sin Electron)
+│   │       ├── license-sync.ts   # Sync con TOG Platform (license:sync)
 │   │       ├── crash-reporter.ts # Reportes de error
 │   │       └── updater.ts        # Auto-actualizaciones
 │   ├── renderer/            # React frontend
 │   │   ├── main.tsx         # Entry point React
 │   │   ├── App.tsx          # Router + lazy loading
-│   │   ├── pages/           # Vistas (12 páginas)
+│   │   ├── pages/           # Vistas (14 páginas: Core + Clientes/Pedidos)
 │   │   ├── components/      # Componentes UI
 │   │   │   ├── pos/         # CartItem
 │   │   │   ├── ui/          # Modal, ConfirmDialog, Toast
@@ -178,7 +187,10 @@ tog-admin/
 │   │   └── lib/             # Utilidades
 │   └── shared/              # Tipos y validaciones
 │       ├── types.ts
-│       └── validations.ts   # Schemas Zod
+│       ├── validations.ts   # Schemas Zod
+│       ├── permissions.ts   # Catálogo de permisos (39)
+│       ├── ipc-channels.ts  # Canales IPC + PREAUTH_CHANNELS
+│       └── modules.ts       # Catálogo de módulos TOG Platform
 ├── keys/                    # Claves RSA (licencias)
 ├── package.json
 ├── tsconfig.json

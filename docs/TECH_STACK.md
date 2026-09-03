@@ -19,7 +19,7 @@ Una PC, una caja, un usuario.
 | **Gráficos** | Recharts | Reportes y gráficas de ventas. |
 | **Formularios** | React Hook Form + Zod | Validación robusta de formularios. |
 | **Terminal Pago** | serialport (USB) | Comunicación serial con VP800 via puerto COM. |
-| **Licencias** | crypto (Node.js nativo) | RSA-2048 para licencias offline. |
+| **Licencias** | crypto (Node.js nativo) | RSA-2048 offline (import) + sincronización con backend TOG Platform (canal pre-auth `license:sync`). |
 | **Instalador** | electron-builder NSIS | Genera .exe instalable con acceso directo. |
 | **Node** | Node.js 20 LTS | Runtime estable para Electron. |
 
@@ -145,7 +145,8 @@ D-E/
 │   │   │   ├── ventas/      # ventas, compras, proveedores, caja, reportes, quotes
 │   │   │   ├── configuracion/  # config, metodos-pago, backup
 │   │   │   ├── caja-extra/  # reporte-x, backup-auto
-│   │   │   ├── license/     # status, validate, import, reset-state
+│   │   │   ├── license/     # status, validate, import, sync, reset-state
+│   │   │   ├── distribuidor/ # clientes, pedidos (canales clientes:*, pedidos:*; gating por licencia)
 │   │   │   ├── terminal/
 │   │   │   ├── crash-report/
 │   │   │   └── shared/      # app:version, i18n
@@ -157,27 +158,30 @@ D-E/
 │   │   │   └── locales/
 │   │   └── services/        # Lógica transversal
 │   │       ├── valorTerminal.ts
-│   │       ├── license.ts   # Validación RSA-2048
+│   │       ├── license.ts         # Validación de licencias (usa license-crypto)
+│   │       ├── license-crypto.ts  # Cripto RSA pura (clave pública + verificación), testeable sin Electron
+│   │       ├── license-sync.ts    # Descarga de licencia desde TOG Platform (license:sync)
 │   │       ├── crash-reporter.ts
 │   │       ├── updater.ts
 │   │       └── configCache.ts
 │   ├── renderer/            # Frontend React
 │   │   ├── App.tsx
 │   │   ├── main.tsx
-│   │   ├── components/      # 10+ componentes
-│   │   ├── pages/           # 12 páginas
+│   │   ├── components/      # 10+ componentes (incl. LicenseGate, LicenseSyncForm)
+│   │   ├── pages/           # 14 páginas (Core + Clientes/Pedidos del Distribuidor)
 │   │   ├── core/auth/store.ts  # Store de sesión (Zustand) — antes en stores/
-│   │   ├── hooks/           # usePermissions, useBarcodeScanner
+│   │   ├── hooks/           # usePermissions, useBarcodeScanner, useModules (useActiveModules)
 │   │   ├── i18n/            # Traducciones renderer
 │   │   │   └── locales/     # es/, en/
 │   │   └── lib/             # api-client.ts (callApi), utils.ts
 │   └── shared/              # Código compartido main+renderer
-│       ├── permissions.ts   # Catálogo de permisos (35 claves, 7 categorías)
-│       ├── ipc-channels.ts  # Tipos de canales + PREAUTH_CHANNELS
+│       ├── permissions.ts   # Catálogo de permisos (39 claves, 10 categorías)
+│       ├── ipc-channels.ts  # Tipos de canales + PREAUTH_CHANNELS (license:import y license:sync pre-auth)
+│       ├── modules.ts       # Catálogo de módulos TOG Platform (ModuleId + CATALOGO)
 │       ├── papeleria-api.d.ts
 │       ├── types.ts
 │       ├── validations.ts   # Schemas Zod
-│       └── validations.test.ts  # 28 tests
+│       └── validations.test.ts  # Tests de schemas
 ├── package.json             # Config build NSIS
 ├── tsconfig.json
 ├── vite.config.ts

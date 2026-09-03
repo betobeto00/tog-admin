@@ -1,5 +1,7 @@
 # Modelo de Datos — TOG Admin
 
+> ⚠️ **Esquema canónico:** la fuente de verdad es la cadena de **migraciones 001 → 016** en `src/main/db/database.ts` (tabla `schema_migrations`). Este documento describe el modelo **v1** (POS) y el apéndice al final cubre las tablas agregadas después. Si un detalle discrepa con `database.ts`, manda `database.ts`.
+
 ## Diagrama ER (Simplificado)
 
 ```
@@ -128,7 +130,7 @@ CREATE TABLE productos (
 CREATE TABLE proveedores (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre TEXT NOT NULL,
-    rif TEXT,
+    ein TEXT,              -- EIN/RIF tributario (campo libre, mercado internacional)
     telefono TEXT,
     email TEXT,
     direccion TEXT,
@@ -299,3 +301,62 @@ CREATE INDEX idx_movimientos_caja_caja ON movimientos_caja(caja_id);
 3. **Borrado lógico:** Tablas usan `activo` en vez de DELETE
 4. **Caja abierta única:** Solo puede haber una caja abierta a la vez
 5. **Auditoría:** `creado_en` y `actualizado_en` en tablas principales
+
+---
+
+## Apéndice: tablas y columnas agregadas después de v1 (migraciones 010–016)
+
+| Migración | Cambio |
+|-----------|--------|
+| 010 | `quotes`, `quote_detalles` (cotizaciones con items) |
+| 011 | `usuarios.debe_cambiar_contrasena` |
+| 012 | `ajustes_inventario` (historial de ajustes de stock) |
+| 013 | `usuarios.permisos` (JSON de permisos por usuario; reemplaza el rol simple) |
+| 014 | `metodos_pago` (efectivo, tarjeta VP800…) |
+| 015 | `clientes`, `pedidos`, `pedido_detalles`, `remitos`, `listas_precio` (módulo Distribuidor) |
+| 016 | `clientes.rif` → `clientes.documento` (identidad internacional) |
+
+### clientes (Distribuidor, migraciones 015/016)
+```sql
+CREATE TABLE clientes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL,
+    documento TEXT,           -- RIF, RFC, EIN, CNPJ… (libre, mercado internacional)
+    telefono TEXT,
+    email TEXT,
+    direccion TEXT,
+    limite_credito REAL NOT NULL DEFAULT 0,
+    notas TEXT,
+    activo INTEGER NOT NULL DEFAULT 1,   -- borrado lógico
+    creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+    actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
+);
+```
+
+### pedidos + pedido_detalles (Distribuidor, migración 015)
+```sql
+CREATE TABLE pedidos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    numero TEXT NOT NULL UNIQUE,          -- secuencial (configuracion.pedido_numero)
+    cliente_id INTEGER NOT NULL REFERENCES clientes(id),
+    fecha TEXT NOT NULL DEFAULT (datetime('now')),
+    estado TEXT NOT NULL DEFAULT 'pendiente',  -- pendiente | despachado | entregado | anulado
+    subtotal REAL NOT NULL DEFAULT 0,
+    impuesto REAL NOT NULL DEFAULT 0,
+    total REAL NOT NULL DEFAULT 0,
+    notas TEXT,
+    usuario_id INTEGER REFERENCES usuarios(id),
+    creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE pedido_detalles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pedido_id INTEGER NOT NULL REFERENCES pedidos(id),
+    producto_id INTEGER NOT NULL REFERENCES productos(id),
+    cantidad REAL NOT NULL,
+    precio REAL NOT NULL,
+    subtotal REAL NOT NULL
+);
+```
+
+También existen (creadas en 015, sin UI todavía): `remitos(numero, pedido_id, cliente_id, fecha, estado, observaciones)` y `listas_precio(nombre, factor, activo)`.

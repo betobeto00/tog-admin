@@ -1,6 +1,8 @@
 # TOG Platform — Arquitectura Modular
 
 > Documento técnico. Define cómo el Core carga módulos activados por licencia, cómo se comunican los módulos entre sí, cómo el Sidebar/Route/IPC reaccionan, y qué cambios concretos requiere el código actual de TOG Admin.
+>
+> 📌 **Estado real (2-Sep-2026):** este documento es la **visión de diseño** de un cargador genérico (loader/registry/manifiesto). La implementación real es más liviana: handlers por módulo en `src/main/modules/<módulo>/`, catálogo compartido en `src/shared/modules.ts`, gating en el renderer con `useActiveModules` (licencia) + `usePermissions` (permisos) y en el main con `checkPermissionOrFail`. Ver la realidad en `ARCHITECTURE.md`. Hoy el único módulo activable por licencia es **Distribuidor** (clientes + pedidos); Comercializador es el Core. Este mismo archivo existe en `tog-platform/docs/ARQUITECTURA-MODULAR.md`.
 
 ---
 
@@ -215,7 +217,7 @@ El Sidebar lee el mismo `activeModules` y filtra items por permisos.
 
 ## 7. Permisos por módulo
 
-El catálogo de permisos ya existe (`src/shared/permissions.ts`, 35 permisos en 7 categorías). El cambio: cada **módulo declara los suyos** y el Core los agrega al catálogo al activarlo.
+El catálogo de permisos ya existe (`src/shared/permissions.ts`, 39 permisos en 10 categorías, incl. `distribuidor_*`). El cambio propuesto: cada **módulo declara los suyos** y el Core los agrega al catálogo al activarlo.
 
 ```ts
 // Ejemplo: módulo Distribuidor
