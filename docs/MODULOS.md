@@ -54,6 +54,8 @@ Una licencia es un JSON firmado RSA (la clave pública ya está embebida en `lic
 }
 ```
 
+> ⚠️ **Estado real (2-Sep-2026):** TOG Admin ya soporta el campo `modules` en la licencia (v2, ver `LICENCIAMIENTO.md`) y muestra el catálogo en `Configuración → Sistema → Módulos de TOG Platform` (catálogo en `src/shared/modules.ts`). Aún **no** existen `empresa`/`rif`/`edition`/`max_usuarios`, no hay backend ni gating de features por módulo: los módulos son aditivos y el base Comercializador (todo lo que la app incluye hoy) no se desactiva.
+
 El **Core** siempre está implícito. Si el cliente desactiva "Comercializador", el módulo sigue instalado pero el Sidebar y los handlers se ocultan.
 
 ### 3.2 Tipos de edición
@@ -72,7 +74,7 @@ Las ediciones son **bundles comerciales**. Internamente, la licencia sigue siend
 
 ### 3.3 Cómo se entrega una licencia nueva / activación de módulo
 
-**Hoy (offline, manual)**: tú generas la clave firmada (script `tools/sign-license.ts` en el repo del Core) y la envías por correo/WhatsApp. Roberto la pega en `Configuración → Licencia → Cargar clave`, reinicia, módulo activo.
+**Hoy (offline, manual)**: tú generas la clave firmada y la envías por correo/WhatsApp; el cliente la importa desde la pantalla de bloqueo o desde Configuración y reinicia. En TOG Admin el generador es `scripts/generate-license.js` (este repo) y el formato actual de licencia es el de `LICENCIAMIENTO.md`, no el de la sección 3.1.
 
 **Mañana (online, automático)**: Roberto paga con tarjeta vía Stripe Checkout. El webhook de Stripe llega a tu backend, el backend actualiza el estado de la empresa y le entrega la nueva clave. Detalle en `FACTURACION-STRIPE.md`.
 
@@ -115,10 +117,10 @@ El nuevo `.exe` solo se descarga cuando **tú publicas una nueva versión del Co
 
 ### 5.1 Instalador (hoy, único)
 
-- Un solo `TOG-Admin-Setup-x.y.z.exe` (~100–150 MB).
+- Un solo instalador NSIS `TOG Admin Setup-x.y.z.exe` (~100–150 MB).
 - Trae todos los módulos compilados (el bundle completo).
 - Al instalar, solo activa los que la licencia permita.
-- Datos en SQLite local (`%APPDATA%/TOG Admin/`).
+- Datos en SQLite local (`%APPDATA%\tog-admin\`).
 - Actualización OTA vía electron-updater.
 - Sin internet = funciona, excepto sincronización de licencia.
 

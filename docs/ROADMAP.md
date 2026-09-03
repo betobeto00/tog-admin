@@ -8,7 +8,7 @@ CRÍTICOS    CORE        SEGURIDAD   P0+P1+P2     i18n        TESTS+ASSETS PREMI
              +UX
 ─────────   ─────────   ─────────   ──────────   ─────────   ─────────   ────────────   ─────────
 ✅ Stock    ✅ Zod      ✅ Timeout  ✅ Precio    ✅ ES/EN     ✅ Vitest    ✅ Barcode     ✅ Auto-update
-✅ Backup   ✅ Dctos    ✅ Rate     ✅ Venta     ✅ 630+keys  ✅ 134 tests ✅ Permisos    ✅ Hero-bg
+✅ Backup   ✅ Dctos    ✅ Rate     ✅ Venta     ✅ ~1277keys ✅ 112 tests ✅ Permisos    ✅ Hero-bg
 ✅ Passwd   ✅ Subcomp  ✅ VP800    ✅ Reporte X ✅ HelpPage  ✅ Favicons  ✅ i18n full   ✅ Logo real
 ✅ Toast    ✅ Ajuste   ✅ License  ✅ CSV I/O   ✅ Config    ✅ jest-dom  ⏳ Touch       ✅ Icono transparente
                          ✅ Help     ✅ Hist.Ajuste ✅ Tutorial ✅ jsdom    ⏳ Crédito     ✅ NSIS language fix
@@ -162,7 +162,7 @@ TOG Admin no es solo un POS para papelerías. Es una **plataforma adaptable** qu
 | 2.44 | Tests de ForcePasswordChange (9 tests) | ✅ | `components/ForcePasswordChange.test.tsx` |
 | 2.45 | Tests de Tutorial (11 tests) | ✅ | `components/Tutorial.test.tsx` |
 | 2.46 | Tests de PermissionsModal (13 tests) | ✅ | `components/ui/PermissionsModal.test.tsx` |
-| 2.47 | Tests de units (Validations + Permissions + Utils + Components = ~134 total) | ✅ | Múltiples archivos |
+| 2.47 | Tests de units (Validations + Permissions + Utils + Components = 112 tests; suite completa) | ✅ | Múltiples archivos |
 
 ---
 
@@ -170,9 +170,9 @@ TOG Admin no es solo un POS para papelerías. Es una **plataforma adaptable** qu
 
 | # | Tarea | Estado | Archivos |
 |---|-------|--------|----------|
-| RP1 | Definición de 28 permisos en 7 categorías | ✅ | `src/shared/permissions.ts` |
+| RP1 | Definición de permisos en 7 categorías (35 claves) | ✅ | `src/shared/permissions.ts` |
 | RP2 | Migración DB: campo `permisos` en tabla usuarios | ✅ | `src/main/db/database.ts` (migración 013) |
-| RP3 | IPC handlers: `getPermissions` / `setPermissions` | ✅ | `src/main/ipc-handlers.ts` |
+| RP3 | IPC handlers: `getPermissions` / `setPermissions` | ✅ | `src/main/core/auth/handlers.ts` |
 | RP4 | Preload API: `usuarios.getPermissions` / `setPermissions` | ✅ | `src/main/preload.ts` |
 | RP5 | Hook `usePermissions` (has, hasAny, hasAll) | ✅ | `src/renderer/hooks/usePermissions.ts` |
 | RP6 | Modal de permisos (toggles por categoría) | ✅ | `src/renderer/components/ui/PermissionsModal.tsx` |
@@ -181,7 +181,7 @@ TOG Admin no es solo un POS para papelerías. Es una **plataforma adaptable** qu
 | RP9 | InventarioPage: proteger crear/editar/eliminar/ajustar | ✅ | `src/renderer/pages/InventarioPage.tsx` |
 | RP10 | ComprasPage: proteger nueva compra | ✅ | `src/renderer/pages/ComprasPage.tsx` |
 | RP11 | Empleada de prueba "maria" con permisos limitados | ✅ | `src/main/db/database.ts` (seed) |
-| RP12 | Backend service: `getUserPermissions` / `checkPermission` | ✅ | `src/main/services/permissions.ts` |
+| RP12 | Backend service: `getUserPermissions` / `checkPermission` | ✅ | `src/main/core/auth/permissions.ts` (wired en todos los handlers vía `checkPermissionOrFail`, commit d3f9d27) |
 
 ### Categorías de permisos
 
@@ -484,7 +484,7 @@ TOG Admin debe funcionar como una **plataforma configurable** donde cada cliente
 
 | # | Tarea | Estado | Origen |
 |---|-------|--------|--------|
-| V3.1 | Cobertura de tests al 80% (actualmente ~134 tests, V3 P0#1) | ⏳ | V3 P0 #1 |
+| V3.1 | Cobertura de tests al 80% (actualmente 112 tests, V3 P0#1) | ⏳ | V3 P0 #1 |
 | V3.2 | Logging estructurado (winston en main, V3 P0#2) | ⏳ | V3 P0 #2 |
 | V3.3 | Optimizar queries SQL — cache de productos (V3 P0#3) | ⏳ | V3 P0 #3 |
 | V3.4 | Integration tests (V3 P1#6) | ⏳ | V3 P1 #6 |
@@ -564,12 +564,12 @@ Tests end-to-end con better-sqlite3 in-memory para flujos completos (login → v
 | Tutorial (5 pasos) | `Tutorial.tsx` |
 | Toast notifications | `Toast.tsx` |
 | Barcode scanner (USB HID) | `hooks/useBarcodeScanner.ts` |
-| Permisos (28 permisos, 7 categorías) | `shared/permissions.ts` |
-| i18n (630+ keys, ES/EN) | `i18n/locales/` |
+| Permisos (35 permisos, 7 categorías) | `shared/permissions.ts` |
+| i18n (~1,277 keys por idioma, ES/EN) | `i18n/locales/` |
 | Auto-update (electron-updater) | `services/updater.ts` |
 | NSIS installer | `package.json` (build config) |
 | ErrorBoundary + crash reports | `ErrorBoundary.tsx`, `services/crash-reporter.ts` |
-| 134 tests | `*.test.ts`, `*.test.tsx` |
+| 112 tests | `*.test.ts`, `*.test.tsx` |
 | Métodos de pago configurables | `database.ts` (migración 014), `ipc-handlers.ts` |
 
 ### ❌ NO implementado (confirmado ausente en código)

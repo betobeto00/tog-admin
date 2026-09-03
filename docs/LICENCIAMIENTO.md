@@ -2,7 +2,7 @@
 
 **Versión:** 1.0.0  
 **Fecha:** 28 de agosto de 2026  
-**Última actualización:** 28 de agosto de 2026
+**Última actualización:** 2 de septiembre de 2026
 
 ---
 
@@ -87,8 +87,9 @@ TOG Admin utiliza un sistema de **licencias RSA-2048** que funciona **100% offli
 ║  PASO 6: Envías el .key al cliente ──────────►│                   ║
 ║  (WhatsApp, email, USB, etc.)                  │                   ║
 ║             │                                  │                   ║
-║             │                       PASO 7: Cliente copia el .key  ║
-║             │                       junto al .exe                   ║
+║             │                       PASO 7: Cliente coloca el .key ║
+║             │                       en %APPDATA%\tog-admin\         ║
+║             │                       o lo importa desde la app        ║
 ║             │                                  │                   ║
 ║             │                          ┌─────────▼──────────┐       ║
 ║             │                          │  ✅ LICENCIA VÁLIDA │       ║
@@ -112,6 +113,10 @@ TOG Admin utiliza un sistema de **licencias RSA-2048** que funciona **100% offli
 
 El instalador de TOG Admin ya incluye la `public.key` embebida en el código fuente. No necesitas agregarla manualmente — Vite la incluye automáticamente durante el build.
 
+> ⚠️ **Ubicación del archivo de licencia:** la app **instalada** NO lee `license.key` de la carpeta del .exe. La lee/crea en la carpeta de datos de la aplicación:
+> `C:\Users\<usuario>\AppData\Roaming\tog-admin\license.key` (atajo: `%APPDATA%\tog-admin\license.key`)
+> Solo en desarrollo (`npm run dev`) se lee de la raíz del proyecto.
+
 ```
 release/win-unpacked/
 ├── TOG Admin.exe          ← Ejecutable principal
@@ -122,8 +127,13 @@ release/win-unpacked/
 │   └── assets/
 │       ├── index-XXX.js   ← JavaScript de la app
 │       └── index-XXX.css  ← CSS de Tailwind
-├── license.key            ← ⚠️ NO EXISTE AÚN (el cliente lo creará)
 └── ... (otros archivos de Electron)
+
+# En la PC del cliente — carpeta de datos de la app instalada:
+C:\Users\<usuario>\AppData\Roaming\tog-admin\
+├── license.key            ← ✅ Se crea al importar, o se copia aquí manualmente
+├── license.json           ← Estado anti-tampering (automático)
+└── tog-admin.db           ← Base de datos
 ```
 
 ### 3.2 Pasos de Instalación
@@ -199,7 +209,8 @@ Salida esperada:
    Machine: a1b2c3d4e5f6
    ID: f7e8d9c0b1a2
 
-📋 Para usarla, copia el archivo .key junto al .exe de la app
+📋 Para activarla, el cliente importa el .key desde la pantalla de bloqueo
+   o lo copia como license.key en %APPDATA%\tog-admin\
 ```
 
 ### 4.4 Parámetros del Script
@@ -209,30 +220,34 @@ Salida esperada:
 | `nombre` | ✅ Sí | Nombre del cliente/negocio | `"Papelería El Sol"` |
 | `fecha_expira` | ✅ Sí | Fecha de expiración (YYYY-MM-DD) | `"2027-08-28"` |
 | `machine_id` | ❌ No | ID de máquina del cliente | `"a1b2c3d4e5f6"` |
+| `--modules=a,b,c` | ❌ No | Módulos TOG Platform activados (v2) | `--modules=distribuidor,productor` |
 
 **Si no proporcionas `machine_id`**, la licencia funcionará en **cualquier PC**.  
-**Si proporcionas `machine_id`**, la licencia solo funcionará en **esa PC específica**.
+**Si proporcionas `machine_id`**, la licencia solo funcionará en **esa PC específica**.  
+**Si no proporcionas `--modules`**, la licencia cubre solo el módulo base (Comercializador). Los módulos válidos se definen en `src/shared/modules.ts`.
 
 ---
 
 ## 5. Entrega e Instalación de la Licencia
 
-### 5.1 Opción A: Copiar el archivo .key
+### 5.1 Opción A: Colocar el archivo en la carpeta de datos
 
-1. Copia el archivo `.key` generado (ej: `license-2027-08-28-a1b2c3d4.key`)
-2. Pégalo en la misma carpeta donde está `TOG Admin.exe`
-3. Renómbralo a **`license.key`**
+1. En la PC del cliente, abre la carpeta de datos de la app:
+   - `Win + R` → escribe `%APPDATA%\tog-admin` → Enter
+   - O navega a `C:\Users\<usuario>\AppData\Roaming\tog-admin\`
+2. Copia el archivo `.key` generado (ej: `license-2027-08-28-a1b2c3d4.key`)
+3. Renómbralo a **`license.key`** (nombre exacto)
 
 ```
-C:\TOG Admin\
-├── TOG Admin.exe
-├── license.key          ← ✅ Archivo de licencia
-├── resources/
-│   └── app.asar
-└── ...
+C:\Users\<usuario>\AppData\Roaming\tog-admin\
+├── license.key          ← ✅ Archivo de licencia (nombre exacto)
+├── license.json         ← Estado anti-tampering (automático)
+└── tog-admin.db         ← Base de datos
 ```
 
-4. Abre `TOG Admin.exe` — la app detectará la licencia automáticamente
+4. Cierra la app si está abierta y ábrela de nuevo — detectará la licencia automáticamente
+
+> ⚠️ **No** se coloca junto a `TOG Admin.exe` — la app instalada lee `license.key` de `%APPDATA%\tog-admin\`. (En desarrollo con `npm run dev`, sí se lee de la raíz del proyecto.)
 
 ### 5.2 Opción B: Importar desde la app
 
@@ -310,10 +325,10 @@ En resumen: ❌ NO se puede falsificar sin tu private.key
 
 | Escenario | Resultado |
 |-----------|-----------|
-| Copia el .exe SIN licencia | ❌ Pantalla de bloqueo |
-| Copia el .exe CON licencia (sin machine_id) | ✅ Funciona en cualquier PC |
-| Copia el .exe CON licencia (con machine_id) | ❌ "Licencia vinculada a otra máquina" |
-| Copia el .exe + license.key a otra PC | Depende de si tiene machine_id |
+| Copia la carpeta instalada a otra PC (la licencia queda en `%APPDATA%` de la PC original) | ❌ Pantalla de bloqueo |
+| Copia la carpeta instalada **y** el `license.key` de `%APPDATA%\tog-admin\` (sin machine_id) | ✅ Funciona en cualquier PC |
+| Copia la carpeta instalada **y** el `license.key` (con machine_id) | ❌ "Licencia vinculada a otra máquina" |
+| Copia solo el `license.key` a otra PC | Depende de si tiene machine_id |
 
 ### 7.4 Machine ID
 
@@ -339,7 +354,7 @@ ej: a1b2c3d4e5f67890
 **No.** Todo el sistema funciona 100% offline. La validación se hace localmente en la PC del cliente usando la `public.key` embebida en el .exe.
 
 ### ¿Qué pasa si formateo la PC del cliente?
-La licencia se almacena en `license.key` (archivo) y en `AppData` (configuración). Si formateas:
+La licencia se almacena en `%APPDATA%\tog-admin\license.key` (y el estado anti-tampering en `license.json`, junto a la DB). Si formateas:
 - La licencia se pierde si no la guardaste
 - El Machine ID puede cambiar si cambia la placa de red
 - Necesitas generar una nueva licencia
@@ -372,7 +387,7 @@ No directamente. La validación es local (offline). Para "revocar":
 
 | Causa probable | Solución |
 |----------------|----------|
-| Archivo en ubicación incorrecta | Asegúrate de que `license.key` esté junto a `TOG Admin.exe` |
+| Archivo en ubicación incorrecta | La app instalada lee `%APPDATA%\tog-admin\license.key` — **no** junto al .exe. En dev, se lee de la raíz del proyecto |
 | Nombre incorrecto | El archivo debe llamarse exactamente `license.key` |
 | Archivo corrupto | Verifica que el contenido sea JSON válido |
 
@@ -422,6 +437,9 @@ node scripts/generate-license.js "Nombre" "AAAA-MM-DD"
 
 # Con machine_id específica
 node scripts/generate-license.js "Nombre" "AAAA-MM-DD" "machine_id"
+
+# Con módulos TOG Platform activados (v2)
+node scripts/generate-license.js "Nombre" "AAAA-MM-DD" "machine_id" --modules=distribuidor,productor
 ```
 
 ### Verificar licencia actual
@@ -437,11 +455,14 @@ node scripts/generate-license.js "Nombre" "AAAA-MM-DD" "machine_id"
   "expira": "2027-08-28",
   "version": "1.0.0",
   "machineId": "a1b2c3d4e5f6",
+  "modules": ["distribuidor"],
   "emitida": "2026-08-28T22:00:00.000Z",
   "id": "f7e8d9c0b1a2",
   "firma": "base64-encoded-rsa-signature..."
 }
 ```
+
+> `modules` es **opcional** (licencias v2, TOG Platform): lista los módulos activados además del base Comercializador. Las licencias v1 sin `modules` siguen siendo válidas y cubren el módulo base. La app muestra el estado de cada módulo en **Configuración → Sistema → Módulos de TOG Platform** (catálogo en `src/shared/modules.ts`).
 
 ---
 
@@ -467,9 +488,13 @@ D-E/
 └── release/
     └── win-unpacked/
         ├── TOG Admin.exe
-        ├── license.key      ← Licencia del cliente
         └── resources/
             └── app.asar     ← Incluye public.key
+
+# En la PC del cliente — carpeta de datos de la app instalada:
+%APPDATA%\tog-admin\
+├── license.key      ← Licencia del cliente (se crea al importar o se copia aquí)
+└── tog-admin.db     ← Base de datos
 ```
 
 ---

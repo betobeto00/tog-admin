@@ -165,6 +165,7 @@
 | CF8 | Tutorial | 🟢 | ✅ | Onboarding de 5 pasos |
 | CF9 | Métodos de pago | 🟡 | ✅ | Configurar métodos de pago (efectivo, tarjeta, etc.) |
 | CF10 | **Tasa de cambio** | 🔴 | ⏳ | Configurar tasa de cambio y símbolo de moneda (Fase 8) |
+| CF11 | **Tienda de módulos TOG Platform** | 🔴 | ✅ | Catálogo de módulos por licencia (estado, contratar, importar licencia v2) |
 
 ---
 
@@ -173,7 +174,7 @@
 | # | Feature | Prioridad | Estado | Descripción |
 |---|---------|-----------|--------|-------------|
 | SEC1 | Sistema de licencias RSA-2048 | 🔴 | ✅ | Licencias offline con validación de firma |
-| SEC2 | Permisos por usuario (28 permisos) | 🟡 | ✅ | 7 categorías de permisos granulares |
+| SEC2 | Permisos por usuario (35 permisos) | 🟡 | ✅ | 7 categorías de permisos granulares |
 | SEC3 | Rate limiting en login | 🔴 | ✅ | Bloqueo después de 5 intentos |
 | SEC4 | Session timeout | 🔴 | ✅ | 30 min de inactividad |
 | SEC5 | Password hashing (bcrypt) | 🔴 | ✅ | 10 salt rounds |
@@ -189,8 +190,8 @@
 |---|---------|-----------|--------|-------------|
 | INF1 | Auto-update (electron-updater) | 🟡 | ✅ | Actualizaciones vía GitHub Releases |
 | INF2 | NSIS installer | 🟡 | ✅ | Instalador Windows con acceso directo |
-| INF3 | i18n (ES/EN) | 🟡 | ✅ | 630+ keys de traducción, 2 idiomas |
-| INF4 | Tests automatizados | 🟡 | ✅ | ~134 tests (Vitest + React Testing Library) |
+| INF3 | i18n (ES/EN) | 🟡 | ✅ | ~1,277 keys por idioma (ES/EN) |
+| INF4 | Tests automatizados | 🟡 | ✅ | 112 tests (Vitest + React Testing Library) |
 | INF5 | Build portable | 🟢 | ✅ | Versión sin instalador |
 | INF6 | Instalador X32 | 🟡 | ⏳ | Instalador para arquitectura de 32 bits |
 | INF7 | Logging estructurado (winston) | 🟡 | ⏳ | Logging centralizado en main process |
@@ -227,10 +228,10 @@
 | Proveedores | 3 | 3 | 0 |
 | Cotizaciones | 7 | 5 | 2 |
 | Reportes | 7 | 6 | 1 |
-| Configuración | 10 | 9 | 1 |
+| Configuración | 11 | 10 | 1 |
 | Seguridad | 8 | 6 | 2 |
 | Infraestructura | 8 | 5 | 3 |
 | Futuro/Expansión | 9 | 0 | 9 |
-| **TOTAL** | **113** | **88** | **25** |
+| **TOTAL** | **114** | **89** | **25** |
 
-**Porcentaje completado: 77.9%**
+**Porcentaje completado: 78.1%**

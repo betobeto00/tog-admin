@@ -39,15 +39,18 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 |--------|---------|
 | `index.ts` | Entry point, ventana principal, DevTools |
 | `preload.ts` | API segura IPC (contextBridge) |
-| `ipc-handlers.ts` | 40+ canales IPC registrados |
-| `db/database.ts` | SQLite + 14 migraciones + seeds |
+| `ipc-handlers.ts` | Registro central: delega en los `register*Handlers()` de cada módulo |
+| `core/auth/` | Login (`auth-service.ts`) + permisos (`permissions.ts` → `checkPermissionOrFail`) |
+| `modules/<modulo>/` | Handlers IPC por módulo: inventario, ventas, configuracion, caja-extra, license, terminal, crash-report, shared |
+| `db/database.ts` | SQLite + migraciones + seeds |
 | `services/valorTerminal.ts` | Comunicación serial VP800 (USB/COM) |
 | `services/license.ts` | Validación licencias RSA-2048 |
 | `services/crash-reporter.ts` | Sistema de reportes de error |
-| `services/updater.ts` | Auto-actualizaciones vía GitHub |
-| `services/permissions.ts` | Backend service de permisos |
+| `services/updater.ts` | Auto-actualizaciones vía GitHub (`update:*`) |
 | `services/configCache.ts` | Cache de configuración |
 | `i18n/` | Traducciones ES/EN para main process |
+
+El **catálogo de permisos** vive en `src/shared/permissions.ts` (fuente única: `PERMISSIONS` + `ROLE_DEFAULTS`; el admin tiene todas las claves). Los canales IPC se tipan en `src/shared/ipc-channels.ts` (`IpcChannel` + `PREAUTH_CHANNELS`). Ya **no** existe `services/permissions.ts`: la lógica de autorización es `core/auth/permissions.ts` y se invoca desde cada handler con `checkPermissionOrFail(data, channel, permission)`.
 
 ### 2. Process de Renderizado (Renderer Process)
 **Responsabilidad:** UI completamente en React.
@@ -99,7 +102,8 @@ Renderer (React)                    Main (Node.js)
 |-----------|---------|
 | Auth | `auth:login` |
 | Usuarios | `usuarios:list`, `create`, `update`, `delete`, `change-password`, `getPermissions`, `setPermissions` |
-| Productos | `productos:list`, `create`, `update`, `delete`, `low-stock`, `ajustar`, `ajustes-historial`, `export-csv`, `import-csv`, `buscar-por-codigo` |
+| App | `app:version` |
+| Productos | `productos:list`, `getById`, `create`, `update`, `delete`, `low-stock`, `ajustar`, `ajustes-historial`, `buscar-por-codigo`, `export-csv`, `import-csv` |
 | Categorías | `categorias:list`, `create`, `update`, `delete` |
 | Unidades | `unidades:list`, `create`, `update`, `delete` |
 | Proveedores | `proveedores:list`, `create`, `update`, `delete` |
@@ -107,14 +111,17 @@ Renderer (React)                    Main (Node.js)
 | Compras | `compras:list`, `create` |
 | Caja | `caja:status`, `abrir`, `cerrar`, `movimiento`, `historial`, `reporte-x`, `backup-auto` |
 | Quotes | `quotes:list`, `getById`, `create`, `update`, `delete` |
-| Reportes | `reportes:ventas-periodo`, `productos-mas-vendidos`, `ultimas-ventas` |
+| Reportes | `reportes:ventas-periodo`, `productos-mas-vendidos`, `ultimas-ventas`, `ventas-por-categoria` |
 | Config | `config:get`, `config:set` |
-| Backup | `backup:create`, `backup:restore` |
+| Métodos de Pago | `metodos-pago:list`, `create`, `update`, `delete`, `procesar-tarjeta` |
+| Backup / DB | `backup:create`, `backup:restore`, `db:reset` |
 | Terminal | `terminal:conectar`, `desconectar`, `estado`, `procesar-pago` |
-| Licencia | `license:status`, `validate`, `import` |
+| Licencia | `license:status`, `validate`, `import`, `reset-state` |
 | Crash Reports | `crash-report:save`, `list`, `read`, `delete`, `open-folder`, `path` |
 | i18n | `i18n:get-lang`, `i18n:set-lang` |
-| Métodos de Pago | `metodos-pago:list`, `create`, `update`, `delete` |
+| Updater | `update:check`, `download`, `install` |
+
+> **Autorización:** salvo los canales de `PREAUTH_CHANNELS` (ver `src/shared/ipc-channels.ts`), cada handler exige sesión y permiso vía `checkPermissionOrFail`. El renderer inyecta `usuario_id` automáticamente por `callApi` (`src/renderer/lib/api-client.ts`) y lanza un error si el main devuelve `{ success: false }`.
 
 ---
 
@@ -202,9 +209,9 @@ Todos los índices están optimizados para los patrones de consulta típicos del
 | Validación IPC | 19 schemas Zod en handlers críticos |
 | Licencias | RSA-2048 con validación offline |
 | Error handling | ErrorBoundary global + crash reports + logging diagnóstico |
-| Internacionalización | i18n con 2 idiomas (ES/EN), ~630 keys de traducción |
+| Internacionalización | i18n con 2 idiomas (ES/EN), ~1,277 keys por idioma |
 | Backup automático | Al cerrar caja se crea backup de la DB |
-| Permisos | 28 permisos en 7 categorías, control granular por usuario |
+| Permisos | 35 permisos en 7 categorías, control granular por usuario |
 
 ---
 
@@ -252,10 +259,10 @@ Empaquetado portable:
   npm run build:win       →  release/win-unpacked/TOG Admin.exe
 
 Instalador NSIS:
-  npm run build:installer →  release/TOG-Admin-Setup-1.0.0.exe
+  npm run build:installer →  release/TOG Admin Setup 1.0.8.exe
 
 Instalación en cliente:
-  1. Ejecutar TOG-Admin-Setup-1.0.0.exe
+  1. Ejecutar TOG Admin Setup 1.0.8.exe
   2. Siguiente → Siguiente → Instalar
   3. Se crea acceso directo en escritorio
   4. Abrir TOG Admin
@@ -270,7 +277,7 @@ Desarrollador                          Cliente
 ─────────────                          ───────
 1. generate-keys.js (una vez)
 2. npm run build:installer
-3. Entregar TOG-Admin-Setup.exe  ──►  4. Instalar
+3. Entregar TOG Admin Setup 1.0.8.exe  ──►  4. Instalar
                                       5. Abrir app
                                       6. Ver pantalla bloqueo
                                       7. Enviar Machine ID  ──►

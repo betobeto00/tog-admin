@@ -96,9 +96,9 @@ Esto compila, crea la release en GitHub y sube todos los assets automáticamente
 
 ### ⚠️ Gotcha: nombres de archivo
 
-electron-builder genera los assets con el nombre original (ej: `TOG-Admin-Setup-1.0.7.exe`), pero GitHub reemplaza los espacios por puntos en los URLs de assets (`TOG.Admin.Setup.1.0.7.exe`).
+electron-builder genera el instalador con espacios en el nombre (ej: `TOG Admin Setup 1.0.8.exe`), pero publica el asset y escribe el `latest.yml` con puntos en el nombre (ej: `TOG.Admin.Setup.1.0.8.exe`).
 
-El `latest.yml` generado contiene el nombre con guiones. electron-updater puede resolver esto automáticamente porque reemplaza espacios por guiones internamente, **pero es buena práctica editar el .yml para que coincida exactamente** con el nombre del asset subido.
+El `latest.yml` generado contiene la URL con puntos. electron-updater descarga por esa URL, **así que el asset subido debe llamarse exactamente como el `url` del .yml** (con puntos), no como el archivo local (con espacios).
 
 ## Verificación rápida
 

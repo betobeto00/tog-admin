@@ -2,6 +2,14 @@ Reporte Arquitectónico Completo — TOG Admin (v1.0.8)
 Proyecto: TOG Admin — Sistema de Punto de Venta para Papelería, Centro de Copiado e Impresión
 Versión analizada: 1.0.8 (lectura estática del código en C:\Users\DeadW\dev\D-E)
 Tipo de app: Desktop monolítica single-PC con Electron
+
+⚠️ NOTA DE ACTUALIZACIÓN (2-Sep-2026): esta auditoría describe un snapshot anterior del código.
+Cambios ya aplicados en master/fix-license-modularization:
+- Handlers IPC modularizados: viven en src/main/modules/* y src/main/core/auth/*; src/main/ipc-handlers.ts es solo el registro.
+- El "agujero de seguridad" de permisos señalado aquí ya está cerrado: desde el commit d3f9d27 todos los handlers validan con checkPermissionOrFail (src/main/core/auth/permissions.ts). El archivo src/main/services/permissions.ts fue eliminado.
+- Catálogo actual: 35 claves de permiso en 7 categorías en src/shared/permissions.ts (admin = todas).
+- Store de auth del renderer: src/renderer/core/auth/store.ts (antes src/renderer/stores/auth.store.ts).
+- Contador de canales/tests y rutas puntuales del cuerpo pueden estar desactualizados; ver docs/ARCHITECTURE.md (estado actual).
 Stack verificado: Electron31 + React 18 + TypeScript5.4 + SQLite (better-sqlite3) + Vite5
 1) Stack técnico
 Capa	Tecnología	Evidencia

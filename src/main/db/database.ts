@@ -8,9 +8,9 @@ let db: Database.Database | null = null
 /**
  * Obtiene la ruta del archivo de base de datos.
  * En desarrollo: ./data/tog-admin.db
- * En producción: %APPDATA%/TOG Admin/tog-admin.db
+ * En producción: %APPDATA%/tog-admin/tog-admin.db
  */
-function getDbPath(): string {
+export function getDbPath(): string {
   if (app.isPackaged) {
     return path.join(app.getPath('userData'), 'tog-admin.db')
   }

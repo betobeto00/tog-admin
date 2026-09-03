@@ -265,7 +265,7 @@ npm run build:main       # TypeScript → JavaScript
 npm run build:win        # → release/win-unpacked/TOG Admin.exe
 
 # Instalador NSIS
-npm run build:installer  # → release/TOG-Admin-Setup-1.0.0.exe
+npm run build:installer  # → release/TOG Admin Setup 1.0.8.exe
 ```
 
 ### Flujo de distribución a clientes
@@ -276,7 +276,7 @@ npm run build:installer  # → release/TOG-Admin-Setup-1.0.0.exe
 
 2. Generar instalador
    $ npm run build:installer
-   → release/TOG-Admin-Setup-1.0.0.exe
+   → release/TOG Admin Setup 1.0.8.exe
 
 3. Entregar .exe al cliente
 

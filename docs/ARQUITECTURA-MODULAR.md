@@ -215,7 +215,7 @@ El Sidebar lee el mismo `activeModules` y filtra items por permisos.
 
 ## 7. Permisos por módulo
 
-El catálogo de permisos ya existe (`src/shared/permissions.ts`, 28 permisos en 7 categorías). El cambio: cada **módulo declara los suyos** y el Core los agrega al catálogo al activarlo.
+El catálogo de permisos ya existe (`src/shared/permissions.ts`, 35 permisos en 7 categorías). El cambio: cada **módulo declara los suyos** y el Core los agrega al catálogo al activarlo.
 
 ```ts
 // Ejemplo: módulo Distribuidor

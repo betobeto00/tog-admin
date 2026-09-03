@@ -1,6 +1,6 @@
 # AGENTS.md — Instrucciones para asistentes AI en TOG Admin
 
-> Este archivo es leído automáticamente por opencode (y otros asistentes AI compatibles) al inicio de cada sesión. Define cómo el agente debe trabajar en este repositorio.
+> Este archivo es leído automáticamente por opencode (y otros asistentes AI compatibles) al inicio de cada sesión. Define cómo el agente debe trabajar en este repositorio. RESPONDER AL USUARIO SIEMPRE EN ESPAÑOL.S
 
 ---
 
@@ -46,12 +46,16 @@ Este repositorio usa **graphify** para mantener un grafo de conocimiento navegab
 ## Arquitectura
 
 - TOG Admin es un POS desktop (Electron 31 + React 18 + TypeScript + SQLite).
-- La capa de dominio está extraída parcialmente a `src/main/services/`.
-- Los handlers IPC viven en `src/main/ipc-handlers.ts` (legacy monolítico, en proceso de modularización).
+- **Main process modularizado:** los handlers IPC se registran por módulo en `src/main/modules/<modulo>/` (inventario, ventas, configuracion, caja-extra, license, terminal, crash-report, shared) y auth/usuarios en `src/main/core/auth/`. `src/main/ipc-handlers.ts` es solo el punto de registro que llama a cada `register*Handlers()`.
+- `src/main/services/` queda para lógica transversal: `license.ts` (validación RSA), `crash-reporter.ts`, `updater.ts`, `valorTerminal.ts`, `configCache.ts`. (Ya NO existe `services/permissions.ts`.)
+- **Catálogo de permisos:** `src/shared/permissions.ts` (única fuente; `ROLE_DEFAULTS.admin` = todas las claves).
+- **Canales IPC tipados:** `src/shared/ipc-channels.ts` (tipo `IpcChannel` y lista `PREAUTH_CHANNELS`). El renderer llama por `callApi` en `src/renderer/lib/api-client.ts`, que inyecta `usuario_id` y lanza error si el handler responde `{ success: false }`.
 - La visión de plataforma modular (módulos activables por licencia) vive en https://github.com/betobeto00/tog-platform.
 
-Ver `docs/MODULOS.md` (referencia conceptual, no migrado aún), `docs/INFORME-ERP.md` (auditoría), `docs/ARQUITECTURA-MODULAR.md` (plan de modularización).
+Ver `docs/ARCHITECTURE.md` (estado actual), `docs/MODULOS.md` (referencia conceptual), `docs/INFORME-ERP.md` (auditoría), `docs/ARQUITECTURA-MODULAR.md` (plan).
 
 ## Permisos IPC
 
-Los handlers IPC DEBEN validar permisos con `checkPermissionOrFail(data, channel, permission)` antes de ejecutar lógica de negocio. Handlers públicos solo: `app:version`, `i18n:get-lang`, `i18n:set-lang`, `crash-report:save`, `auth:login`, `license:status`, `license:validate`.
+Los handlers IPC DEBEN validar permisos con `checkPermissionOrFail(data, channel, permission)` antes de ejecutar lógica de negocio. `checkPermissionOrFail` está en `src/main/core/auth/permissions.ts`; el admin pasa siempre (tiene todas las claves de `PERMISSIONS`).
+
+Canales pre-auth (sin sesión, no requieren `usuario_id`): la lista canónica es `PREAUTH_CHANNELS` en `src/shared/ipc-channels.ts` — actualmente `app:version`, `auth:login`, `crash-report:save`, `i18n:get-lang`, `i18n:set-lang`, `license:status`, `license:validate`, `license:import`. El renderer mantiene un espejo en `api-client.ts`; al tocar la lista, actualizar AMBOS lugares. `license:import` DEBE seguir pre-auth: es el único camino para activar la app desde la pantalla de bloqueo (antes del login).

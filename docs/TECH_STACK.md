@@ -39,7 +39,7 @@ npm run build:main       # TypeScript → JavaScript
 npm run build:win        # → release/win-unpacked/TOG Admin.exe
 
 # Instalador NSIS (.exe instalable)
-npm run build:installer  # → release/TOG-Admin-Setup-1.0.0.exe
+npm run build:installer  # → release/TOG.Admin.Setup.1.0.8.exe
 ```
 
 ---
@@ -81,13 +81,18 @@ npm run build:installer  # → release/TOG-Admin-Setup-1.0.0.exe
 | react-dom | ^18.3.0 | DOM |
 | react-router-dom | ^6.23.0 | Routing (HashRouter) |
 | zustand | ^4.5.0 | State management |
-| better-sqlite3 | ^11.0.0 | Base de datos SQLite |
+| better-sqlite3 | ^11.10.0 | Base de datos SQLite |
 | bcryptjs | ^2.4.3 | Hash de contraseñas |
+| react-hook-form | ^7.51.0 | Formularios (con zod resolver) |
+| @hookform/resolvers | ^3.6.0 | Resolver zod para RHF |
 | recharts | ^3.10.1 | Gráficos |
 | zod | ^3.23.0 | Validación de schemas |
 | lucide-react | ^0.378.0 | Iconos |
 | serialport | ^13.0.0 | Comunicación serial VP800 |
 | date-fns | ^3.6.0 | Manipulación de fechas |
+| i18next + react-i18next | ^23.16.8 / ^15.7.4 | Internacionalización (ES/EN) |
+| electron-updater | ^6.8.9 | Auto-actualizaciones vía GitHub Releases |
+| electron-log | ^5.4.4 | Logging en main process |
 
 ### Desarrollo
 | Paquete | Versión | Uso |
@@ -101,8 +106,6 @@ npm run build:installer  # → release/TOG-Admin-Setup-1.0.0.exe
 | tailwindcss | ^3.4.0 | CSS framework |
 | electron-builder | ^24.13.0 | Empaquetado + NSIS |
 | @electron/rebuild | ^4.2.0 | Rebuild módulos nativos |
-| i18next | ^23.16.8 | Internacionalización |
-| react-i18next | ^15.7.4 | i18n para React |
 
 ---
 
@@ -128,34 +131,52 @@ D-E/
 │   ├── generate-license.js  # Generador de licencias
 │   └── inline-css.js        # Build: CSS inline
 ├── packaging/
+│   ├── installer.nsh        # NSIS include usado por electron-builder
 │   └── installer.iss        # Inno Setup (alternativo)
 ├── src/
 │   ├── main/                # Process principal
 │   │   ├── index.ts
 │   │   ├── preload.ts
-│   │   ├── ipc-handlers.ts  # 40+ canales IPC
+│   │   ├── ipc-handlers.ts  # Registro central: delega en los register*Handlers() de cada módulo
+│   │   ├── core/
+│   │   │   └── auth/        # auth-service.ts, handlers.ts, permissions.ts (checkPermissionOrFail)
+│   │   ├── modules/         # Handlers IPC por módulo
+│   │   │   ├── inventario/  # productos, categorias, unidades, csv
+│   │   │   ├── ventas/      # ventas, compras, proveedores, caja, reportes, quotes
+│   │   │   ├── configuracion/  # config, metodos-pago, backup
+│   │   │   ├── caja-extra/  # reporte-x, backup-auto
+│   │   │   ├── license/     # status, validate, import, reset-state
+│   │   │   ├── terminal/
+│   │   │   ├── crash-report/
+│   │   │   └── shared/      # app:version, i18n
 │   │   ├── db/
-│   │   │   ├── database.ts
+│   │   │   ├── database.ts  # SQLite + migraciones
 │   │   │   └── migrate.ts
 │   │   ├── i18n/            # Traducciones main process
 │   │   │   ├── index.ts
-│   │   │   └── locales/     # es.json, en.json
-│   │   └── services/
+│   │   │   └── locales/
+│   │   └── services/        # Lógica transversal
 │   │       ├── valorTerminal.ts
-│   │       ├── license.ts
-│   │       └── crash-reporter.ts
+│   │       ├── license.ts   # Validación RSA-2048
+│   │       ├── crash-reporter.ts
+│   │       ├── updater.ts
+│   │       └── configCache.ts
 │   ├── renderer/            # Frontend React
 │   │   ├── App.tsx
 │   │   ├── main.tsx
 │   │   ├── components/      # 10+ componentes
 │   │   ├── pages/           # 12 páginas
-│   │   ├── stores/
+│   │   ├── core/auth/store.ts  # Store de sesión (Zustand) — antes en stores/
+│   │   ├── hooks/           # usePermissions, useBarcodeScanner
 │   │   ├── i18n/            # Traducciones renderer
 │   │   │   └── locales/     # es/, en/
-│   │   └── lib/
-│   └── shared/
+│   │   └── lib/             # api-client.ts (callApi), utils.ts
+│   └── shared/              # Código compartido main+renderer
+│       ├── permissions.ts   # Catálogo de permisos (35 claves, 7 categorías)
+│       ├── ipc-channels.ts  # Tipos de canales + PREAUTH_CHANNELS
+│       ├── papeleria-api.d.ts
 │       ├── types.ts
-│       ├── validations.ts   # 19 schemas Zod
+│       ├── validations.ts   # Schemas Zod
 │       └── validations.test.ts  # 28 tests
 ├── package.json             # Config build NSIS
 ├── tsconfig.json
