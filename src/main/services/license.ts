@@ -4,6 +4,7 @@ import path from 'path'
 import os from 'os'
 import { app } from 'electron'
 import { t } from '../i18n'
+import { normalizeModules, type ModuleId } from '../../shared/modules'
 
 interface LicenseData {
   cliente: string
@@ -12,6 +13,8 @@ interface LicenseData {
   machineId: string | null
   emitida: string
   id: string
+  /** Módulos activados (TOG Platform). Opcional: las licencias v1 no lo traen. */
+  modules?: string[]
   firma: string
 }
 
@@ -275,14 +278,19 @@ export function saveLicense(fileContent: string): { success: boolean; error?: st
 export function getLicenseStatus() {
   const validation = validateLicense()
   const state = readLicenseState()
+  const license = validation.license
   return {
     valid: validation.valid,
-    cliente: validation.license?.cliente || null,
-    expira: validation.license?.expira || null,
+    cliente: license?.cliente || null,
+    expira: license?.expira || null,
     diasRestantes: validation.daysRemaining,
     error: validation.error,
     machineId: getMachineId(),
     totalDaysUsed: state.totalDaysUsed || 0,
+    /** Módulos activos declarados por la licencia (vacío = solo el módulo base) */
+    modulos: normalizeModules(license?.modules) as ModuleId[],
+    /** true si la licencia declara el campo modules (v2) */
+    declaraModulos: Array.isArray(license?.modules),
   }
 }
 

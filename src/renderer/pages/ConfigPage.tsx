@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { ADDON_MODULES, BASE_MODULE, type ModuleInfo } from '../../shared/modules'
 import { useTranslation } from 'react-i18next'
 import {
   Settings, Store, CreditCard, Users, Plus, Edit2, Trash2,
   Save, Eye, EyeOff, Shield, User, Download, Upload, GraduationCap, Key, Clock,
+  ShoppingCart, CheckCircle2,
   Wifi, WifiOff, Plug, Unplug, Lock, Wallet, Power, Banknote
 } from 'lucide-react'
 import { resetTutorial } from '../components/Tutorial'
@@ -11,6 +13,7 @@ import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import PermissionsModal from '../components/ui/PermissionsModal'
 import { usePermissions } from '../hooks/usePermissions'
+import { callApi } from '../lib/api-client'
 
 interface Config { clave: string; valor: string; descripcion: string | null }
 interface Usuario { id: number; usuario: string; nombre: string; rol: string; activo: number }
@@ -49,6 +52,7 @@ export default function ConfigPage() {
 
   // Licencia
   const [licenseStatus, setLicenseStatus] = useState<any>(null)
+  const [storeModule, setStoreModule] = useState<ModuleInfo | null>(null)
   const [licenseLoading, setLicenseLoading] = useState(true)
 
   // Terminal VP800
@@ -71,26 +75,26 @@ export default function ConfigPage() {
   useEffect(() => { loadData() }, [])
 
   const loadUsuarios = async () => {
-    const users = await window.api.usuarios.list()
+    const users = await callApi<any[]>('usuarios:list')
     setUsuarios(users)
   }
 
   const loadData = async () => {
     const [cfg, users] = await Promise.all([
-      window.api.config.get(),
-      window.api.usuarios.list(),
+      callApi<any[]>('config:get'),
+      callApi<any[]>('usuarios:list'),
     ])
     setConfig(cfg)
     setUsuarios(users)
     // Cargar licencia
     try {
-      const ls = await window.api.license.status()
+      const ls = await callApi('license:status')
       setLicenseStatus(ls)
     } catch {}
     setLicenseLoading(false)
     // Cargar estado del terminal
     try {
-      const ts = await window.api.terminal.estado()
+const ts = await callApi<{ conectado: boolean; puerto?: string }>('terminal:estado')
       setTerminalStatus(ts)
       setTerminalConnected(ts.conectado)
       if (ts.puerto) setTerminalPort(ts.puerto)
@@ -114,11 +118,11 @@ export default function ConfigPage() {
     setSaving(true)
     try {
       for (const [key, value] of Object.entries(form)) {
-        await window.api.config.set(key, value)
+        await callApi('config:set', { clave: key, valor: value })
       }
-      await window.api.config.set('printer_name', printerName)
-      await window.api.config.set('fondo_inicial_default', fondoDefault)
-      await window.api.config.set('logo_path', logoPath)
+      await callApi('config:set', { clave: 'printer_name', valor: printerName })
+      await callApi('config:set', { clave: 'fondo_inicial_default', valor: fondoDefault })
+      await callApi('config:set', { clave: 'logo_path', valor: logoPath })
       toast.success('Configuración guardada exitosamente')
     } catch (err) {
       toast.error('Error al guardar configuración')
@@ -133,11 +137,11 @@ export default function ConfigPage() {
     }
     setTerminalConnecting(true)
     try {
-      const result = await window.api.terminal.conectar(terminalPort.trim(), parseInt(terminalBaud))
+      const result = await callApi<{ success: boolean; error?: string }>('terminal:conectar', { puerto: terminalPort.trim(), baudRate: parseInt(terminalBaud) })
       if (result.success) {
         setTerminalConnected(true)
         toast.success(`Terminal conectado en ${terminalPort}`)
-        const ts = await window.api.terminal.estado()
+const ts = await callApi('terminal:estado')
         setTerminalStatus(ts)
       } else {
         toast.error(result.error || 'Error conectando al terminal')
@@ -151,7 +155,7 @@ export default function ConfigPage() {
 
   const disconnectTerminal = async () => {
     try {
-      await window.api.terminal.desconectar()
+      await callApi('terminal:desconectar')
       setTerminalConnected(false)
       setTerminalStatus(null)
       toast.success('Terminal desconectado')
@@ -181,24 +185,24 @@ export default function ConfigPage() {
       if (userForm.contrasena.trim()) {
         data.contrasena = userForm.contrasena
       }
-      await window.api.usuarios.update(editingUser.id, data)
+      await callApi('usuarios:update', { id: editingUser.id, data })
     } else {
       if (!userForm.contrasena) return
-      await window.api.usuarios.create(userForm)
+      await callApi('usuarios:create', userForm)
     }
     setUserModalOpen(false)
     await loadData()
   }
 
   const deleteUser_ = async (id: number) => {
-    await window.api.usuarios.delete(id)
+    await callApi('usuarios:delete', { id })
     await loadData()
   }
 
   // ======== MÉTODOS DE PAGO ========
   const loadMetodosPago = async () => {
     try {
-      const metodos = await window.api.metodosPago.list(false)
+      const metodos = await callApi<any[]>('metodos-pago:list', { activoOnly: false })
       setMetodosPago(metodos || [])
     } catch {}
   }
@@ -226,14 +230,14 @@ export default function ConfigPage() {
   const saveMetodo = async () => {
     if (!metodoForm.nombre.trim()) return
     if (editingMetodo) {
-      await window.api.metodosPago.update(editingMetodo.id, {
+      await callApi('metodos-pago:update', { id: editingMetodo.id, data: {
         nombre: metodoForm.nombre,
         icono: metodoForm.icono,
         requiere_terminal: metodoForm.requiere_terminal,
         orden: metodoForm.orden,
-      })
+      } })
     } else {
-      await window.api.metodosPago.create({
+      await callApi('metodos-pago:create', {
         clave: metodoForm.clave || metodoForm.nombre.toLowerCase().replace(/\s+/g, '_'),
         nombre: metodoForm.nombre,
         icono: metodoForm.icono,
@@ -246,7 +250,7 @@ export default function ConfigPage() {
   }
 
   const toggleMetodoActivo = async (m: any) => {
-    await window.api.metodosPago.update(m.id, { activo: !m.activo })
+    await callApi('metodos-pago:update', { id: m.id, data: { activo: !m.activo } })
     await loadMetodosPago()
   }
 
@@ -738,7 +742,7 @@ export default function ConfigPage() {
                 onClick={async () => {
                   setBackupLoading(true)
                   try {
-                    const result = await window.api.backup.create()
+                    const result = await callApi<{ success: boolean; path?: string; count?: number; error?: string }>('backup:create')
                     if (result?.success) {
                       toast.success(`{t('caja.backupCreated')}`) 
                     } else if (result?.error !== t('common.operationCancelled')) {
@@ -777,7 +781,7 @@ export default function ConfigPage() {
                   if (!confirm) return
                   setBackupLoading(true)
                   try {
-                    const result = await window.api.backup.restore()
+                    const result = await callApi<{ success: boolean; error?: string }>('backup:restore')
                     if (result?.success) {
                       toast.success(t('caja.backupRestored'))
                       setTimeout(() => window.location.reload(), 1500)
@@ -899,10 +903,10 @@ export default function ConfigPage() {
                       const file = e.target.files[0]
                       if (!file) return
                       const content = await file.text()
-                      const result = await window.api.license.import(content)
+                      const result = await callApi<{ success: boolean; error?: string }>('license:import', content)
                       if (result.success) {
                         toast.success('Licencia importada exitosamente')
-                        const ls = await window.api.license.status()
+const ls = await callApi('license:status')
                         setLicenseStatus(ls)
                       } else {
                         toast.error(result.error || 'Error importando licencia')
@@ -919,6 +923,99 @@ export default function ConfigPage() {
               <p className="text-sm text-gray-500">{t('config.noLicenseStatus')}</p>
             )}
           </div>
+
+          {/* Tienda de módulos TOG Platform */}
+          <div className="bg-indigo-50 rounded-xl p-5 border border-indigo-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 bg-indigo-100 rounded-lg">
+                <Store className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">Módulos de TOG Platform</h4>
+                <p className="text-xs text-gray-500">Amplía el sistema por módulos activables por licencia</p>
+              </div>
+            </div>
+
+            {licenseLoading ? (
+              <p className="text-sm text-gray-500">Cargando...</p>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between bg-white rounded-lg border border-gray-200 px-3 py-2.5">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm text-gray-900">{BASE_MODULE.nombre}</span>
+                      <span className="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">Incluido</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">{BASE_MODULE.descripcion}</p>
+                  </div>
+                  <CheckCircle2 className="w-5 h-5 text-green-500 ml-3" />
+                </div>
+
+                {ADDON_MODULES.map((m) => {
+                  const activo = !!licenseStatus && (licenseStatus.modulos || []).includes(m.id)
+                  return (
+                    <div key={m.id} className="flex items-center justify-between bg-white rounded-lg border border-gray-200 px-3 py-2.5">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm text-gray-900">{m.nombre}</span>
+                          {activo ? (
+                            <span className="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">Activo</span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-500">Disponible</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-0.5">{m.descripcion}</p>
+                      </div>
+                      {activo ? (
+                        <CheckCircle2 className="w-5 h-5 text-green-500 ml-3" />
+                      ) : (
+                        <button
+                          onClick={() => setStoreModule(m)}
+                          className="ml-3 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 flex items-center gap-1.5"
+                        >
+                          <ShoppingCart className="w-3.5 h-3.5" /> Contratar
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          <Modal
+            open={!!storeModule}
+            onClose={() => setStoreModule(null)}
+            title={storeModule ? `Contratar módulo: ${storeModule.nombre}` : 'Tienda de módulos'}
+          >
+            {storeModule && (
+              <div>
+                <p className="text-sm text-gray-600 mb-3">
+                  El módulo <strong>{storeModule.nombre}</strong> se activa con una licencia nueva que lo incluya.
+                  Cuando la recibas, se activa desde <strong>Importar Nueva Licencia</strong> en este mismo apartado.
+                </p>
+                <p className="text-sm text-gray-600 mb-2">Para contratarlo, contacta a tu proveedor e indica:</p>
+                <ul className="list-disc list-inside text-sm text-gray-600 space-y-1 mb-4">
+                  <li>Módulo deseado: <strong>{storeModule.nombre}</strong></li>
+                  {licenseStatus && (
+                    <li>ID de máquina: <span className="font-mono">{licenseStatus.machineId}</span></li>
+                  )}
+                </ul>
+                <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500 mb-4 space-y-1">
+                  <p><strong>¿Cómo se activa?</strong></p>
+                  <p>1. Recibes el archivo .key con tu nueva licencia.</p>
+                  <p>2. En este apartado, clic en “Importar Nueva Licencia” y selecciona el archivo.</p>
+                  <p>3. La licencia se valida al instante y el módulo queda activo.</p>
+                </div>
+                <button
+                  onClick={() => setStoreModule(null)}
+                  className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+                >
+                  Entendido
+                </button>
+              </div>
+            )}
+          </Modal>
 
           {/* {t('config.dangerZone')} */}
           <div className="bg-red-50 rounded-xl p-5 border border-red-200">
@@ -953,7 +1050,7 @@ export default function ConfigPage() {
                 }
 
                 try {
-                  const result = await window.api.db.reset()
+                  const result = await callApi<{ success: boolean; error?: string }>('db:reset')
                   if (result?.success) {
                     toast.success(t('config.resetDbSuccessMsg'))
                     setTimeout(() => window.location.reload(), 2000)
@@ -1005,7 +1102,7 @@ export default function ConfigPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {metodosPago.map((m) => (
+                {Array.isArray(metodosPago) && metodosPago.map((m) => (
                   <tr key={m.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">{m.nombre}</td>
                     <td className="px-4 py-3 text-sm text-gray-500 font-mono">{m.clave}</td>
