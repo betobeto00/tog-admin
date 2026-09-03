@@ -41,7 +41,7 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 | `preload.ts` | API segura IPC (contextBridge) |
 | `ipc-handlers.ts` | Registro central: delega en los `register*Handlers()` de cada módulo |
 | `core/auth/` | Login (`auth-service.ts`) + permisos (`permissions.ts` → `checkPermissionOrFail`) |
-| `modules/<modulo>/` | Handlers IPC por módulo: inventario, ventas, configuracion, caja-extra, license, terminal, crash-report, shared |
+| `modules/<modulo>/` | Handlers IPC por módulo: inventario, ventas, configuracion, caja-extra, license, distribuidor, terminal, crash-report, shared |
 | `db/database.ts` | SQLite + migraciones + seeds |
 | `services/valorTerminal.ts` | Comunicación serial VP800 (USB/COM) |
 | `services/license.ts` | Validación licencias RSA-2048 |
