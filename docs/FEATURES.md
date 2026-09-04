@@ -216,7 +216,7 @@
 
 | # | Feature | Prioridad | Estado | Descripción |
 |---|---------|-----------|--------|-------------|
-| F1 | Combos de productos | 🔴 | ⏳ | Paquetes de productos con descuento (Fase 6) |
+| F1 | Combos de productos | 🔴 | ⏳ | Paquetes de productos con descuento (Fase 6) — **combos compuestos con rentabilidad real** y revisión de si los componentes vienen de producción |
 | F2 | Multi-sucursal | 🟡 | ⏳ | Varias ubicaciones con DB compartida (Fase 7) |
 | F3 | Pantalla auxiliar | 🟢 | ⏳ | Segunda pantalla para clientes (Fase 9) |
 | F4 | Facturación fiscal Venezuela | 🔴 | ⏳ | Comprobante fiscal válido (Fase 8) |
@@ -225,6 +225,9 @@
 | F7 | Venta a crédito/fiado | 🟡 | ✅ | Cuentas por cobrar: deudores, abonos y saldos (Fase 3) |
 | F8 | Imprimir etiquetas | 🟡 | ⏳ | Etiquetas con código de barras (Fase 3) |
 | F9 | WiFi para VP800 | 🟡 | ⏳ | Comunicación WiFi vía Valor Connect (Fase 3) |
+| F10 | Reportes modificables visuales | 🔴 | ⏳ | Herramienta visual para armar/editear reportes (arrastrar campos, filtros, exportar) sin código |
+| F11 | Feedback desde el login | 🟢 | ⏳ | Botón en pantalla de login que envía feedback del cliente a un bot de Telegram del dueño |
+| F12 | Manager remoto | 🟡 | ⏳ | Rol manager: ver reportes remotos, agregar productos y modificar precios sin estar en la caja |
 
 ---
 
@@ -245,7 +248,7 @@
 | Configuración | 11 | 10 | 1 |
 | Seguridad | 8 | 6 | 2 |
 | Infraestructura | 8 | 5 | 3 |
-| Futuro/Expansión | 9 | 1 | 8 |
-| **TOTAL** | **120** | **101** | **19** |
+| Futuro/Expansión | 12 | 1 | 11 |
+| **TOTAL** | **123** | **101** | **22** |
 
-**Porcentaje completado: 84.2%**
+**Porcentaje completado: 82.1%**

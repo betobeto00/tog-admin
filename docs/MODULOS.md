@@ -29,6 +29,9 @@ La visión de **TOG Platform** es que cada eslabón sea un **módulo activable p
 | 3 | **Comercializador** | ✅ Parcial (`tog-admin`) | Inventario (catálogo con producto/servicio, subcategorías, marca e imagen), compras, ventas (incl. **crédito/fiado** con cuentas por cobrar y abonos), cotizaciones, caja, POS | Core |
 | 4 | **Distribuidor** | ✅ MVP v1 — clientes + pedidos CRUD (migraciones 015/016, gating por licencia y permisos, tests) | Clientes (con documento de registro internacional: RIF, RFC, EIN…), pedidos con estados y numeración. El **crédito a clientes vive en Comercializador** (migración 021): el POS vende fiado y valida `limite_credito` cuando se vincula a un cliente de este módulo. Pendientes: remitos, listas de precio, rutas, flotas y despachos | Core + Comercializador |
 | 5 | **Postventa** | 🟡 Diseño | Tickets de soporte, devoluciones, garantías, notas de crédito | Core + Comercializador |
+| 6 | **Administración** | 🟡 Diseño | **Submódulo Contable** (libros: compras, ventas, inventario, mayor, diario; retenciones de ley según el país del cliente), reportes de gestión | Core + Comercializador |
+| 7 | **Recursos Humanos** | 🟡 Diseño | Empleados, roles, nómina básica, asistencia (alcance a definir al implementar) | Core |
+| 8 | **Restaurant** | 🟡 Diseño | Mesas, comanda, cocina, cierre de mesa (alcance a definir al implementar) | Core + Comercializador |
 
 **Leyenda**: ✅ existe · 🟡 en diseño · ⚪ no iniciado
 
@@ -68,7 +71,7 @@ El **Core** siempre está implícito. Si el cliente desactiva "Comercializador",
 
 | Edición | Módulos incluidos | Target |
 |---------|-------------------|--------|
-| **Starter** | Core + Comercializador | Mostrador pequeño (papelería, ferretería, abasto) |
+| **Starter** | Core + Comercializador | Mostrador pequeño (retail, servicios, abasto) |
 | **Professional** | Core + Comercializador + Distribuidor | Distribuidor mediano |
 | **Enterprise** | Core + todos los módulos disponibles | Cadena completa (Productor → Postventa) |
 | **Custom** | Módulos a elección del cliente | Casos atípicos (negociación directa) |
@@ -94,6 +97,14 @@ La licencia **siempre** es un archivo firmado local. El Core puede funcionar 100
 - Analítica de uso para ti (qué módulos se usan, cuánto).
 
 Si Roberto está offline 100%, el modelo degradado es: **tú le mandas la clave por WhatsApp**, él la pega, sigue funcionando. Nunca bloqueas al cliente por falta de internet.
+
+### 3.5 Módulo al iniciar sesión (planificado)
+
+Al hacer login, el usuario **escoge el módulo al que va a entrar** (POS, Distribución, Producción, Administración, Recursos Humanos, Postventa, Restaurant…). No son sesiones separadas: el módulo activado por la licencia lo filtra el Sidebar/Router, y el login solo aterriza al usuario en su área. El admin asigna módulos y accesos a cada usuario.
+
+### 3.6 Multi-PC por red local (planificado)
+
+La licencia define el número de PCs conectadas: **1 PC/1 caja** (solo la Base) o **multi-PC de 2 a 20** (Base + hijas). **Un usuario solo puede estar con sesión activa en una PC a la vez** (admin en PC 1 no entra en PC 2). Detalle de la mecánica (enlace, token, anti-bypass) en `INTERCONEXION-RED.md` (repo tog-platform).
 
 ---
 
@@ -197,9 +208,13 @@ Estos números son una **referencia para el roadmap**, no la tabla de precios fi
 - [ ] Módulo Procesador: recetas/BOM, mermas, transformación.
 - [ ] Trazabilidad lote-origen (Lote de maíz → lote de hojuela → remito → cliente final).
 
-### Largo plazo (mes 12+): Nube + Postventa + multi-País
+### Largo plazo (mes 12+): Nube + Postventa + multi-País + módulos transversales
 - [ ] Modo nube con Postgres + autenticación central.
 - [ ] Módulo Postventa.
+- [ ] Módulo Administración: submódulo **contable** completo (libros: compras, ventas, inventario, mayor, diario; **retenciones de ley según el país del cliente**), reportes de gestión.
+- [ ] Módulo Recursos Humanos (empleados, nómina básica, asistencia).
+- [ ] Módulo Restaurant (mesas, comanda, cocina).
+- [ ] Interconexión por red local/Intranet entre PC Base y PC hijas (ver `tog-platform/docs/INTERCONEXION-RED.md`).
 - [ ] Multi-moneda, multi-idioma, fiscal por país.
 
 ---
