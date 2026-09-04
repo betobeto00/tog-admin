@@ -86,6 +86,13 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": ".env",
+        "to": ".env",
+        "filter": [
+          ".env"
+        ]
       }
     ],
     "win": {
