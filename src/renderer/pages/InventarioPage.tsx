@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@core/auth/store'
 import {
   Plus, Search, Edit2, Trash2, Package, Tag,
-  ChevronDown, AlertTriangle, Filter, Download, Upload, History, EyeOff, ScanBarcode
+  ChevronDown, AlertTriangle, Filter, Download, Upload, History, EyeOff, ScanBarcode, ListTree, X
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
@@ -15,17 +15,22 @@ import { callApi } from '../lib/api-client'
 interface Producto {
   id: number; codigo_barras: string | null; sku: string | null
   nombre: string; descripcion: string | null; categoria_id: number | null
+  subcategoria_id: number | null; marca: string | null; tipo: 'producto' | 'servicio'
+  imagen: string | null
   precio_compra: number; precio_venta: number; stock: number
-  stock_minimo: number; unidad: string; activo: number
+  stock_minimo: number;  unidad: string; activo: number
   categoria_nombre: string | null
+  subcategoria_nombre?: string | null
 }
 interface Categoria { id: number; nombre: string; descripcion: string | null; activo: number }
 interface UnidadMedida { id: number; nombre: string; abreviatura: string | null; activo: number }
+interface Subcategoria { id: number; nombre: string; categoria_id: number; activo: number; categoria_nombre?: string }
 
 const emptyProduct = {
   nombre: '', codigo_barras: '', sku: '', descripcion: '',
-  categoria_id: 0, precio_compra: 0, precio_venta: 0,
-  stock: 0, stock_minimo: 5, unidad: 'unidad',
+  categoria_id: 0, subcategoria_id: 0, marca: '', tipo: 'producto' as 'producto' | 'servicio',
+  precio_compra: 0, precio_venta: 0,
+  stock: 0, stock_minimo: 5, unidad: 'unidad', imagen: null as string | null,
 }
 
 export default function InventarioPage() {
@@ -35,10 +40,18 @@ export default function InventarioPage() {
   const [productos, setProductos] = useState<Producto[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [unidades, setUnidades] = useState<UnidadMedida[]>([])
+  const [subcategorias, setSubcategorias] = useState<Subcategoria[]>([])
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState<number>(0)
   const [showCat, setShowCat] = useState(false)
   const [showUnid, setShowUnid] = useState(false)
+  const [showSub, setShowSub] = useState(false)
+  const [subCatFilter, setSubCatFilter] = useState<number>(0)
+
+  // Modal subcategoría
+  const [subModalOpen, setSubModalOpen] = useState(false)
+  const [subForm, setSubForm] = useState({ nombre: '', categoria_id: 0 })
+  const [editingSub, setEditingSub] = useState<Subcategoria | null>(null)
 
   // Modal producto
   const [modalOpen, setModalOpen] = useState(false)
@@ -68,7 +81,7 @@ export default function InventarioPage() {
   const [ajustando, setAjustando] = useState(false)
 
   // Confirm delete
-  const [deleteTarget, setDeleteTarget] = useState<{ type: 'producto' | 'categoria' | 'unidad'; id: number } | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'producto' | 'categoria' | 'unidad' | 'subcategoria'; id: number } | null>(null)
 
   // Import/Export CSV
   const [importing, setImporting] = useState(false)
@@ -143,22 +156,26 @@ export default function InventarioPage() {
   useEffect(() => { loadData() }, [])
 
   const loadData = async () => {
-    const [prods, cats, unids] = await Promise.all([
+    const [prods, cats, unids, subs] = await Promise.all([
       callApi<Producto[]>('productos:list'),
       callApi<Categoria[]>('categorias:list'),
       callApi<UnidadMedida[]>('unidades:list'),
+      callApi<Subcategoria[]>('subcategorias:list'),
     ])
     setProductos(prods)
     setCategorias(cats)
     setUnidades(unids)
+    setSubcategorias(subs)
   }
 
   // Filtrar productos
   const filtered = productos.filter((p) => {
+    const term = search.toLowerCase()
     const matchSearch = !search ||
-      p.nombre.toLowerCase().includes(search.toLowerCase()) ||
-      p.codigo_barras?.toLowerCase().includes(search.toLowerCase()) ||
-      p.sku?.toLowerCase().includes(search.toLowerCase())
+      p.nombre.toLowerCase().includes(term) ||
+      p.codigo_barras?.toLowerCase().includes(term) ||
+      p.sku?.toLowerCase().includes(term) ||
+      p.marca?.toLowerCase().includes(term)
     const matchCat = !filterCat || p.categoria_id === filterCat
     const matchStock = !filterSinStock || (p.stock <= p.stock_minimo)
     return matchSearch && matchCat && matchStock
@@ -219,11 +236,15 @@ export default function InventarioPage() {
       sku: p.sku || '',
       descripcion: p.descripcion || '',
       categoria_id: p.categoria_id || 0,
+      subcategoria_id: p.subcategoria_id || 0,
+      marca: p.marca || '',
+      tipo: p.tipo || 'producto',
       precio_compra: p.precio_compra,
       precio_venta: p.precio_venta,
       stock: p.stock,
       stock_minimo: p.stock_minimo,
       unidad: p.unidad,
+      imagen: p.imagen || null,
     })
     setBarcodeMode(false)
     setModalOpen(true)
@@ -239,6 +260,10 @@ export default function InventarioPage() {
         sku: form.sku || undefined,
         descripcion: form.descripcion || undefined,
         categoria_id: form.categoria_id || undefined,
+        subcategoria_id: form.subcategoria_id || null,
+        marca: form.marca.trim(),
+        tipo: form.tipo,
+        imagen: form.imagen || '',
       }
       if (editing) {
         await callApi('productos:update', { id: editing.id, data })
@@ -358,6 +383,36 @@ export default function InventarioPage() {
     setForm({ ...form, unidad: quickUnidad.nombre })
   }
 
+  // ======== SUBCATEGORÍAS ========
+
+  const openCreateSub = () => {
+    setEditingSub(null)
+    setSubForm({ nombre: '', categoria_id: subCatFilter || 0 })
+    setSubModalOpen(true)
+  }
+
+  const openEditSub = (s: Subcategoria) => {
+    setEditingSub(s)
+    setSubForm({ nombre: s.nombre, categoria_id: s.categoria_id })
+    setSubModalOpen(true)
+  }
+
+  const saveSubcategoria = async () => {
+    if (!subForm.nombre.trim() || !subForm.categoria_id) return
+    if (editingSub) {
+      await callApi('subcategorias:update', { id: editingSub.id, data: subForm })
+    } else {
+      await callApi('subcategorias:create', subForm)
+    }
+    setSubModalOpen(false)
+    await loadData()
+  }
+
+  const deleteSubcategoria = async (id: number) => {
+    await callApi('subcategorias:delete', { id })
+    await loadData()
+  }
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -367,14 +422,21 @@ export default function InventarioPage() {
           <p className="text-sm text-gray-500">{productos.length} {i18n.language === 'en' ? 'registered products' : 'productos registrados'}</p>
         </div>        <div className="flex gap-2">
           <button
-            onClick={() => { setShowCat(!showCat); setShowUnid(false) }}
+            onClick={() => { setShowCat(!showCat); setShowUnid(false); setShowSub(false) }}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
               showCat ? 'bg-purple-50 border-purple-300 text-purple-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}>
             <Tag className="w-4 h-4" /> {t('inventario.categories')}
           </button>
           <button
-            onClick={() => { setShowUnid(!showUnid); setShowCat(false) }}
+            onClick={() => { setShowSub(!showSub); setShowCat(false); setShowUnid(false) }}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+              showSub ? 'bg-sky-50 border-sky-300 text-sky-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}>
+            <ListTree className="w-4 h-4" /> {i18n.language === 'en' ? 'Subcategories' : 'Subcategorías'}
+          </button>
+          <button
+            onClick={() => { setShowUnid(!showUnid); setShowCat(false); setShowSub(false) }}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
               showUnid ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}>
@@ -464,6 +526,52 @@ export default function InventarioPage() {
         </div>
       )}
 
+      {/* Panel de subcategorías (toggle) */}
+      {showSub && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-800">{i18n.language === 'en' ? 'Subcategories' : 'Subcategorías'}</h3>
+            {has('inventario_categories') && (
+              <button onClick={openCreateSub} className="text-sm text-sky-600 hover:text-sky-700 flex items-center gap-1">
+                <Plus className="w-4 h-4" /> {i18n.language === 'en' ? 'Add' : 'Agregar'}
+              </button>
+            )}
+          </div>
+          <select
+            value={subCatFilter}
+            onChange={(e) => setSubCatFilter(Number(e.target.value))}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500"
+          >
+            <option value={0}>{i18n.language === 'en' ? 'All categories' : 'Todas las categorías'}</option>
+            {categorias.map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))}
+          </select>
+          {subcategorias.filter((s) => !subCatFilter || s.categoria_id === subCatFilter).length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">{i18n.language === 'en' ? 'No subcategories in this category yet' : 'Esta categoría aún no tiene subcategorías'}</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {subcategorias.filter((s) => !subCatFilter || s.categoria_id === subCatFilter).map((s) => (
+                <div key={s.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg group">
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-700 truncate">{s.nombre}</p>
+                    <p className="text-xs text-gray-400 truncate">{s.categoria_nombre || ''}</p>
+                  </div>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => openEditSub(s)} className="p-1 hover:bg-gray-200 rounded">
+                      <Edit2 className="w-3 h-3 text-gray-500" />
+                    </button>
+                    <button onClick={() => setDeleteTarget({ type: 'subcategoria', id: s.id })} className="p-1 hover:bg-red-100 rounded">
+                      <Trash2 className="w-3 h-3 text-red-500" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Barra de búsqueda y filtros */}
       <div className="flex gap-3">
         <div className="relative flex-1">
@@ -522,12 +630,24 @@ export default function InventarioPage() {
               filtered.map((p) => (
                 <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{p.nombre}</p>
-                      {p.codigo_barras && <p className="text-xs text-gray-400">CB: {p.codigo_barras}</p>}
+                    <div className="flex items-center gap-3">
+                      {p.imagen && <img src={p.imagen} alt={p.nombre} className="w-10 h-10 rounded-lg object-cover border border-gray-100 flex-shrink-0" />}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-gray-900 truncate">{p.nombre}</p>
+                          {p.tipo === 'servicio' && (
+                            <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-sky-100 text-sky-700">{i18n.language === 'en' ? 'Service' : 'Servicio'}</span>
+                          )}
+                        </div>
+                        {p.codigo_barras && <p className="text-xs text-gray-400">CB: {p.codigo_barras}</p>}
+                        {p.marca && <p className="text-xs text-gray-500">{p.marca}</p>}
+                      </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{p.categoria_nombre || '—'}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">
+                    <div>{p.categoria_nombre || '—'}</div>
+                    {p.subcategoria_nombre && <div className="text-xs text-gray-400">{p.subcategoria_nombre}</div>}
+                  </td>
                   <td className="px-4 py-3 text-sm text-gray-600 text-right">{formatCurrency(p.precio_compra)}</td>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900 text-right">{formatCurrency(p.precio_venta)}</td>
                   <td className="px-4 py-3 text-center">
@@ -568,6 +688,26 @@ export default function InventarioPage() {
       {/* Modal Producto */}
       <Modal open={modalOpen} onClose={() => { setModalOpen(false); setBarcodeMode(false) }} title={editing ? t('inventario.editProduct') : t('inventario.newProduct')} wide>
         <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Product Type' : 'Tipo de producto'}</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setForm({ ...form, tipo: 'producto' })}
+                className={`flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border-2 transition-colors ${
+                  form.tipo === 'producto' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                }`}>
+                <Package className="w-4 h-4" /> {i18n.language === 'en' ? 'Product' : 'Producto'}
+              </button>
+              <button type="button" onClick={() => setForm({ ...form, tipo: 'servicio' })}
+                className={`flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border-2 transition-colors ${
+                  form.tipo === 'servicio' ? 'border-sky-500 bg-sky-50 text-sky-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                }`}>
+                <ListTree className="w-4 h-4" /> {i18n.language === 'en' ? 'Service' : 'Servicio'}
+              </button>
+            </div>
+            {form.tipo === 'servicio' && (
+              <p className="text-xs text-sky-600 mt-1">{i18n.language === 'en' ? 'Services are sold without stock control.' : 'Los servicios se venden sin control de stock.'}</p>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.name')} *</label>
@@ -595,10 +735,23 @@ export default function InventarioPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventario.category')}</label>
-              <select value={form.categoria_id} onChange={(e) => setForm({ ...form, categoria_id: Number(e.target.value) })}
+              <select value={form.categoria_id} onChange={(e) => setForm({ ...form, categoria_id: Number(e.target.value), subcategoria_id: 0 })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
                 <option value={0}>{i18n.language === 'en' ? 'No category' : 'Sin categoría'}</option>
                 {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Subcategory' : 'Subcategoría'}</label>
+              <select
+                value={form.subcategoria_id}
+                onChange={(e) => setForm({ ...form, subcategoria_id: Number(e.target.value) })}
+                disabled={!form.categoria_id}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400">
+                <option value={0}>{i18n.language === 'en' ? 'None' : 'Ninguna'}</option>
+                {subcategorias.filter((s) => s.categoria_id === form.categoria_id).map((s) => (
+                  <option key={s.id} value={s.id}>{s.nombre}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -636,34 +789,83 @@ export default function InventarioPage() {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventario.costPrice')}</label>
-              <input type="number" step="0.01" min="0" value={form.precio_compra}
-                onChange={(e) => setForm({ ...form, precio_compra: Number(e.target.value) })}
+              <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Brand' : 'Marca'}</label>
+              <input type="text" value={form.marca} onChange={(e) => setForm({ ...form, marca: e.target.value })}
+                placeholder={i18n.language === 'en' ? 'Optional brand' : 'Marca (opcional)'}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
+            {form.tipo === 'producto' ? (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventario.costPrice')}</label>
+                <input type="number" step="0.01" min="0" value={form.precio_compra}
+                  onChange={(e) => setForm({ ...form, precio_compra: Number(e.target.value) })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+              </div>
+            ) : null}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventario.salePrice')} *</label>
               <input type="number" step="0.01" min="0" value={form.precio_venta}
                 onChange={(e) => setForm({ ...form, precio_venta: Number(e.target.value) })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventario.currentStock')}</label>
-              <input type="number" min="0" value={form.stock}
-                onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventario.minStock')}</label>
-              <input type="number" min="0" value={form.stock_minimo}
-                onChange={(e) => setForm({ ...form, stock_minimo: Number(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
-            </div>
+            {form.tipo === 'producto' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventario.currentStock')}</label>
+                  <input type="number" min="0" value={form.stock}
+                    onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventario.minStock')}</label>
+                  <input type="number" min="0" value={form.stock_minimo}
+                    onChange={(e) => setForm({ ...form, stock_minimo: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </>
+            )}
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.description')}</label>
               <textarea rows={2} value={form.descripcion}
                 onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Image' : 'Imagen'}</label>
+              <div className="flex items-start gap-3">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    const allowed = ['image/png', 'image/jpeg', 'image/webp']
+                    if (!allowed.includes(file.type)) {
+                      toast.error(i18n.language === 'en' ? 'Format not allowed. Use PNG, JPG or WebP.' : 'Formato no permitido. Use PNG, JPG o WebP.')
+                      e.target.value = ''
+                      return
+                    }
+                    if (file.size > 1024 * 1024) {
+                      toast.error(i18n.language === 'en' ? 'Image too large. Maximum: 1 MB.' : 'La imagen es demasiado grande. Máximo: 1 MB.')
+                      e.target.value = ''
+                      return
+                    }
+                    const reader = new FileReader()
+                    reader.onloadend = () => setForm((prev) => ({ ...prev, imagen: reader.result as string }))
+                    reader.readAsDataURL(file)
+                  }}
+                  className="block w-full text-sm text-gray-700 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100"
+                />
+                {form.imagen && (
+                  <div className="relative flex-shrink-0">
+                    <img src={form.imagen} alt="" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
+                    <button type="button" onClick={() => setForm((prev) => ({ ...prev, imagen: null }))}
+                      className="absolute -top-1.5 -right-1.5 p-0.5 bg-red-500 text-white rounded-full hover:bg-red-600">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
@@ -672,6 +874,35 @@ export default function InventarioPage() {
             <button onClick={saveProduct} disabled={saving || !form.nombre.trim()}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300">
               {saving ? t('common.saving') : editing ? t('common.save') : t('common.create')}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal Subcategoría */}
+      <Modal open={subModalOpen} onClose={() => setSubModalOpen(false)} title={editingSub ? (i18n.language === 'en' ? 'Edit Subcategory' : 'Editar Subcategoría') : (i18n.language === 'en' ? 'New Subcategory' : 'Nueva Subcategoría')}>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+            <input value={subForm.nombre} onChange={(e) => setSubForm({ ...subForm, nombre: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" autoFocus />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventario.category')} *</label>
+            <select
+              value={subForm.categoria_id}
+              onChange={(e) => setSubForm({ ...subForm, categoria_id: Number(e.target.value) })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+              <option value={0}>{i18n.language === 'en' ? 'Select a category' : 'Selecciona una categoría'}</option>
+              {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+            </select>
+          </div>
+          <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+            <button onClick={() => setSubModalOpen(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{t('common.cancel')}</button>
+            <button onClick={saveSubcategoria} disabled={!subForm.nombre.trim() || !subForm.categoria_id}
+              className="px-4 py-2 text-sm font-medium text-white bg-sky-600 rounded-lg hover:bg-sky-700 disabled:bg-sky-300">
+              {editingSub ? t('common.save') : t('common.create')}
             </button>
           </div>
         </div>
@@ -804,9 +1035,9 @@ export default function InventarioPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => {
           if (!deleteTarget) return
-          deleteTarget.type === 'producto' ? deleteProduct(deleteTarget.id) : deleteTarget.type === 'categoria' ? deleteCategory(deleteTarget.id) : deleteUnidad(deleteTarget.id)
+          deleteTarget.type === 'producto' ? deleteProduct(deleteTarget.id) : deleteTarget.type === 'categoria' ? deleteCategory(deleteTarget.id) : deleteTarget.type === 'unidad' ? deleteUnidad(deleteTarget.id) : deleteSubcategoria(deleteTarget.id)
         }}
-        title={`${t('common.delete')} ${deleteTarget?.type === 'producto' ? (i18n.language === 'en' ? 'product' : 'producto') : deleteTarget?.type === 'categoria' ? (i18n.language === 'en' ? 'category' : 'categoría') : (i18n.language === 'en' ? 'unit of measure' : 'unidad de medida')}`}
+        title={`${t('common.delete')} ${deleteTarget?.type === 'producto' ? (i18n.language === 'en' ? 'product' : 'producto') : deleteTarget?.type === 'categoria' ? (i18n.language === 'en' ? 'category' : 'categoría') : deleteTarget?.type === 'subcategoria' ? (i18n.language === 'en' ? 'subcategory' : 'subcategoría') : (i18n.language === 'en' ? 'unit of measure' : 'unidad de medida')}`}
         message={i18n.language === 'en' ? 'This action cannot be undone. The record will be permanently deleted.' : 'Esta acción no se puede deshacer. El registro será eliminado permanentemente.'}
         confirmText={t('common.delete')}
         danger

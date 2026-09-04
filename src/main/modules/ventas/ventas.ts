@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
 import { getDatabase } from '../../db/database'
-import { t } from '../../i18n'
 import { checkPermissionOrFail } from '../../core/auth'
+import { getActiveModules } from '../../services/license'
 import { ventaCreateSchema } from '../../../shared/validations'
 
 export function registerVentasHandlers(): void {
@@ -62,13 +62,39 @@ export function registerVentasHandlers(): void {
     }
 
     const db = getDatabase()
+    const esFiado = data.metodo_pago === 'fiado'
+    let clienteRes: any = null
+
+    if (data.cliente_id) {
+      if (!getActiveModules().includes('distribuidor')) {
+        return { success: false, error: 'El módulo Distribuidor no está activo en la licencia' }
+      }
+      const cliente = db.prepare('SELECT id, nombre, limite_credito FROM clientes WHERE id = ? AND activo = 1').get(data.cliente_id) as any
+      if (!cliente) {
+        return { success: false, error: 'Cliente no encontrado' }
+      }
+      clienteRes = cliente
+      if (esFiado && cliente.limite_credito > 0) {
+        const deuda = db.prepare(`
+          SELECT COALESCE(SUM(saldo), 0) as total FROM creditos
+          WHERE cliente_id = ? AND estado = 'pendiente'
+        `).get(data.cliente_id) as any
+        if ((deuda.total || 0) + data.total > cliente.limite_credito) {
+          return {
+            success: false,
+            error: `Límite de crédito excedido para "${cliente.nombre}". Disponible: ${cliente.limite_credito - (deuda.total || 0)}`,
+          }
+        }
+      }
+    }
 
     for (const det of data.detalles) {
-      const producto = db.prepare('SELECT id, nombre, stock, unidad FROM productos WHERE id = ?').get(det.producto_id) as any
+      if (!det.producto_id) continue
+      const producto = db.prepare('SELECT id, nombre, stock, tipo FROM productos WHERE id = ?').get(det.producto_id) as any
       if (!producto) {
         return { success: false, error: `Producto con ID ${det.producto_id} no encontrado` }
       }
-      if (producto.unidad !== 'servicio' && producto.stock < det.cantidad) {
+      if (producto.tipo !== 'servicio' && producto.stock < det.cantidad) {
         return { success: false, error: `Stock insuficiente para "${producto.nombre}". Disponible: ${producto.stock}, Solicitado: ${det.cantidad}` }
       }
     }
@@ -100,31 +126,61 @@ export function registerVentasHandlers(): void {
       const ventaId = result.lastInsertRowid
 
       const insertDetalle = db!.prepare(`
-        INSERT INTO venta_detalles (venta_id, producto_id, cantidad, precio_unitario, descuento, subtotal, notas)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO venta_detalles (venta_id, producto_id, descripcion, cantidad, precio_unitario, descuento, subtotal, notas)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `)
       const updateStock = db!.prepare(
-        'UPDATE productos SET stock = stock - ? WHERE id = ?'
+        "UPDATE productos SET stock = stock - ? WHERE id = ? AND tipo != 'servicio'"
       )
 
       for (const det of data.detalles) {
         insertDetalle.run(
-          ventaId, det.producto_id, det.cantidad,
-          det.precio_unitario, det.descuento, det.subtotal,
+          ventaId,
+          det.producto_id || null,
+          det.descripcion || null,
+          det.cantidad,
+          det.precio_unitario,
+          det.descuento,
+          det.subtotal,
           det.notas || null,
         )
-        updateStock.run(det.cantidad, det.producto_id)
+        if (det.producto_id) {
+          updateStock.run(det.cantidad, det.producto_id)
+        }
+      }
+
+      let creditoId: number | null = null
+      if (esFiado) {
+        const saldo = Math.max(0, data.total - (data.monto_pagado || 0))
+        const resultCredito = db!.prepare(`
+          INSERT INTO creditos (venta_id, cliente_id, deudor_nombre, deudor_telefono, deudor_documento,
+            monto_total, saldo, estado, usuario_id, notas)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          ventaId,
+          data.cliente_id || null,
+          clienteRes ? clienteRes.nombre : (data.deudor_nombre || 'Cliente'),
+          data.deudor_telefono || null,
+          data.deudor_documento || null,
+          data.total,
+          saldo,
+          saldo <= 0.005 ? 'pagado' : 'pendiente',
+          data.usuario_id,
+          data.notas || null,
+        )
+        creditoId = resultCredito.lastInsertRowid as number
       }
 
       const cajaAbierta = db!.prepare("SELECT id FROM caja WHERE estado = 'abierta' LIMIT 1").get() as any
-      if (cajaAbierta) {
+      const montoCaja = esFiado ? (data.monto_pagado || 0) : data.total
+      if (cajaAbierta && montoCaja > 0) {
         db!.prepare(`
           INSERT INTO movimientos_caja (caja_id, tipo, monto, descripcion, referencia_id)
           VALUES (?, 'venta', ?, ?, ?)
-        `).run(cajaAbierta.id, data.total, `Venta #${numeroVenta}`, ventaId)
+        `).run(cajaAbierta.id, montoCaja, esFiado ? `Venta #${numeroVenta} (fiado)` : `Venta #${numeroVenta}`, ventaId)
 
         db!.prepare('UPDATE caja SET total_ventas = total_ventas + ? WHERE id = ?').run(
-          data.total, cajaAbierta.id,
+          montoCaja, cajaAbierta.id,
         )
       }
 
@@ -132,7 +188,7 @@ export function registerVentasHandlers(): void {
         "UPDATE configuracion SET valor = ? WHERE clave = 'ticket_numero_venta'"
       ).run(String(numeroVenta))
 
-      return { id: ventaId, numero_venta: numeroVenta }
+      return { id: ventaId, numero_venta: numeroVenta, credito_id: creditoId }
     })
 
     const result = createVenta()
@@ -144,22 +200,39 @@ export function registerVentasHandlers(): void {
     if (fail) return fail
     const db = getDatabase()
 
+    const credito = db.prepare('SELECT id, estado FROM creditos WHERE venta_id = ?').get(data.id) as any
+    if (credito) {
+      const abonos = db.prepare('SELECT COUNT(*) as cantidad FROM credito_abonos WHERE credito_id = ?').get(credito.id) as any
+      if ((abonos?.cantidad || 0) > 0 || credito.estado !== 'pendiente') {
+        return { success: false, error: 'No se puede anular: la venta tiene un crédito con abonos o cobros registrados' }
+      }
+    }
+
     const anularVenta = db.transaction(() => {
-      const detalles = db!.prepare(
-        'SELECT producto_id, cantidad FROM venta_detalles WHERE venta_id = ?'
-      ).all(data.id) as any[]
+      const detalles = db!.prepare(`
+        SELECT vd.producto_id, vd.cantidad, p.tipo as tipo
+        FROM venta_detalles vd
+        LEFT JOIN productos p ON vd.producto_id = p.id
+        WHERE vd.venta_id = ?
+      `).all(data.id) as any[]
 
       const updateStock = db!.prepare(
-        'UPDATE productos SET stock = stock + ? WHERE id = ?'
+        "UPDATE productos SET stock = stock + ? WHERE id = ? AND tipo != 'servicio'"
       )
       for (const det of detalles) {
-        updateStock.run(det.cantidad, det.producto_id)
+        if (det.producto_id && det.tipo !== 'servicio') {
+          updateStock.run(det.cantidad, det.producto_id)
+        }
       }
 
       db!.prepare("UPDATE ventas SET estado = 'anulada', notas = ? WHERE id = ?").run(
         data.motivo,
         data.id,
       )
+
+      if (credito && credito.estado === 'pendiente') {
+        db!.prepare("UPDATE creditos SET estado = 'anulado' WHERE id = ?").run(credito.id)
+      }
 
       return { success: true }
     })
@@ -179,7 +252,8 @@ export function registerVentasHandlers(): void {
         COALESCE(SUM(total), 0) as monto_total,
         COALESCE(SUM(CASE WHEN metodo_pago = 'efectivo' THEN total ELSE 0 END), 0) as efectivo,
         COALESCE(SUM(CASE WHEN metodo_pago = 'transferencia' THEN total ELSE 0 END), 0) as transferencia,
-        COALESCE(SUM(CASE WHEN metodo_pago = 'pago_movil' THEN total ELSE 0 END), 0) as pago_movil
+        COALESCE(SUM(CASE WHEN metodo_pago = 'pago_movil' THEN total ELSE 0 END), 0) as pago_movil,
+        COALESCE(SUM(CASE WHEN metodo_pago = 'fiado' THEN total ELSE 0 END), 0) as fiado
       FROM ventas
       WHERE DATE(fecha) = ? AND estado = 'completada'
     `).get(fecha)

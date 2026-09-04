@@ -16,6 +16,7 @@ import {
   HelpCircle,
   Contact,
   ClipboardList,
+  Wallet,
 } from 'lucide-react'
 import type { ModuleId } from '@shared/modules'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -33,6 +34,7 @@ export default function Sidebar() {
     { to: '/caja', icon: Lock, label: t('nav.cash'), permission: 'caja_access' },
     { to: '/inventario', icon: Package, label: t('nav.inventory'), permission: 'inventario_access' },
     { to: '/ventas', icon: Receipt, label: t('nav.sales'), permission: 'pos_access' },
+    { to: '/creditos', icon: Wallet, label: t('nav.credits'), permission: 'creditos_view' },
     { to: '/compras', icon: Truck, label: t('nav.purchases'), permission: 'compras_access' },
     { to: '/proveedores', icon: Users, label: t('nav.suppliers'), permission: 'compras_suppliers' },
     { to: '/clientes', icon: Contact, label: t('nav.clients'), permission: 'distribuidor_clientes_view', modulo: 'distribuidor' as ModuleId },

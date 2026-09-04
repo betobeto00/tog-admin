@@ -10,22 +10,28 @@ export function registerProductosHandlers(): void {
     if (fail) return fail
     const db = getDatabase()
     let sql = `
-      SELECT p.*, c.nombre as categoria_nombre
+      SELECT p.*, c.nombre as categoria_nombre, s.nombre as subcategoria_nombre
       FROM productos p
       LEFT JOIN categorias c ON p.categoria_id = c.id
+      LEFT JOIN subcategorias s ON p.subcategoria_id = s.id
       WHERE p.activo = 1
     `
     const params: any[] = []
 
     if (filters?.search) {
-      sql += ` AND (p.nombre LIKE ? OR p.codigo_barras LIKE ? OR p.sku LIKE ?)`
+      sql += ` AND (p.nombre LIKE ? OR p.codigo_barras LIKE ? OR p.sku LIKE ? OR p.marca LIKE ?)`
       const term = `%${filters.search}%`
-      params.push(term, term, term)
+      params.push(term, term, term, term)
     }
 
     if (filters?.categoria_id) {
       sql += ` AND p.categoria_id = ?`
       params.push(filters.categoria_id)
+    }
+
+    if (filters?.subcategoria_id) {
+      sql += ` AND p.subcategoria_id = ?`
+      params.push(filters.subcategoria_id)
     }
 
     sql += ` ORDER BY p.nombre`
@@ -37,9 +43,10 @@ export function registerProductosHandlers(): void {
     if (fail) return fail
     const db = getDatabase()
     return db.prepare(`
-      SELECT p.*, c.nombre as categoria_nombre
+      SELECT p.*, c.nombre as categoria_nombre, s.nombre as subcategoria_nombre
       FROM productos p
       LEFT JOIN categorias c ON p.categoria_id = c.id
+      LEFT JOIN subcategorias s ON p.subcategoria_id = s.id
       WHERE p.id = ?
     `).get(data.id)
   })
@@ -52,21 +59,27 @@ export function registerProductosHandlers(): void {
       return { success: false, error: parsed.error.errors[0].message }
     }
     const db = getDatabase()
+    const esServicio = data.tipo === 'servicio'
     const result = db.prepare(`
       INSERT INTO productos (codigo_barras, sku, nombre, descripcion, categoria_id,
-        precio_compra, precio_venta, stock, stock_minimo, unidad)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        subcategoria_id, marca, tipo, precio_compra, precio_venta, stock, stock_minimo,
+        unidad, imagen)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       data.codigo_barras || null,
       data.sku || null,
       data.nombre,
       data.descripcion || null,
       data.categoria_id || null,
-      data.precio_compra || 0,
+      data.subcategoria_id || null,
+      data.marca || null,
+      data.tipo || 'producto',
+      esServicio ? 0 : (data.precio_compra || 0),
       data.precio_venta || 0,
-      data.stock || 0,
-      data.stock_minimo || 5,
-      data.unidad || 'unidad',
+      esServicio ? 0 : (data.stock || 0),
+      esServicio ? 0 : (data.stock_minimo || 5),
+      data.unidad || (esServicio ? 'Servicio' : 'unidad'),
+      data.imagen || null,
     )
     return { id: result.lastInsertRowid }
   })
@@ -80,6 +93,16 @@ export function registerProductosHandlers(): void {
     }
     const db = getDatabase()
     const d = data.data
+    const actual = db.prepare(
+      'SELECT tipo, precio_compra, precio_venta, stock, stock_minimo, subcategoria_id, marca, imagen FROM productos WHERE id = ?',
+    ).get(data.id) as any
+    if (!actual) return { success: false, error: 'Producto no encontrado' }
+
+    const tipoNuevo = d.tipo || actual.tipo
+    const esServicio = tipoNuevo === 'servicio'
+    const valor = (campo: string, v: any, fallback: any, def: any) =>
+      v !== undefined ? v : (campo in actual ? actual[campo] : def)
+
     db.prepare(`
       UPDATE productos SET
         codigo_barras = COALESCE(?, codigo_barras),
@@ -87,18 +110,31 @@ export function registerProductosHandlers(): void {
         nombre = COALESCE(?, nombre),
         descripcion = COALESCE(?, descripcion),
         categoria_id = COALESCE(?, categoria_id),
-        precio_compra = COALESCE(?, precio_compra),
+        subcategoria_id = ?,
+        marca = ?,
+        tipo = COALESCE(?, tipo),
+        precio_compra = ?,
         precio_venta = COALESCE(?, precio_venta),
-        stock = COALESCE(?, stock),
-        stock_minimo = COALESCE(?, stock_minimo),
+        stock = ?,
+        stock_minimo = ?,
         unidad = COALESCE(?, unidad),
+        imagen = ?,
         activo = COALESCE(?, activo),
         actualizado_en = datetime('now')
       WHERE id = ?
     `).run(
       d.codigo_barras, d.sku, d.nombre, d.descripcion, d.categoria_id,
-      d.precio_compra, d.precio_venta, d.stock, d.stock_minimo,
-      d.unidad, d.activo, data.id,
+      d.subcategoria_id !== undefined ? (d.subcategoria_id || null) : actual.subcategoria_id,
+      d.marca !== undefined ? (d.marca || null) : actual.marca,
+      d.tipo,
+      esServicio ? 0 : valor('precio_compra', d.precio_compra, actual.precio_compra, 0),
+      d.precio_venta,
+      esServicio ? 0 : valor('stock', d.stock, actual.stock, 0),
+      esServicio ? 0 : valor('stock_minimo', d.stock_minimo, actual.stock_minimo, 5),
+      d.unidad,
+      d.imagen !== undefined ? (d.imagen || null) : actual.imagen,
+      d.activo,
+      data.id,
     )
     return { success: true }
   })
@@ -119,7 +155,7 @@ export function registerProductosHandlers(): void {
       SELECT p.*, c.nombre as categoria_nombre
       FROM productos p
       LEFT JOIN categorias c ON p.categoria_id = c.id
-      WHERE p.activo = 1 AND p.stock <= p.stock_minimo
+      WHERE p.activo = 1 AND p.tipo != 'servicio' AND p.stock <= p.stock_minimo
       ORDER BY p.stock ASC
     `).all()
   })

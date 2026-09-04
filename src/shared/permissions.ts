@@ -39,6 +39,16 @@ export const PERMISSIONS = {
     category: { es: 'Ventas', en: 'Sales' },
     description: { es: 'Agregar servicios/manuales al carrito', en: 'Add services/manual items to cart' },
   },
+  creditos_view: {
+    label: { es: 'Ver Créditos / Fiados', en: 'View Credits' },
+    category: { es: 'Ventas', en: 'Sales' },
+    description: { es: 'Ver deudas y ventas a crédito/fiado', en: 'View credit/fiado debts and sales' },
+  },
+  creditos_edit: {
+    label: { es: 'Registrar Abonos', en: 'Register Payments' },
+    category: { es: 'Ventas', en: 'Sales' },
+    description: { es: 'Registrar abonos y cobrar deudas de crédito/fiado', en: 'Register payments and collect credit debts' },
+  },
 
   // === CAJA ===
   caja_access: {
@@ -241,6 +251,8 @@ export const ROLE_DEFAULTS: Record<string, PermissionKey[]> = {
     'pos_discount',
     'pos_edit_price',
     'pos_quick_sale',
+    'creditos_view',
+    'creditos_edit',
     'caja_access',
     'caja_open',
     'caja_close',

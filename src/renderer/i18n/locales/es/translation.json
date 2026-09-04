@@ -77,7 +77,8 @@
     "help": "Ayuda",
     "clients": "Clientes",
     "orders": "Pedidos",
-    "logout": "Cerrar Sesión"
+    "logout": "Cerrar Sesión",
+    "credits": "Créditos"
   },
   "clientes": {
     "title": "Clientes",
@@ -291,7 +292,18 @@
     "errorScan": "Error al escanear código",
     "scannerOn": "Escáner activo",
     "scannerOff": "Escáner inactivo",
-    "stockLabel": "Stock"
+    "stockLabel": "Stock",
+    "fiadoCliente": "Cliente",
+    "fiadoFreeNameOption": "— Cliente no registrado (nombre libre) —",
+    "fiadoCreditLimit": "Límite de crédito",
+    "fiadoDebtorPlaceholder": "Nombre del deudor *",
+    "fiadoPhone": "Teléfono (opcional)",
+    "fiadoAbono": "Abono inicial (pago ahora)",
+    "fiadoSaldoHint": "Saldo a deber",
+    "fiadoDebtor": "Deudor",
+    "fiadoSaldo": "Saldo pendiente",
+    "fiadoDebtorRequired": "Indica el nombre del deudor o selecciona un cliente para vender a crédito",
+    "fiadoAbonoExceedsTotal": "El abono no puede superar el total de la venta"
   },
   "inventario": {
     "title": "Inventario",
@@ -347,7 +359,15 @@
     "currentStockInfo": "Stock actual:",
     "units": "unidades",
     "noChange": "Sin cambio",
-    "adjusting": "Ajustando..."
+    "adjusting": "Ajustando...",
+    "service": "Servicio",
+    "brand": "Marca",
+    "brandPlaceholder": "Marca (opcional)",
+    "subcategory": "Subcategoría",
+    "subcategories": "Subcategorías",
+    "none": "Ninguna",
+    "image": "Imagen",
+    "addSubcategory": "Agregar"
   },
   "ventas": {
     "title": "Ventas",
@@ -495,7 +515,8 @@
     "recordWithdrawalDesc": "Registra un retiro o gasto de la caja (ej: compra menor, retiro de efectivo).",
     "registerEntry": "Registrar Entrada",
     "registerWithdrawal": "Registrar Salida",
-    "xReportTitle": "Reporte X (Parcial)"
+    "xReportTitle": "Reporte X (Parcial)",
+    "fiadoMethod": "Fiado / Crédito"
   },
   "compras": {
     "title": "Compras",
@@ -1375,5 +1396,39 @@
     "reportStep1": "Haga clic en \"Abrir Carpeta de Reportes\"",
     "reportStep2": "Copie el archivo .txt generado",
     "reportStep3": "Adjúntelo en un correo electrónico al soporte técnico"
+  },
+  "creditos": {
+    "title": "Créditos / Fiado",
+    "subtitle": "Ventas a crédito y cuentas por cobrar",
+    "searchPlaceholder": "Buscar por deudor, documento o teléfono...",
+    "all": "Todos",
+    "pending": "Pendientes",
+    "paid": "Pagados",
+    "voided": "Anulados",
+    "debtor": "Deudor",
+    "document": "Documento",
+    "phone": "Teléfono",
+    "sale": "Venta",
+    "date": "Fecha",
+    "total": "Total",
+    "balance": "Saldo",
+    "state": "Estado",
+    "actions": "Acciones",
+    "statePending": "Pendiente",
+    "statePaid": "Pagado",
+    "stateVoided": "Anulado",
+    "view": "Ver",
+    "registerPayment": "Registrar abono",
+    "detail": "Detalle del crédito",
+    "saleItems": "Detalle de la venta",
+    "paymentsHistory": "Historial de abonos",
+    "noPayments": "Aún no hay abonos registrados",
+    "paymentAmount": "Monto del abono",
+    "paymentNotes": "Notas (opcional)",
+    "savePayment": "Registrar abono",
+    "empty": "No hay créditos que coincidan con el filtro",
+    "paidTotal": "Cobrado",
+    "remaining": "Saldo pendiente",
+    "creditor": "Registrado por"
   }
 }

@@ -11,6 +11,7 @@ import DashboardPage from './pages/DashboardPage'
 import POSPage from './pages/POSPage'
 import InventarioPage from './pages/InventarioPage'
 import VentasPage from './pages/VentasPage'
+import CreditosPage from './pages/CreditosPage'
 import CajaPage from './pages/CajaPage'
 import ComprasPage from './pages/ComprasPage'
 import ProveedoresPage from './pages/ProveedoresPage'
@@ -74,6 +75,7 @@ export default function App() {
           <Route path="pos" element={<POSPage />} />
           <Route path="inventario" element={<InventarioPage />} />
           <Route path="ventas" element={<VentasPage />} />
+          <Route path="creditos" element={<CreditosPage />} />
           <Route path="caja" element={<CajaPage />} />
           <Route path="compras" element={<ComprasPage />} />
           <Route path="proveedores" element={<ProveedoresPage />} />

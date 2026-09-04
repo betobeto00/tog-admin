@@ -69,6 +69,7 @@ export default function DashboardPage() {
     transferencia: t('caja.transferMethod'),
     pago_movil: t('caja.mobileMethod'),
     mixto: t('pos.mixed'),
+    fiado: t('caja.fiadoMethod'),
   }
 
   return (

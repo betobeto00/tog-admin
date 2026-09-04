@@ -15,6 +15,8 @@ import {
   quoteCreateSchema,
   loginSchema,
   changePasswordSchema,
+  subcategoriaCreateSchema,
+  creditoAbonoSchema,
 } from './validations'
 
 describe('usuarioCreateSchema', () => {
@@ -367,5 +369,109 @@ describe('pedidoCreateSchema', () => {
     expect(zero.success).toBe(false)
     const neg = pedidoCreateSchema.safeParse({ cliente_id: 1, items: [{ producto_id: 1, cantidad: -1, precio: 5 }] })
     expect(neg.success).toBe(false)
+  })
+})
+
+describe('productoCreateSchema — tipo / marca / imagen', () => {
+  it('accepts a service product with brand and image', () => {
+    const result = productoCreateSchema.safeParse({
+      nombre: 'Limpieza de PC',
+      tipo: 'servicio',
+      marca: 'TOG',
+      precio_venta: 20,
+      imagen: 'data:image/png;base64,xxxx',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.tipo).toBe('servicio')
+      expect(result.data.stock).toBe(0)
+    }
+  })
+
+  it('defaults tipo to producto', () => {
+    const result = productoCreateSchema.safeParse({ nombre: 'X', precio_venta: 5 })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.tipo).toBe('producto')
+  })
+
+  it('rejects an invalid tipo', () => {
+    const result = productoCreateSchema.safeParse({ nombre: 'X', precio_venta: 5, tipo: 'digital' })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects an oversized image (dataURL > 1.6M chars)', () => {
+    const result = productoCreateSchema.safeParse({ nombre: 'X', precio_venta: 5, imagen: 'a'.repeat(1600001) })
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('subcategoriaCreateSchema', () => {
+  it('requires a name and a category', () => {
+    expect(subcategoriaCreateSchema.safeParse({ nombre: 'Cuadernos', categoria_id: 2 }).success).toBe(true)
+    expect(subcategoriaCreateSchema.safeParse({ nombre: '', categoria_id: 2 }).success).toBe(false)
+    expect(subcategoriaCreateSchema.safeParse({ nombre: 'Cuadernos' }).success).toBe(false)
+  })
+})
+
+describe('ventaDetalleCreateSchema — línea sin producto (venta rápida)', () => {
+  it('accepts a detail line with description and no product', () => {
+    const result = ventaCreateSchema.safeParse({
+      usuario_id: 1,
+      subtotal: 25,
+      impuesto: 0,
+      total: 25,
+      metodo_pago: 'efectivo',
+      monto_pagado: 25,
+      cambio: 0,
+      detalles: [{ producto_id: null, descripcion: 'Flete express', cantidad: 1, precio_unitario: 25, descuento: 0, subtotal: 25 }],
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects a detail line without product and without description', () => {
+    const result = ventaCreateSchema.safeParse({
+      usuario_id: 1,
+      subtotal: 10,
+      impuesto: 0,
+      total: 10,
+      metodo_pago: 'efectivo',
+      monto_pagado: 10,
+      cambio: 0,
+      detalles: [{ producto_id: null, cantidad: 1, precio_unitario: 10, descuento: 0, subtotal: 10 }],
+    })
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('ventaCreateSchema — fiado', () => {
+  const base = {
+    usuario_id: 1,
+    subtotal: 100,
+    impuesto: 0,
+    total: 100,
+    metodo_pago: 'fiado',
+    monto_pagado: 20,
+    cambio: 0,
+    detalles: [{ producto_id: 1, cantidad: 1, precio_unitario: 100, descuento: 0, subtotal: 100 }],
+  } as const
+
+  it('accepts fiado with a registered client', () => {
+    expect(ventaCreateSchema.safeParse({ ...base, cliente_id: 5 }).success).toBe(true)
+  })
+
+  it('accepts fiado with a free debtor name', () => {
+    expect(ventaCreateSchema.safeParse({ ...base, deudor_nombre: 'Juan Pérez' }).success).toBe(true)
+  })
+
+  it('rejects fiado without client or debtor name', () => {
+    expect(ventaCreateSchema.safeParse(base).success).toBe(false)
+  })
+})
+
+describe('creditoAbonoSchema', () => {
+  it('requires a positive amount', () => {
+    expect(creditoAbonoSchema.safeParse({ credito_id: 1, monto: 10 }).success).toBe(true)
+    expect(creditoAbonoSchema.safeParse({ credito_id: 1, monto: 0 }).success).toBe(false)
+    expect(creditoAbonoSchema.safeParse({ credito_id: 1, monto: -5 }).success).toBe(false)
   })
 })

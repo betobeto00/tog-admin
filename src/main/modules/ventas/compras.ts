@@ -68,7 +68,7 @@ export function registerComprasHandlers(): void {
         VALUES (?, ?, ?, ?, ?)
       `)
       const updateStock = db!.prepare(
-        'UPDATE productos SET stock = stock + ? WHERE id = ?'
+        "UPDATE productos SET stock = stock + ? WHERE id = ? AND tipo != 'servicio'"
       )
 
       for (const det of data.detalles) {

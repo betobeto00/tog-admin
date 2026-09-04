@@ -456,6 +456,100 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
         ALTER TABLE clientes RENAME COLUMN rif TO documento;
       `,
     },
+    {
+      nombre: '017_producto_tipo',
+      sql: `
+        ALTER TABLE productos ADD COLUMN tipo TEXT NOT NULL DEFAULT 'producto';
+        UPDATE productos SET tipo = 'servicio' WHERE LOWER(unidad) = 'servicio';
+      `,
+    },
+    {
+      nombre: '018_subcategorias',
+      sql: `
+        CREATE TABLE IF NOT EXISTS subcategorias (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nombre TEXT NOT NULL,
+          categoria_id INTEGER NOT NULL REFERENCES categorias(id),
+          activo INTEGER NOT NULL DEFAULT 1,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        ALTER TABLE productos ADD COLUMN subcategoria_id INTEGER REFERENCES subcategorias(id);
+        CREATE INDEX IF NOT EXISTS idx_productos_subcategoria ON productos(subcategoria_id);
+        CREATE INDEX IF NOT EXISTS idx_subcategorias_categoria ON subcategorias(categoria_id);
+      `,
+    },
+    {
+      nombre: '019_producto_marca',
+      sql: `
+        ALTER TABLE productos ADD COLUMN marca TEXT;
+      `,
+    },
+    {
+      nombre: '020_venta_detalles_libre',
+      sql: `
+        CREATE TABLE venta_detalles_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          venta_id INTEGER NOT NULL REFERENCES ventas(id),
+          producto_id INTEGER REFERENCES productos(id),
+          descripcion TEXT,
+          cantidad REAL NOT NULL DEFAULT 1,
+          precio_unitario REAL NOT NULL,
+          descuento REAL NOT NULL DEFAULT 0,
+          subtotal REAL NOT NULL,
+          notas TEXT
+        );
+
+        INSERT INTO venta_detalles_new (id, venta_id, producto_id, cantidad, precio_unitario, descuento, subtotal, notas)
+          SELECT id, venta_id, producto_id, cantidad, precio_unitario, descuento, subtotal, notas FROM venta_detalles;
+
+        DROP TABLE venta_detalles;
+        ALTER TABLE venta_detalles_new RENAME TO venta_detalles;
+        CREATE INDEX IF NOT EXISTS idx_venta_detalles_venta ON venta_detalles(venta_id);
+        CREATE INDEX IF NOT EXISTS idx_venta_detalles_producto ON venta_detalles(producto_id);
+      `,
+    },
+    {
+      nombre: '021_creditos',
+      sql: `
+        CREATE TABLE IF NOT EXISTS creditos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          venta_id INTEGER NOT NULL REFERENCES ventas(id),
+          cliente_id INTEGER REFERENCES clientes(id),
+          deudor_nombre TEXT NOT NULL,
+          deudor_telefono TEXT,
+          deudor_documento TEXT,
+          monto_total REAL NOT NULL DEFAULT 0,
+          saldo REAL NOT NULL DEFAULT 0,
+          fecha TEXT NOT NULL DEFAULT (datetime('now')),
+          estado TEXT NOT NULL DEFAULT 'pendiente',
+          usuario_id INTEGER REFERENCES usuarios(id),
+          notas TEXT,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS credito_abonos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          credito_id INTEGER NOT NULL REFERENCES creditos(id),
+          monto REAL NOT NULL,
+          fecha TEXT NOT NULL DEFAULT (datetime('now')),
+          usuario_id INTEGER REFERENCES usuarios(id),
+          notas TEXT
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_creditos_estado ON creditos(estado);
+        CREATE INDEX IF NOT EXISTS idx_creditos_cliente ON creditos(cliente_id);
+        CREATE INDEX IF NOT EXISTS idx_creditos_venta ON creditos(venta_id);
+        CREATE INDEX IF NOT EXISTS idx_credito_abonos_credito ON credito_abonos(credito_id);
+      `,
+    },
+    {
+      nombre: '022_metodo_pago_fiado',
+      sql: `
+        INSERT OR IGNORE INTO metodos_pago (clave, nombre, icono, requiere_terminal, activo, orden) VALUES
+          ('fiado', 'Fiado', 'HandCoins', 0, 1, 3);
+      `,
+    },
   ]
 }
 

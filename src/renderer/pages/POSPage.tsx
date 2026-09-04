@@ -4,7 +4,7 @@ import { useAuthStore } from '@core/auth/store'
 import {
   Search, ShoppingCart, Plus, Minus, Trash2, X,
   DollarSign, CreditCard, Smartphone, Check, Printer,
-  Package, AlertTriangle, ScanBarcode, Wallet, Banknote, Globe
+  Package, AlertTriangle, ScanBarcode, Wallet, Banknote, Globe, HandCoins
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import CartItem from '../components/pos/CartItem'
@@ -15,13 +15,15 @@ import { callApi } from '../lib/api-client'
 
 interface Producto {
   id: number; nombre: string; codigo_barras: string | null
-  precio_venta: number; stock: number; unidad: string
+  precio_venta: number; stock: number; unidad: string; tipo: 'producto' | 'servicio'
+  marca: string | null; imagen: string | null
   categoria_nombre: string | null
 }
 
 interface CartItem {
   producto_id: number; nombre: string; precio_unitario: number
-  cantidad: number; stock: number; unidad: string
+  cantidad: number; stock: number; unidad: string; tipo: 'producto' | 'servicio'
+  esVentaRapida?: boolean
   descuento: number  // descuento por item (0-100 %)
 }
 
@@ -34,8 +36,16 @@ interface MetodoPagoDB {
   activo: number
 }
 
+interface Cliente {
+  id: number
+  nombre: string
+  documento: string | null
+  telefono: string | null
+  limite_credito: number | null
+}
+
 const ICON_MAP: Record<string, any> = {
-  DollarSign, CreditCard, Smartphone, Wallet, Banknote, Globe,
+  DollarSign, CreditCard, Smartphone, Wallet, Banknote, Globe, HandCoins,
 }
 
 export default function POSPage() {
@@ -64,6 +74,13 @@ export default function POSPage() {
   const [procesando, setProcesando] = useState(false)
   const [esperandoTarjeta, setEsperandoTarjeta] = useState(false)
 
+  // Fiado / crédito
+  const [clientesFiado, setClientesFiado] = useState<Cliente[]>([])
+  const [clienteFiadoId, setClienteFiadoId] = useState('')
+  const [deudorNombre, setDeudorNombre] = useState('')
+  const [deudorTelefono, setDeudorTelefono] = useState('')
+  const [abonoInicial, setAbonoInicial] = useState('')
+
   // Ticket
   const [ticketOpen, setTicketOpen] = useState(false)
   const [ultimoTicket, setUltimoTicket] = useState<any>(null)
@@ -71,6 +88,9 @@ export default function POSPage() {
   useEffect(() => {
     loadProducts()
     checkCaja()
+    callApi<Cliente[]>('clientes:list')
+      .then((list) => setClientesFiado(list || []))
+      .catch(() => setClientesFiado([]))
   }, [])
 
   const checkCaja = async () => {
@@ -90,7 +110,7 @@ export default function POSPage() {
 
   const loadProducts = async () => {
     const prods = await callApi<Producto[]>('productos:list')
-    setProductos(prods.filter((p: Producto) => p.stock > 0 || p.unidad === 'servicio'))
+    setProductos(prods.filter((p: Producto) => p.tipo === 'servicio' || p.stock > 0))
   }
 
   const loadMetodosPago = async () => {
@@ -114,7 +134,7 @@ export default function POSPage() {
   const handleBarcodeScan = async (barcode: string) => {
     try {
       const producto = await callApi<Producto | null>('productos:buscar-por-codigo', { codigo: barcode })
-      if (producto && (producto.stock > 0 || producto.unidad === 'servicio')) {
+      if (producto && (producto.tipo === 'servicio' || producto.stock > 0)) {
         addToCart(producto)
         toast.success(`${producto.nombre} - ${formatCurrency(producto.precio_venta)}`)
       } else if (producto) {
@@ -173,6 +193,11 @@ export default function POSPage() {
   const cambio = metodoPago === 'efectivo' && montoPagado
     ? Math.max(0, parseFloat(montoPagado) - total)
     : 0
+  const esMetodoFiado = metodoPago === 'fiado'
+  const abonoCobro = esMetodoFiado ? (parseFloat(abonoInicial) || 0) : 0
+  const fiadoFaltaNombre = esMetodoFiado && !clienteFiadoId && !deudorNombre.trim()
+  const clienteSelCobro = clientesFiado.find((c) => String(c.id) === clienteFiadoId)
+  const nombreMetodo = (clave: string) => metodosPago.find((m) => m.clave === clave)?.nombre || clave
 
   // ======== CARRITO ========
 
@@ -180,7 +205,7 @@ export default function POSPage() {
     setCart((prev) => {
       const existing = prev.find((i) => i.producto_id === producto.id)
       if (existing) {
-        if (existing.cantidad >= existing.stock && existing.unidad !== 'servicio') return prev
+        if (existing.cantidad >= existing.stock && existing.tipo !== 'servicio') return prev
         return prev.map((i) =>
           i.producto_id === producto.id ? { ...i, cantidad: i.cantidad + 1 } : i
         )
@@ -192,6 +217,7 @@ export default function POSPage() {
         cantidad: 1,
         stock: producto.stock,
         unidad: producto.unidad,
+        tipo: producto.tipo,
         descuento: 0,
       }]
     })
@@ -204,7 +230,7 @@ export default function POSPage() {
       if (i.producto_id !== productoId) return i
       const newQty = i.cantidad + delta
       if (newQty <= 0) return i
-      if (newQty > i.stock && i.unidad !== 'servicio') return i
+      if (newQty > i.stock && i.tipo !== 'servicio') return i
       return { ...i, cantidad: newQty }
     }))
   }
@@ -238,7 +264,9 @@ export default function POSPage() {
       precio_unitario: parseFloat(quickSaleMonto),
       cantidad: 1,
       stock: 9999,
-      unidad: 'servicio',
+      unidad: 'Servicio',
+      tipo: 'servicio',
+      esVentaRapida: true,
       descuento: 0,
     }])
     setQuickSaleOpen(false)
@@ -252,6 +280,10 @@ export default function POSPage() {
     if (cart.length === 0) return
     setMetodoPago('efectivo')
     setMontoPagado(String(Math.ceil(total)))
+    setClienteFiadoId('')
+    setDeudorNombre('')
+    setDeudorTelefono('')
+    setAbonoInicial('')
     setCobrarOpen(true)
   }
 
@@ -260,7 +292,19 @@ export default function POSPage() {
     setProcesando(true)
 
     try {
-      // Si el método requiere terminal (ej. tarjeta/VP800), procesar primero
+      const esFiado = metodoPago === 'fiado'
+      const abonoFiado = esFiado ? (parseFloat(abonoInicial) || 0) : 0
+      const clienteSel = clientesFiado.find((c) => String(c.id) === clienteFiadoId)
+      if (esFiado && !clienteSel && !deudorNombre.trim()) {
+        toast.error(t('pos.fiadoDebtorRequired'))
+        setProcesando(false)
+        return
+      }
+      if (esFiado && abonoFiado > total) {
+        toast.error(t('pos.fiadoAbonoExceedsTotal'))
+        setProcesando(false)
+        return
+      }
       const metodo = metodosPago.find((m) => m.clave === metodoPago)
       let datosTarjeta: any = null
       if (metodo?.requiere_terminal) {
@@ -283,12 +327,16 @@ export default function POSPage() {
         descuento: descuentoItems + descuentoGlobalMonto,
         total,
         metodo_pago: metodoPago,
-        monto_pagado: metodoPago === 'efectivo' ? parseFloat(montoPagado) : total,
+        monto_pagado: esFiado ? abonoFiado : (metodoPago === 'efectivo' ? parseFloat(montoPagado) : total),
         cambio: metodoPago === 'efectivo' ? cambio : 0,
+        cliente_id: esFiado && clienteSel ? clienteSel.id : undefined,
+        deudor_nombre: esFiado && !clienteSel ? deudorNombre.trim() : undefined,
+        deudor_telefono: esFiado && !clienteSel && deudorTelefono.trim() ? deudorTelefono.trim() : undefined,
         detalles: cart.map((item) => {
           const itemDiscount = item.precio_unitario * item.cantidad * item.descuento / 100
           return {
-            producto_id: item.producto_id,
+            producto_id: item.esVentaRapida ? undefined : item.producto_id,
+            descripcion: item.esVentaRapida ? item.nombre : undefined,
             cantidad: item.cantidad,
             precio_unitario: item.precio_unitario,
             descuento: itemDiscount,
@@ -303,7 +351,16 @@ export default function POSPage() {
         return
       }
 
-      setUltimoTicket({ ...result, items: [...cart], total, metodo_pago: metodoPago, datosTarjeta })
+      setUltimoTicket({
+        ...result,
+        items: [...cart],
+        total,
+        metodo_pago: metodoPago,
+        datosTarjeta,
+        esFiado,
+        saldoFiado: esFiado ? Math.max(0, total - abonoFiado) : 0,
+        deudorTicket: esFiado ? (clienteSel ? clienteSel.nombre : deudorNombre.trim()) : '',
+      })
       setCobrarOpen(false)
       setTicketOpen(true)
       setCart([])
@@ -587,6 +644,65 @@ export default function POSPage() {
             )}
           </div>
 
+          {/* Datos del crédito / fiado */}
+          {esMetodoFiado && (
+            <div className="space-y-4 border-t border-gray-100 pt-4">
+              {clientesFiado.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('pos.fiadoCliente')}</label>
+                  <select
+                    value={clienteFiadoId}
+                    onChange={(e) => setClienteFiadoId(e.target.value)}
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">{t('pos.fiadoFreeNameOption')}</option>
+                    {clientesFiado.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nombre}{c.documento ? ` (${c.documento})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {clienteSelCobro && (clienteSelCobro.limite_credito ?? 0) > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">{t('pos.fiadoCreditLimit')}: {formatCurrency(clienteSelCobro.limite_credito ?? 0)}</p>
+                  )}
+                </div>
+              )}
+              {!clienteFiadoId && (
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    value={deudorNombre}
+                    onChange={(e) => setDeudorNombre(e.target.value)}
+                    placeholder={t('pos.fiadoDebtorPlaceholder')}
+                    className="col-span-2 w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="text"
+                    value={deudorTelefono}
+                    onChange={(e) => setDeudorTelefono(e.target.value)}
+                    placeholder={t('pos.fiadoPhone')}
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('pos.fiadoAbono')}</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={abonoInicial}
+                  onChange={(e) => setAbonoInicial(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-xl font-bold text-center focus:ring-2 focus:ring-blue-500"
+                  placeholder="0.00"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {t('pos.fiadoSaldoHint')}: {formatCurrency(Math.max(0, total - abonoCobro))}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Monto pagado (solo efectivo) */}
           {metodoPago === 'efectivo' && (
             <div>
@@ -633,7 +749,7 @@ export default function POSPage() {
             </button>
             <button
               onClick={procesarVenta}
-              disabled={procesando || (metodoPago === 'efectivo' && parseFloat(montoPagado) < total)}
+              disabled={procesando || (metodoPago === 'efectivo' && parseFloat(montoPagado) < total) || (esMetodoFiado && (fiadoFaltaNombre || abonoCobro > total))}
               className="flex-1 py-3 text-sm font-semibold text-white bg-green-600 rounded-xl hover:bg-green-700 disabled:bg-gray-300 flex items-center justify-center gap-2"
             >
               {procesando ? (
@@ -684,7 +800,13 @@ export default function POSPage() {
                 <div className="flex justify-between font-bold text-sm"><span>TOTAL:</span><span>{formatCurrency(ultimoTicket.total)}</span></div>
               </div>
               <div className="border-t border-dashed border-gray-200 pt-2">
-                <p>Pago: {ultimoTicket.metodo_pago}</p>
+                <p>Pago: {nombreMetodo(ultimoTicket.metodo_pago)}</p>
+                {ultimoTicket.esFiado && (
+                  <>
+                    {ultimoTicket.deudorTicket && <p>{t('pos.fiadoDebtor')}: {ultimoTicket.deudorTicket}</p>}
+                    <p>{t('pos.fiadoSaldo')}: {formatCurrency(ultimoTicket.saldoFiado)}</p>
+                  </>
+                )}
               </div>
               <div className="text-center pt-3 text-gray-400">
                 <p>{t('pos.thankYou')}</p>

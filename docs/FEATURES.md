@@ -38,7 +38,7 @@
 | P10 | Venta rápida sin producto | 🔴 | ✅ | Botón "Venta Rápida" para servicios por cobrar sin crear producto |
 | P11 | Modo touch | 🟡 | ⏳ | Botones grandes para pantalla táctil |
 | P12 | Atajos de teclado | 🟡 | ✅ | F2=buscar, F5=cobrar |
-| P13 | Venta a crédito/fiado | 🟡 | ⏳ | Registrar venta sin cobro inmediato |
+| P13 | Venta a crédito/fiado | 🟡 | ✅ | Registrar venta sin cobro inmediato (método Fiado + sección Créditos) |
 | P14 | Tarjeta (VP800) | 🟡 | ✅ | Integración con terminal Valor VP800 (USB/COM) |
 | P15 | Componente CartItem | 🟢 | ✅ | Subcomponente extraído para reutilización |
 | P16 | POS bloqueado sin caja | 🔴 | ✅ | No funciona si no hay caja abierta |
@@ -64,10 +64,10 @@
 | I9 | Historial de movimientos | 🟡 | ✅ | Registro de cada ajuste de stock con justificación |
 | I10 | Ajuste de inventario | 🔴 | ✅ | Corregir stock manualmente con justificación |
 | I11 | Productos sin stock | 🟡 | ✅ | Filtro "Stock Bajo" para ver productos por debajo del mínimo |
-| I12 | **Tipo producto/servicio** | 🔴 | ⏳ | Identificar si es producto físico o servicio (Fase 5) |
-| I13 | **Subcategorías** | 🔴 | ⏳ | Subcategorías de productos (Fase 5) |
-| I14 | **Marca del producto** | 🟡 | ⏳ | Campo opcional de marca (Fase 5) |
-| I15 | **Imagen del producto** | 🟡 | ⏳ | Subir imagen del producto (Fase 5) |
+| I12 | **Tipo producto/servicio** | 🔴 | ✅ | Columna `tipo` (producto|servicio); servicios sin control de stock (Fase 5) |
+| I13 | **Subcategorías** | 🔴 | ✅ | Subcategorías de productos por categoría (Fase 5) |
+| I14 | **Marca del producto** | 🟡 | ✅ | Campo opcional de marca (Fase 5) |
+| I15 | **Imagen del producto** | 🟡 | ✅ | Imagen en base64 (PNG/JPG/WebP, máx 1MB) (Fase 5) |
 
 ---
 
@@ -222,7 +222,7 @@
 | F4 | Facturación fiscal Venezuela | 🔴 | ⏳ | Comprobante fiscal válido (Fase 8) |
 | F5 | CSV formato SENIAT | 🟡 | ⏳ | Exportar para declaración de impuestos (Fase 8) |
 | F6 | Modo touch | 🟡 | ⏳ | Optimizado para tablet/pantalla táctil (Fase 3) |
-| F7 | Venta a crédito/fiado | 🟡 | ⏳ | Cuentas por cobrar (Fase 3) |
+| F7 | Venta a crédito/fiado | 🟡 | ✅ | Cuentas por cobrar: deudores, abonos y saldos (Fase 3) |
 | F8 | Imprimir etiquetas | 🟡 | ⏳ | Etiquetas con código de barras (Fase 3) |
 | F9 | WiFi para VP800 | 🟡 | ⏳ | Comunicación WiFi vía Valor Connect (Fase 3) |
 

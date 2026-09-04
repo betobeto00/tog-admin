@@ -77,7 +77,8 @@
     "help": "Help",
     "clients": "Clients",
     "orders": "Orders",
-    "logout": "Log Out"
+    "logout": "Log Out",
+    "credits": "Credits"
   },
   "clientes": {
     "title": "Clients",
@@ -291,7 +292,18 @@
     "errorScan": "Error scanning barcode",
     "scannerOn": "Scanner ON",
     "scannerOff": "Scanner OFF",
-    "stockLabel": "Stock"
+    "stockLabel": "Stock",
+    "fiadoCliente": "Customer",
+    "fiadoFreeNameOption": "— Unregistered customer (free name) —",
+    "fiadoCreditLimit": "Credit limit",
+    "fiadoDebtorPlaceholder": "Debtor name *",
+    "fiadoPhone": "Phone (optional)",
+    "fiadoAbono": "Initial payment (pay now)",
+    "fiadoSaldoHint": "Balance owed",
+    "fiadoDebtor": "Debtor",
+    "fiadoSaldo": "Pending balance",
+    "fiadoDebtorRequired": "Enter the debtor name or select a customer to sell on credit",
+    "fiadoAbonoExceedsTotal": "The initial payment cannot exceed the sale total"
   },
   "inventario": {
     "title": "Inventory",
@@ -347,7 +359,15 @@
     "currentStockInfo": "Current stock:",
     "units": "units",
     "noChange": "No change",
-    "adjusting": "Adjusting..."
+    "adjusting": "Adjusting...",
+    "service": "Service",
+    "brand": "Brand",
+    "brandPlaceholder": "Optional brand",
+    "subcategory": "Subcategory",
+    "subcategories": "Subcategories",
+    "none": "None",
+    "image": "Image",
+    "addSubcategory": "Add"
   },
   "ventas": {
     "title": "Sales",
@@ -495,7 +515,8 @@
     "recordWithdrawalDesc": "Record a withdrawal or expense from the register (e.g.: minor purchase, cash withdrawal).",
     "registerEntry": "Record Entry",
     "registerWithdrawal": "Record Withdrawal",
-    "xReportTitle": "X Report (Partial)"
+    "xReportTitle": "X Report (Partial)",
+    "fiadoMethod": "Credit / On Account"
   },
   "compras": {
     "title": "Purchases",
@@ -1375,5 +1396,39 @@
     "reportStep1": "Click \"Open Reports Folder\"",
     "reportStep2": "Copy the generated .txt file",
     "reportStep3": "Attach it to a support email"
+  },
+  "creditos": {
+    "title": "Credits / On Account",
+    "subtitle": "Credit sales and accounts receivable",
+    "searchPlaceholder": "Search by debtor, document or phone...",
+    "all": "All",
+    "pending": "Pending",
+    "paid": "Paid",
+    "voided": "Voided",
+    "debtor": "Debtor",
+    "document": "Document",
+    "phone": "Phone",
+    "sale": "Sale",
+    "date": "Date",
+    "total": "Total",
+    "balance": "Balance",
+    "state": "Status",
+    "actions": "Actions",
+    "statePending": "Pending",
+    "statePaid": "Paid",
+    "stateVoided": "Voided",
+    "view": "View",
+    "registerPayment": "Record payment",
+    "detail": "Credit detail",
+    "saleItems": "Sale items",
+    "paymentsHistory": "Payment history",
+    "noPayments": "No payments recorded yet",
+    "paymentAmount": "Payment amount",
+    "paymentNotes": "Notes (optional)",
+    "savePayment": "Record payment",
+    "empty": "No credits match the current filter",
+    "paidTotal": "Collected",
+    "remaining": "Pending balance",
+    "creditor": "Recorded by"
   }
 }

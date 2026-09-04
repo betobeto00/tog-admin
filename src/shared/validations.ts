@@ -46,14 +46,29 @@ export const productoCreateSchema = z.object({
   nombre: z.string().min(1, 'Nombre requerido').max(200),
   descripcion: z.string().max(1000).optional(),
   categoria_id: z.number().int().positive().optional(),
+  subcategoria_id: z.number().int().positive().nullable().optional(),
+  marca: z.string().max(100).optional(),
+  tipo: z.enum(['producto', 'servicio']).default('producto'),
   precio_compra: z.number().min(0, 'Precio no puede ser negativo').default(0),
   precio_venta: z.number().min(0, 'Precio de venta requerido'),
   stock: z.number().int().min(0, 'Stock no puede ser negativo').default(0),
   stock_minimo: z.number().int().min(0).default(5),
   unidad: z.string().max(50).default('unidad'),
+  imagen: z.string().max(1600000).nullable().optional(),
 })
 
 export const productoUpdateSchema = productoCreateSchema.partial()
+
+// ============================================
+// SUBCATEGORÍAS
+// ============================================
+
+export const subcategoriaCreateSchema = z.object({
+  nombre: z.string().min(1, 'Nombre requerido').max(100),
+  categoria_id: z.number().int().positive('Selecciona una categoría'),
+})
+
+export const subcategoriaUpdateSchema = subcategoriaCreateSchema.partial()
 
 // ============================================
 // PROVEEDORES
@@ -72,26 +87,50 @@ export const proveedorCreateSchema = z.object({
 // VENTAS
 // ============================================
 
-export const ventaDetalleCreateSchema = z.object({
-  producto_id: z.number().int().positive('ID de producto inválido'),
-  cantidad: z.number().positive('La cantidad debe ser mayor a 0'),
-  precio_unitario: z.number().min(0),
-  descuento: z.number().min(0).default(0),
-  subtotal: z.number(),
-  notas: z.string().max(500).optional(),
-})
+export const ventaDetalleCreateSchema = z
+  .object({
+    producto_id: z.number().int().positive('ID de producto inválido').nullable().optional(),
+    descripcion: z.string().max(500).optional(),
+    cantidad: z.number().positive('La cantidad debe ser mayor a 0'),
+    precio_unitario: z.number().min(0),
+    descuento: z.number().min(0).default(0),
+    subtotal: z.number(),
+    notas: z.string().max(500).optional(),
+  })
+  .refine((d) => d.producto_id || (d.descripcion && d.descripcion.length > 0), {
+    message: 'Indica el producto o una descripción',
+  })
 
-export const ventaCreateSchema = z.object({
-  usuario_id: z.number().int().positive(),
-  subtotal: z.number().min(0),
-  impuesto: z.number().min(0),
-  descuento: z.number().min(0).default(0),
-  total: z.number().positive('El total debe ser mayor a 0'),
-  metodo_pago: z.enum(['efectivo', 'transferencia', 'pago_movil', 'mixto']),
-  monto_pagado: z.number().min(0),
-  cambio: z.number().min(0).default(0),
+export const ventaCreateSchema = z
+  .object({
+    usuario_id: z.number().int().positive(),
+    subtotal: z.number().min(0),
+    impuesto: z.number().min(0),
+    descuento: z.number().min(0).default(0),
+    total: z.number().positive('El total debe ser mayor a 0'),
+    metodo_pago: z.enum(['efectivo', 'transferencia', 'pago_movil', 'mixto', 'fiado']),
+    monto_pagado: z.number().min(0),
+    cambio: z.number().min(0).default(0),
+    notas: z.string().max(500).optional(),
+    cliente_id: z.number().int().positive().nullable().optional(),
+    deudor_nombre: z.string().max(200).optional(),
+    deudor_telefono: z.string().max(30).optional(),
+    deudor_documento: z.string().max(40).optional(),
+    detalles: z.array(ventaDetalleCreateSchema).min(1, 'Debe haber al menos un producto'),
+  })
+  .refine(
+    (d) => d.metodo_pago !== 'fiado' || d.cliente_id || (d.deudor_nombre && d.deudor_nombre.trim().length > 0),
+    { message: 'Indica el cliente o el nombre del deudor para vender a crédito' },
+  )
+
+// ============================================
+// CRÉDITOS / FIADO
+// ============================================
+
+export const creditoAbonoSchema = z.object({
+  credito_id: z.number().int().positive(),
+  monto: z.number().positive('El monto debe ser mayor a 0'),
   notas: z.string().max(500).optional(),
-  detalles: z.array(ventaDetalleCreateSchema).min(1, 'Debe haber al menos un producto'),
 })
 
 // ============================================

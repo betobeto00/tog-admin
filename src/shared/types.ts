@@ -49,17 +49,21 @@ export interface Producto {
   nombre: string
   descripcion: string | null
   categoria_id: number | null
+  subcategoria_id: number | null
+  marca: string | null
+  tipo: 'producto' | 'servicio'
   precio_compra: number
   precio_venta: number
   stock: number
   stock_minimo: number
-  unidad: 'unidad' | 'paquete' | 'hoja' | 'servicio'
+  unidad: string
   imagen: string | null
   activo: number
   creado_en: string
   actualizado_en: string
   // Joined fields
   categoria_nombre?: string
+  subcategoria_nombre?: string
 }
 
 export interface ProductoCreate {
@@ -68,11 +72,15 @@ export interface ProductoCreate {
   nombre: string
   descripcion?: string
   categoria_id?: number
+  subcategoria_id?: number
+  marca?: string
+  tipo?: 'producto' | 'servicio'
   precio_compra: number
   precio_venta: number
   stock: number
   stock_minimo?: number
-  unidad?: 'unidad' | 'paquete' | 'hoja' | 'servicio'
+  unidad?: string
+  imagen?: string
 }
 
 export interface ProductoUpdate {
@@ -81,12 +89,32 @@ export interface ProductoUpdate {
   nombre?: string
   descripcion?: string
   categoria_id?: number
+  subcategoria_id?: number
+  marca?: string
+  tipo?: 'producto' | 'servicio'
   precio_compra?: number
   precio_venta?: number
   stock?: number
   stock_minimo?: number
-  unidad?: 'unidad' | 'paquete' | 'hoja' | 'servicio'
+  unidad?: string
+  imagen?: string
   activo?: number
+}
+
+// --- Subcategorías ---
+export interface Subcategoria {
+  id: number
+  nombre: string
+  categoria_id: number
+  activo: number
+  creado_en: string
+  // Joined
+  categoria_nombre?: string
+}
+
+export interface SubcategoriaCreate {
+  nombre: string
+  categoria_id: number
 }
 
 // --- Proveedores ---
@@ -121,7 +149,7 @@ export interface Venta {
   impuesto: number
   descuento: number
   total: number
-  metodo_pago: 'efectivo' | 'transferencia' | 'pago_movil' | 'mixto'
+  metodo_pago: 'efectivo' | 'transferencia' | 'pago_movil' | 'mixto' | 'fiado'
   monto_pagado: number
   cambio: number
   estado: 'completada' | 'anulada'
@@ -135,7 +163,8 @@ export interface Venta {
 export interface VentaDetalle {
   id: number
   venta_id: number
-  producto_id: number
+  producto_id: number | null
+  descripcion: string | null
   cantidad: number
   precio_unitario: number
   descuento: number
@@ -151,20 +180,57 @@ export interface VentaCreate {
   impuesto: number
   descuento: number
   total: number
-  metodo_pago: 'efectivo' | 'transferencia' | 'pago_movil' | 'mixto'
+  metodo_pago: 'efectivo' | 'transferencia' | 'pago_movil' | 'mixto' | 'fiado'
   monto_pagado: number
   cambio: number
   notas?: string
+  cliente_id?: number | null
+  deudor_nombre?: string
+  deudor_telefono?: string
+  deudor_documento?: string
   detalles: VentaDetalleCreate[]
 }
 
 export interface VentaDetalleCreate {
-  producto_id: number
+  producto_id?: number | null
+  descripcion?: string
   cantidad: number
   precio_unitario: number
   descuento: number
   subtotal: number
   notas?: string
+}
+
+// --- Créditos / Fiado ---
+export interface Credito {
+  id: number
+  venta_id: number
+  cliente_id: number | null
+  deudor_nombre: string
+  deudor_telefono: string | null
+  deudor_documento: string | null
+  monto_total: number
+  saldo: number
+  fecha: string
+  estado: 'pendiente' | 'pagado' | 'anulado'
+  usuario_id: number | null
+  notas: string | null
+  creado_en: string
+  // Joined
+  cliente_nombre?: string
+  numero_venta?: number
+  abonos?: CreditoAbono[]
+}
+
+export interface CreditoAbono {
+  id: number
+  credito_id: number
+  monto: number
+  fecha: string
+  usuario_id: number | null
+  notas: string | null
+  // Joined
+  usuario_nombre?: string
 }
 
 // --- Compras ---
@@ -319,8 +385,14 @@ export interface IpcChannels {
   'categorias:update': { id: number; data: Partial<CategoriaCreate> }
   'categorias:delete': { id: number }
 
+  // Subcategorías
+  'subcategorias:list': { categoria_id?: number }
+  'subcategorias:create': SubcategoriaCreate
+  'subcategorias:update': { id: number; data: Partial<SubcategoriaCreate> }
+  'subcategorias:delete': { id: number }
+
   // Productos
-  'productos:list': { search?: string; categoria_id?: number }
+  'productos:list': { search?: string; categoria_id?: number; subcategoria_id?: number }
   'productos:getById': { id: number }
   'productos:create': ProductoCreate
   'productos:update': { id: number; data: ProductoUpdate }
@@ -339,6 +411,11 @@ export interface IpcChannels {
   'ventas:create': VentaCreate
   'ventas:anular': { id: number; motivo: string }
   'ventas:resumen-dia': { fecha?: string }
+
+  // Créditos / Fiado
+  'creditos:list': { estado?: string; search?: string }
+  'creditos:getById': { id: number }
+  'creditos:abono': { credito_id: number; monto: number; notas?: string }
 
   // Compras
   'compras:list': { fecha_inicio?: string; fecha_fin?: string }

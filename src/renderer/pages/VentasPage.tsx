@@ -17,7 +17,7 @@ interface Venta {
 }
 
 interface VentaDetalle {
-  id: number; producto_id: number; producto_nombre: string
+  id: number; producto_id: number | null; descripcion: string | null; producto_nombre: string | null
   cantidad: number; precio_unitario: number; descuento: number; subtotal: number
   notas: string | null
 }
@@ -97,6 +97,7 @@ export default function VentasPage() {
     transferencia: '🏦 Transferencia',
     pago_movil: '📱 Pago Móvil',
     mixto: '💱 Mixto',
+    fiado: '📒 Fiado / Crédito',
   }
 
   return (
@@ -269,7 +270,7 @@ export default function VentasPage() {
                   <tbody className="divide-y divide-gray-200">
                     {detalleVenta.detalles?.map((d) => (
                       <tr key={d.id}>
-                        <td className="px-3 py-2">{d.producto_nombre}</td>
+                        <td className="px-3 py-2">{d.producto_nombre || d.descripcion || '—'}</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(d.precio_unitario)}</td>
                         <td className="px-3 py-2 text-center">{d.cantidad}</td>
                         <td className="px-3 py-2 text-right font-medium">{formatCurrency(d.subtotal)}</td>
