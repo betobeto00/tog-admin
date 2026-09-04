@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@core/auth/store'
 import { formatCurrency, formatDateTime, formatTicketNumber } from '../lib/utils'
 import { callApi } from '../lib/api-client'
+import type { MetodoPago } from '../../shared/types'
 import {
   ShoppingCart,
   DollarSign,
@@ -17,7 +18,20 @@ interface ResumenDia {
   efectivo: number
   transferencia: number
   pago_movil: number
+  fiado: number
+  por_metodo: { clave: string; nombre: string; total: number }[]
 }
+
+const METHOD_COLORS = [
+  'bg-green-500',
+  'bg-blue-500',
+  'bg-purple-500',
+  'bg-amber-500',
+  'bg-rose-500',
+  'bg-cyan-500',
+  'bg-teal-500',
+  'bg-indigo-500',
+]
 
 interface StockBajo {
   id: number
@@ -38,6 +52,7 @@ export default function DashboardPage() {
   const [resumen, setResumen] = useState<ResumenDia | null>(null)
   const [stockBajo, setStockBajo] = useState<StockBajo[]>([])
   const [ultimasVentas, setUltimasVentas] = useState<VentaReciente[]>([])
+  const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([])
   const [hora, setHora] = useState(new Date())
 
   useEffect(() => {
@@ -48,20 +63,39 @@ export default function DashboardPage() {
 
   const cargarDatos = async () => {
     try {
-      const [resumenData, stockData, ventasRecientes] = await Promise.all([
+      const [resumenData, stockData, ventasRecientes, metodos] = await Promise.all([
         callApi<ResumenDia>('ventas:resumen-dia'),
         callApi<StockBajo[]>('productos:low-stock'),
         callApi<VentaReciente[]>('reportes:ultimas-ventas', { limite: 10 }),
+        callApi<MetodoPago[]>('metodos-pago:list', { activoOnly: true }),
       ])
       setResumen(resumenData)
       setStockBajo(stockData)
       setUltimasVentas(ventasRecientes)
+      setMetodosPago(metodos)
     } catch (err) {
       console.error('Error cargando dashboard:', err)
     }
   }
 
   const locale = i18n.language === 'en' ? 'en-US' : 'es-VE'
+
+  // Distribución de pagos según métodos ACTIVOS configurados (no hardcodeados)
+  const metodoTotals = new Map((resumen?.por_metodo || []).map((p) => [p.clave, p.total]))
+  const distribucion = metodosPago.length > 0
+    ? metodosPago.map((m, i) => ({
+        key: m.clave,
+        label: m.nombre,
+        amount: metodoTotals.get(m.clave) || 0,
+        color: METHOD_COLORS[i % METHOD_COLORS.length],
+      }))
+    : // Si no hay métodos configurados, usar el desglose que devolvió el backend
+      (resumen?.por_metodo || []).map((p, i) => ({
+        key: p.clave,
+        label: p.nombre,
+        amount: p.total,
+        color: METHOD_COLORS[i % METHOD_COLORS.length],
+      }))
 
   const methodLabels: Record<string, string> = {
     efectivo: t('caja.cashMethod'),
@@ -130,9 +164,11 @@ export default function DashboardPage() {
             {t('dashboard.paymentDistribution')}
           </h2>
           <div className="space-y-4">
-            <PaymentRow label={t('caja.cashMethod')} amount={resumen?.efectivo || 0} total={resumen?.monto_total || 1} color="bg-green-500" />
-            <PaymentRow label={t('caja.transferMethod')} amount={resumen?.transferencia || 0} total={resumen?.monto_total || 1} color="bg-blue-500" />
-            <PaymentRow label={t('caja.mobileMethod')} amount={resumen?.pago_movil || 0} total={resumen?.monto_total || 1} color="bg-purple-500" />
+            {distribucion.length === 0 ? (
+              <p className="text-sm text-gray-400 py-4">{t('common.noData')}</p>
+            ) : distribucion.map((d) => (
+              <PaymentRow key={d.key} label={d.label} amount={d.amount} total={resumen?.monto_total || 1} color={d.color} />
+            ))}
           </div>
         </div>
 

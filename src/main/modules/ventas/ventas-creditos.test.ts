@@ -156,6 +156,17 @@ const { db, handles, state } = vi.hoisted(() => {
       valor TEXT NOT NULL,
       descripcion TEXT
     );
+    CREATE TABLE metodos_pago (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      clave TEXT NOT NULL UNIQUE,
+      nombre TEXT NOT NULL,
+      icono TEXT NOT NULL DEFAULT 'DollarSign',
+      requiere_terminal INTEGER NOT NULL DEFAULT 0,
+      activo INTEGER NOT NULL DEFAULT 1,
+      orden INTEGER NOT NULL DEFAULT 0,
+      creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+      actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `)
   db.prepare("INSERT INTO configuracion (clave, valor) VALUES ('ticket_numero_venta', '0')").run()
   const handles: Record<string, (event: any, data: any) => Promise<any>> = {}
@@ -493,5 +504,53 @@ describe('subcategorias + marca en productos', () => {
     const limpio: any = db.prepare('SELECT marca, imagen FROM productos WHERE id = ?').get(creado.id)
     expect(limpio.marca).toBe(null)
     expect(limpio.imagen).toBe(null)
+  })
+})
+
+describe('ventas:resumen-dia — distribución por método configurado', () => {
+  beforeEach(() => {
+    db.prepare('DELETE FROM venta_detalles').run()
+    db.prepare('DELETE FROM ventas').run()
+    db.prepare('DELETE FROM creditos').run()
+    db.prepare('DELETE FROM productos').run()
+    db.prepare('DELETE FROM metodos_pago').run()
+    db.exec("DELETE FROM sqlite_sequence WHERE name IN ('productos','ventas','venta_detalles','creditos','metodos_pago')")
+  })
+
+  it('agrupa las ventas del día por método con el nombre configurado', async () => {
+    db.prepare("INSERT INTO metodos_pago (clave, nombre, orden) VALUES ('efectivo','Efectivo',1)").run()
+    db.prepare("INSERT INTO metodos_pago (clave, nombre, orden) VALUES ('transferencia','Transferencia Bancaria',2)").run()
+    db.prepare("INSERT INTO metodos_pago (clave, nombre, orden) VALUES ('fiado','Fiado',3)").run()
+    crearProducto()
+
+    await send('ventas:create', baseVenta({ metodo_pago: 'efectivo', monto_pagado: 100, total: 100 }))
+    await send('ventas:create', baseVenta({ metodo_pago: 'transferencia', monto_pagado: 200, total: 200 }))
+    const fiado = await send('ventas:create', {
+      ...baseVenta({ metodo_pago: 'fiado', monto_pagado: 20, total: 100, deudor_nombre: 'Luis' }),
+      detalles: [{ producto_id: 1, cantidad: 1, precio_unitario: 100, descuento: 0, subtotal: 100 }],
+    })
+    expect(fiado.success).toBe(true)
+
+    const res = await send('ventas:resumen-dia', { usuario_id: 1 })
+    expect(res.monto_total).toBe(400)
+    expect(res.por_metodo).toEqual(expect.arrayContaining([
+      expect.objectContaining({ clave: 'efectivo', nombre: 'Efectivo', total: 100 }),
+      expect.objectContaining({ clave: 'transferencia', nombre: 'Transferencia Bancaria', total: 200 }),
+      expect.objectContaining({ clave: 'fiado', nombre: 'Fiado', total: 100 }),
+    ]))
+  })
+
+  it('no incluye las ventas anuladas en el desglose', async () => {
+    db.prepare("INSERT INTO metodos_pago (clave, nombre, orden) VALUES ('efectivo','Efectivo',1)").run()
+    crearProducto()
+    await send('ventas:create', baseVenta({ metodo_pago: 'efectivo', monto_pagado: 100, total: 100 }))
+    const venta = await send('ventas:create', baseVenta({ metodo_pago: 'efectivo', monto_pagado: 50, total: 50 }))
+    await send('ventas:anular', { usuario_id: 1, id: venta.id, motivo: 'prueba' })
+
+    const res = await send('ventas:resumen-dia', { usuario_id: 1 })
+    expect(res.total_ventas).toBe(1)
+    expect(res.monto_total).toBe(100)
+    const efectivo = res.por_metodo.find((p: any) => p.clave === 'efectivo')
+    expect(efectivo?.total).toBe(100)
   })
 })

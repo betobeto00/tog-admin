@@ -10,7 +10,10 @@ import { callApi } from '../lib/api-client'
 
 interface VentaDiaria { fecha: string; total_ventas: number; monto_total: number }
 interface TopProducto { nombre: string; total_vendido: number; total_ingreso: number }
-interface ResumenDia { total_ventas: number; monto_total: number; efectivo: number; transferencia: number; pago_movil: number }
+interface ResumenDia {
+  total_ventas: number; monto_total: number; efectivo: number; transferencia: number; pago_movil: number
+  por_metodo?: { clave: string; nombre: string; total: number }[]
+}
 interface VentaCategoria { categoria: string; total_ventas: number; total_unidades: number; total_ingreso: number }
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16']
@@ -57,12 +60,10 @@ export default function ReportesPage() {
     ingreso: p.total_ingreso,
   }))
 
-  // Datos para pie chart (métodos de pago del día)
-  const pieData = resumen ? [
-    { name: t('reportes.cash'), value: resumen.efectivo },
-    { name: t('reportes.transfer'), value: resumen.transferencia },
-    { name: t('reportes.mobile'), value: resumen.pago_movil },
-  ].filter((d) => d.value > 0) : []
+  // Datos para pie chart (métodos de pago del día, según métodos configurados)
+  const pieData = (resumen?.por_metodo || [])
+    .map((m) => ({ name: m.nombre, value: m.total }))
+    .filter((d) => d.value > 0)
 
   // Totales del período
   const totalPeriodo = ventasDiarias.reduce((acc, v) => acc + v.monto_total, 0)

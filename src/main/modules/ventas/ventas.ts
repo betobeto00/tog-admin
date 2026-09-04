@@ -246,7 +246,7 @@ export function registerVentasHandlers(): void {
     const db = getDatabase()
     const fecha = data?.fecha || new Date().toISOString().split('T')[0]
 
-    return db.prepare(`
+    const filas = db.prepare(`
       SELECT
         COUNT(*) as total_ventas,
         COALESCE(SUM(total), 0) as monto_total,
@@ -256,6 +256,19 @@ export function registerVentasHandlers(): void {
         COALESCE(SUM(CASE WHEN metodo_pago = 'fiado' THEN total ELSE 0 END), 0) as fiado
       FROM ventas
       WHERE DATE(fecha) = ? AND estado = 'completada'
-    `).get(fecha)
+    `).get(fecha) as any
+
+    const por_metodo = db.prepare(`
+      SELECT v.metodo_pago as clave,
+             COALESCE(m.nombre, v.metodo_pago) as nombre,
+             COALESCE(SUM(v.total), 0) as total
+      FROM ventas v
+      LEFT JOIN metodos_pago m ON m.clave = v.metodo_pago
+      WHERE DATE(v.fecha) = ? AND v.estado = 'completada'
+      GROUP BY v.metodo_pago, m.nombre
+      ORDER BY m.orden, v.metodo_pago
+    `).all(fecha)
+
+    return { ...filas, por_metodo }
   })
 }
