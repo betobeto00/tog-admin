@@ -23,7 +23,7 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │              SQLite Database                         │    │
 │  │         (tog-admin.db — archivo local)               │    │
-│  │         22 migraciones · 25 tablas · 25+ índices     │    │
+│  │         23 migraciones · 27 tablas · 27+ índices     │    │
 │  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -82,7 +82,7 @@ Router (HashRouter)
 - **Un solo archivo:** `tog-admin.db` en `%APPDATA%/tog-admin/`
 - **Sin servidor:** No necesita MySQL ni nada externo
 - **Respaldo:** Copiar el archivo `.db` = respaldo completo
-- **Migraciones:** Sistema de versionado de esquema (22 migraciones)
+- **Migraciones:** Sistema de versionado de esquema (23 migraciones)
 - **WAL mode:** Permite lectura mientras escribe
 
 ### 4. Comunicación IPC
@@ -161,6 +161,7 @@ Renderer (React)                    Main (Node.js)
 | 020 | venta_detalles_libre | reconstruye `venta_detalles`: `producto_id` nullable + `descripcion` (venta rápida / servicios sin producto) |
 | 021 | creditos | `creditos`, `credito_abonos` + 4 índices |
 | 022 | metodo_pago_fiado | inserta método de pago `fiado` |
+| 023 | productos_compuestos | `producto_componentes`, `venta_detalle_componentes` + 4 índices |
 
 ### Tablas Principales
 
@@ -326,8 +327,8 @@ Para el histórico completo con todas las fases (incluyendo pendientes), ver:
 1. ✅ **Producto vs Servicio** — implementado: columna `tipo`, servicios sin control de stock (migración 017)
 2. ✅ **Subcategorías + Marca** — implementado: tabla `subcategorias`, `productos.marca` (migraciones 018/019)
 3. ✅ **Venta a crédito/fiado** — implementado: método Fiado + página Créditos con abonos (migraciones 020-022)
-4. **Tasa de cambio + Símbolo moneda** — Expansión internacional (Fase 8)
-5. **Combos de productos** — Paquetes con descuento (Fase 6)
+4. ✅ **Combos / productos compuestos** — implementado: componentes en el modal de producto, costo real + margen, stock por componentes y desglose en ticket (migración 023)
+5. **Tasa de cambio + Símbolo moneda** — Expansión internacional (Fase 8)
 6. **Exportar cotización a PDF** — Profesionalismo (Fase 6)
 7. **Facturación fiscal Venezuela** — Cumplimiento legal (Fase 8)
 

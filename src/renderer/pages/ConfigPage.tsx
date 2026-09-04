@@ -5,7 +5,7 @@ import {
   Settings, Store, CreditCard, Users, Plus, Edit2, Trash2,
   Save, Eye, EyeOff, Shield, User, Download, Upload, GraduationCap, Key, Clock,
   ShoppingCart, CheckCircle2,
-  Wifi, WifiOff, Plug, Unplug, Lock, Wallet, Power, Banknote
+  Wifi, WifiOff, Plug, Unplug, Lock, Wallet, Power, Banknote, MessageSquareText
 } from 'lucide-react'
 import { resetTutorial } from '../components/Tutorial'
 import { useToast } from '../components/ui/Toast'
@@ -67,8 +67,13 @@ export default function ConfigPage() {
   const [printerName, setPrinterName] = useState('')
   const [fondoDefault, setFondoDefault] = useState('')
 
+  // Feedback / Telegram
+  const [telegramToken, setTelegramToken] = useState('')
+  const [telegramChatId, setTelegramChatId] = useState('')
+  const [feedbackSaving, setFeedbackSaving] = useState(false)
+
   // Métodos de pago personalizables
-  const [metodosPago, setMetodosPago] = useState<any[]>([])
+  const [metodosPago, setMetodosPago] = useState<any[]>([]) 
   const [metodoModalOpen, setMetodoModalOpen] = useState(false)
   const [editingMetodo, setEditingMetodo] = useState<any | null>(null)
   const [metodoForm, setMetodoForm] = useState({ clave: '', nombre: '', icono: 'DollarSign', requiere_terminal: false, orden: 99 })
@@ -113,6 +118,8 @@ const ts = await callApi<{ conectado: boolean; puerto?: string }>('terminal:esta
     setPrinterName(get('printer_name'))
     setFondoDefault(get('fondo_inicial_default'))
     setLogoPath(get('logo_path'))
+    setTelegramToken(get('telegram_bot_token'))
+    setTelegramChatId(get('telegram_chat_id'))
   }
 
   const saveConfig = async () => {
@@ -128,6 +135,20 @@ const ts = await callApi<{ conectado: boolean; puerto?: string }>('terminal:esta
     } catch (err) {
       toast.error('Error al guardar configuración')
     } finally { setSaving(false) }
+  }
+
+  // ======== FEEDBACK / TELEGRAM ========
+  const saveFeedbackConfig = async () => {
+    setFeedbackSaving(true)
+    try {
+      await callApi('config:set', { clave: 'telegram_bot_token', valor: telegramToken.trim() })
+      await callApi('config:set', { clave: 'telegram_chat_id', valor: telegramChatId.trim() })
+      toast.success('Configuración de feedback guardada')
+    } catch (err: any) {
+      toast.error('Error al guardar feedback: ' + (err?.message || ''))
+    } finally {
+      setFeedbackSaving(false)
+    }
   }
 
   // ======== TERMINAL VP800 ========
@@ -834,6 +855,51 @@ const ts = await callApi('terminal:estado')
               className="px-4 py-2.5 text-sm font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 flex items-center gap-2"
             >
               <GraduationCap className="w-4 h-4" /> Reiniciar Tutorial
+            </button>
+          </div>
+
+          {/* Feedback / Telegram */}
+          <div className="bg-teal-50 rounded-xl p-5 border border-teal-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 bg-teal-100 rounded-lg">
+                <MessageSquareText className="w-5 h-5 text-teal-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">Feedback / Telegram</h4>
+                <p className="text-xs text-gray-500">Botón de feedback en el login → mensaje directo a tu Telegram</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Crea un bot con <strong>@BotFather</strong> en Telegram, copia su token y pega el ID del chat al que quieres recibir los mensajes. El login muestra un botón de feedback que envía ahí.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Bot Token</label>
+                <input
+                  type="password"
+                  value={telegramToken}
+                  onChange={(e) => setTelegramToken(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 font-mono"
+                  placeholder="123456:ABC-DEF..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Chat ID</label>
+                <input
+                  type="text"
+                  value={telegramChatId}
+                  onChange={(e) => setTelegramChatId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                  placeholder="-100123456789"
+                />
+              </div>
+            </div>
+            <button
+              onClick={saveFeedbackConfig}
+              disabled={feedbackSaving}
+              className="mt-4 px-4 py-2.5 text-sm font-semibold text-white bg-teal-600 rounded-lg hover:bg-teal-700 disabled:bg-teal-300 flex items-center gap-2"
+            >
+              <MessageSquareText className="w-4 h-4" /> {feedbackSaving ? 'Guardando...' : 'Guardar configuración'}
             </button>
           </div>
 

@@ -6,6 +6,7 @@ const PREAUTH_CHANNELS: ReadonlySet<string> = new Set([
   'app:version',
   'auth:login',
   'crash-report:save',
+  'feedback:send',
   'i18n:get-lang',
   'i18n:set-lang',
   'license:status',

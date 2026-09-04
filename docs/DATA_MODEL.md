@@ -324,7 +324,7 @@ CREATE INDEX idx_movimientos_caja_caja ON movimientos_caja(caja_id);
 
 ---
 
-## Apéndice: tablas y columnas agregadas después de v1 (migraciones 010–022)
+## Apéndice: tablas y columnas agregadas después de v1 (migraciones 010–023)
 
 | Migración | Cambio |
 |-----------|--------|
@@ -341,6 +341,29 @@ CREATE INDEX idx_movimientos_caja_caja ON movimientos_caja(caja_id);
 | 020 | reconstrucción de `venta_detalles`: `producto_id` nullable + `descripcion` (ver SQL arriba) |
 | 021 | `creditos`, `credito_abonos` (ver SQL abajo) |
 | 022 | inserta el método de pago `fiado` en `metodos_pago` |
+| 023 | `producto_componentes` (combos: qué productos componen a cuál y en qué cantidad) + `venta_detalle_componentes` (snapshot de componentes consumidos por cada línea de venta, para desglose y anulación) |
+
+### producto_componentes + venta_detalle_componentes (Combos / Productos compuestos, migración 023)
+```sql
+CREATE TABLE producto_componentes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    producto_id INTEGER NOT NULL REFERENCES productos(id),    -- producto compuesto / combo
+    componente_id INTEGER NOT NULL REFERENCES productos(id), -- componente
+    cantidad REAL NOT NULL DEFAULT 1,
+    creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (producto_id, componente_id)
+);
+
+CREATE TABLE venta_detalle_componentes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    venta_detalle_id INTEGER NOT NULL REFERENCES venta_detalles(id),
+    componente_id INTEGER NOT NULL REFERENCES productos(id),
+    cantidad REAL NOT NULL,
+    creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+);
+```
+
+> Un producto es **compuesto** cuando tiene filas en `producto_componentes`. Su **costo real** se calcula recursivo desde sus componentes y el stock listado es la **disponibilidad** (mínimo de `floor(stock_hoja / cantidad)`). Al vender un combo se descuenta el stock de las hojas (componentes sin componentes propios) y se guarda el snapshot en `venta_detalle_componentes`: sirve para el desglose en el ticket y para restaurar stock exacto al anular, aunque la definición del combo cambie después.
 
 ### creditos + credito_abonos (Crédito / Fiado, migración 021)
 ```sql

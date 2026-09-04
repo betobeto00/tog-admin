@@ -3,6 +3,24 @@ import { getDatabase } from '../../db/database'
 import { t } from '../../i18n'
 import { checkPermissionOrFail } from '../../core/auth'
 import { productoCreateSchema, productoUpdateSchema } from '../../../shared/validations'
+import { esCombo, disponibilidad, costoReal, detalleCombo } from './combos'
+
+// Enriquecer un producto con datos de producto compuesto: un combo no tiene
+// stock propio; su stock real es la disponibilidad de sus componentes.
+function enriquecerProducto(db: any, row: any): any {
+  if (!row) return row
+  const combo = esCombo(db, row.id)
+  const result = { ...row }
+  if (combo) {
+    result.es_combo = 1
+    result.stock = disponibilidad(db, row.id)
+    result.costo_real = costoReal(db, row.id)
+  } else {
+    result.es_combo = 0
+    result.costo_real = Number(row.precio_compra) || 0
+  }
+  return result
+}
 
 export function registerProductosHandlers(): void {
   ipcMain.handle('productos:list', async (_event, filters?: any) => {
@@ -10,7 +28,8 @@ export function registerProductosHandlers(): void {
     if (fail) return fail
     const db = getDatabase()
     let sql = `
-      SELECT p.*, c.nombre as categoria_nombre, s.nombre as subcategoria_nombre
+      SELECT p.*, c.nombre as categoria_nombre, s.nombre as subcategoria_nombre,
+             (SELECT COUNT(*) FROM producto_componentes pc WHERE pc.producto_id = p.id) AS es_combo
       FROM productos p
       LEFT JOIN categorias c ON p.categoria_id = c.id
       LEFT JOIN subcategorias s ON p.subcategoria_id = s.id
@@ -35,20 +54,29 @@ export function registerProductosHandlers(): void {
     }
 
     sql += ` ORDER BY p.nombre`
-    return db.prepare(sql).all(...params)
+    const rows = db.prepare(sql).all(...params) as any[]
+    return rows.map((r) => (r.es_combo ? enriquecerProducto(db, r) : { ...r, es_combo: 0, costo_real: Number(r.precio_compra) || 0 }))
   })
 
   ipcMain.handle('productos:getById', async (_event, data: { id: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'productos:getById', 'inventario_access')
     if (fail) return fail
     const db = getDatabase()
-    return db.prepare(`
-      SELECT p.*, c.nombre as categoria_nombre, s.nombre as subcategoria_nombre
+    const row = db.prepare(`
+      SELECT p.*, c.nombre as categoria_nombre, s.nombre as subcategoria_nombre,
+             (SELECT COUNT(*) FROM producto_componentes pc WHERE pc.producto_id = p.id) AS es_combo
       FROM productos p
       LEFT JOIN categorias c ON p.categoria_id = c.id
       LEFT JOIN subcategorias s ON p.subcategoria_id = s.id
       WHERE p.id = ?
     `).get(data.id)
+    if (!row) return row
+    const combo = esCombo(db, row.id)
+    if (combo) {
+      const detalle = detalleCombo(db, row.id)
+      return { ...row, es_combo: 1, stock: disponibilidad(db, row.id), costo_real: detalle.costo_real, componentes: detalle.componentes }
+    }
+    return { ...row, es_combo: 0, costo_real: Number(row.precio_compra) || 0, componentes: [] }
   })
 
   ipcMain.handle('productos:create', async (_event, data: any) => {
@@ -151,13 +179,16 @@ export function registerProductosHandlers(): void {
     const fail = checkPermissionOrFail(data, 'productos:low-stock', 'inventario_access')
     if (fail) return fail
     const db = getDatabase()
-    return db.prepare(`
+    const rows = db.prepare(`
       SELECT p.*, c.nombre as categoria_nombre
       FROM productos p
       LEFT JOIN categorias c ON p.categoria_id = c.id
-      WHERE p.activo = 1 AND p.tipo != 'servicio' AND p.stock <= p.stock_minimo
+      WHERE p.activo = 1 AND p.tipo != 'servicio'
+        AND NOT EXISTS (SELECT 1 FROM producto_componentes pc WHERE pc.producto_id = p.id)
+        AND p.stock <= p.stock_minimo
       ORDER BY p.stock ASC
-    `).all()
+    `).all() as any[]
+    return rows
   })
 
   ipcMain.handle('productos:ajustar', async (_event, data: { producto_id: number; stock_nuevo: number; justificacion: string; usuario_id: number }) => {
@@ -210,7 +241,8 @@ export function registerProductosHandlers(): void {
     if (!codigo) return null
 
     let producto = db.prepare(`
-      SELECT p.*, c.nombre as categoria_nombre
+      SELECT p.*, c.nombre as categoria_nombre,
+             (SELECT COUNT(*) FROM producto_componentes pc WHERE pc.producto_id = p.id) AS es_combo
       FROM productos p
       LEFT JOIN categorias c ON p.categoria_id = c.id
       WHERE p.activo = 1 AND p.codigo_barras = ?
@@ -218,13 +250,14 @@ export function registerProductosHandlers(): void {
 
     if (!producto) {
       producto = db.prepare(`
-        SELECT p.*, c.nombre as categoria_nombre
+        SELECT p.*, c.nombre as categoria_nombre,
+               (SELECT COUNT(*) FROM producto_componentes pc WHERE pc.producto_id = p.id) AS es_combo
         FROM productos p
         LEFT JOIN categorias c ON p.categoria_id = c.id
         WHERE p.activo = 1 AND p.sku = ?
       `).get(codigo) as any
     }
 
-    return producto || null
+    return enriquecerProducto(db, producto) || null
   })
 }

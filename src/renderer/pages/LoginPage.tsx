@@ -1,18 +1,23 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@core/auth/store'
-import { Lock, User, Eye, EyeOff, Download, RefreshCw } from 'lucide-react'
+import { Lock, User, Eye, EyeOff, Download, RefreshCw, MessageSquareText } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import { changeLang } from '../i18n'
 import { callApi } from '../lib/api-client'
+import { useToast } from '../components/ui/Toast'
 
 export default function LoginPage() {
   const { t, i18n } = useTranslation()
   const [usuario, setUsuario] = useState('')
   const [contrasena, setContrasena] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [modalContent, setModalContent] = useState<null | 'copyright' | 'licenses' | 'privacy' | 'terms' | 'releases'>(null)
+  const [modalContent, setModalContent] = useState<null | 'copyright' | 'licenses' | 'privacy' | 'terms' | 'releases' | 'feedback'>(null)
   const { login, isLoading, error, clearError } = useAuthStore()
+  const toast = useToast()
+  const [feedbackMsg, setFeedbackMsg] = useState('')
+  const [feedbackContact, setFeedbackContact] = useState('')
+  const [sendingFeedback, setSendingFeedback] = useState(false)
   const [appVersion, setAppVersion] = useState('1.0.1')
   const [updateInfo, setUpdateInfo] = useState<{ available: boolean; version?: string; currentVersion?: string; error?: string } | null>(null)
   const [checkingUpdate, setCheckingUpdate] = useState(false)
@@ -35,6 +40,29 @@ export default function LoginPage() {
     e.preventDefault()
     if (!usuario.trim() || !contrasena.trim()) return
     await login(usuario.trim(), contrasena)
+  }
+
+  const handleSendFeedback = async () => {
+    if (!feedbackMsg.trim()) return
+    setSendingFeedback(true)
+    try {
+      const result = await callApi<{ success: boolean; error?: string }>('feedback:send', {
+        mensaje: feedbackMsg.trim(),
+        contacto: feedbackContact.trim() || undefined,
+      })
+      if (result.success) {
+        toast.success(t('login.feedbackSuccess'))
+        setFeedbackMsg('')
+        setFeedbackContact('')
+        setModalContent(null)
+      } else {
+        toast.error(result.error === 'Feedback no configurado (token/chat de Telegram)' ? t('login.feedbackNotConfigured') : result.error || t('login.feedbackError'))
+      }
+    } catch (err: any) {
+      toast.error(err?.message || t('login.feedbackError'))
+    } finally {
+      setSendingFeedback(false)
+    }
   }
 
   // Release Notes ficticios para demo
@@ -182,8 +210,8 @@ export default function LoginPage() {
             <p>admin / admin123</p>
           </div>
 
-          {/* Update check */}
-          <div className="mt-4 flex items-center justify-center gap-3">
+          {/* Update check + feedback */}
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
             <button
               onClick={handleCheckUpdate}
               disabled={checkingUpdate}
@@ -195,6 +223,14 @@ export default function LoginPage() {
                 <Download className="w-3.5 h-3.5" />
               )}
               {checkingUpdate ? (t('login.checking')) : (t('login.checkUpdates'))}
+            </button>
+            <span className="text-gray-300">•</span>
+            <button
+              onClick={() => setModalContent('feedback')}
+              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-blue-600 transition-colors"
+            >
+              <MessageSquareText className="w-3.5 h-3.5" />
+              {t('login.feedback')}
             </button>
             {updateInfo && (
               <div className="text-xs space-y-1">
@@ -337,6 +373,57 @@ export default function LoginPage() {
             <li>{i18n.language === 'en' ? 'NO data is sent to external servers' : 'NO se envían datos a servidores externos'}</li>
             <li>{i18n.language === 'en' ? 'NO cookies or tracking' : 'NO se utilizan cookies ni tracking'}</li>
           </ul>
+        </div>
+      </Modal>
+
+      <Modal open={modalContent === 'feedback'} onClose={() => setModalContent(null)} title={t('login.feedbackTitle')}>
+        <div className="space-y-4 text-sm text-gray-600">
+          <p className="text-xs">{t('login.feedbackDesc')}</p>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">{t('login.feedbackContact')}</label>
+            <input
+              type="text"
+              value={feedbackContact}
+              onChange={(e) => setFeedbackContact(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="usuario@correo.com"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">{t('login.feedbackPlaceholder')}</label>
+            <textarea
+              value={feedbackMsg}
+              onChange={(e) => setFeedbackMsg(e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+              placeholder={t('login.feedbackPlaceholder')}
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setModalContent(null)}
+              className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              onClick={handleSendFeedback}
+              disabled={sendingFeedback || !feedbackMsg.trim()}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 rounded-lg transition-colors flex items-center gap-2"
+            >
+              {sendingFeedback ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  {t('login.feedbackSending')}
+                </>
+              ) : (
+                t('login.feedbackSend')
+              )}
+            </button>
+          </div>
         </div>
       </Modal>
 

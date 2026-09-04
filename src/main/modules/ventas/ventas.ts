@@ -3,6 +3,7 @@ import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { getActiveModules } from '../../services/license'
 import { ventaCreateSchema } from '../../../shared/validations'
+import { esCombo, explotar, agruparHojas } from '../inventario/combos'
 
 export function registerVentasHandlers(): void {
   ipcMain.handle('ventas:list', async (_event, filters?: any) => {
@@ -48,6 +49,18 @@ export function registerVentasHandlers(): void {
         LEFT JOIN productos p ON vd.producto_id = p.id
         WHERE vd.venta_id = ?
       `).all(data.id)
+      // Desglose de combos: snapshot de componentes consumidos por cada línea
+      const detalles = venta.detalles as any[]
+      const stmt = db.prepare(`
+        SELECT vdc.componente_id, vdc.cantidad, p.nombre as nombre, p.tipo as tipo
+        FROM venta_detalle_componentes vdc
+        LEFT JOIN productos p ON p.id = vdc.componente_id
+        WHERE vdc.venta_detalle_id = ?
+        ORDER BY vdc.id
+      `)
+      for (const d of detalles) {
+        d.componentes = stmt.all(d.id)
+      }
     }
 
     return venta
@@ -88,13 +101,27 @@ export function registerVentasHandlers(): void {
       }
     }
 
-    for (const det of data.detalles) {
+    // Validación de stock. Un producto compuesto valida sus hojas (componentes
+    // sin componentes propios); un producto normal valida su propio stock.
+    const hojasPorDetalle: Map<number, { producto_id: number; nombre: string; tipo: string; cantidad: number }[]> = new Map()
+    for (let idx = 0; idx < data.detalles.length; idx++) {
+      const det = data.detalles[idx]
       if (!det.producto_id) continue
       const producto = db.prepare('SELECT id, nombre, stock, tipo FROM productos WHERE id = ?').get(det.producto_id) as any
       if (!producto) {
         return { success: false, error: `Producto con ID ${det.producto_id} no encontrado` }
       }
-      if (producto.tipo !== 'servicio' && producto.stock < det.cantidad) {
+      if (esCombo(db, det.producto_id)) {
+        const hojas = agruparHojas(explotar(db, det.producto_id, det.cantidad))
+        hojasPorDetalle.set(idx, hojas)
+        for (const hoja of hojas) {
+          if (hoja.tipo === 'servicio') continue
+          const stockHoja = (db.prepare('SELECT stock FROM productos WHERE id = ?').get(hoja.producto_id) as any)?.stock ?? 0
+          if (Number(stockHoja) < hoja.cantidad) {
+            return { success: false, error: `Stock insuficiente de "${hoja.nombre}" para el combo "${producto.nombre}". Disponible: ${stockHoja}, Necesario: ${hoja.cantidad}` }
+          }
+        }
+      } else if (producto.tipo !== 'servicio' && producto.stock < det.cantidad) {
         return { success: false, error: `Stock insuficiente para "${producto.nombre}". Disponible: ${producto.stock}, Solicitado: ${det.cantidad}` }
       }
     }
@@ -132,9 +159,13 @@ export function registerVentasHandlers(): void {
       const updateStock = db!.prepare(
         "UPDATE productos SET stock = stock - ? WHERE id = ? AND tipo != 'servicio'"
       )
+      const insertComponente = db!.prepare(
+        'INSERT INTO venta_detalle_componentes (venta_detalle_id, componente_id, cantidad) VALUES (?, ?, ?)'
+      )
 
-      for (const det of data.detalles) {
-        insertDetalle.run(
+      for (let idx = 0; idx < data.detalles.length; idx++) {
+        const det = data.detalles[idx]
+        const detalleResult = insertDetalle.run(
           ventaId,
           det.producto_id || null,
           det.descripcion || null,
@@ -144,7 +175,15 @@ export function registerVentasHandlers(): void {
           det.subtotal,
           det.notas || null,
         )
-        if (det.producto_id) {
+        const ventaDetalleId = detalleResult.lastInsertRowid
+        const hojas = hojasPorDetalle.get(idx)
+        if (det.producto_id && hojas) {
+          // Combo: descontar stock de cada hoja y guardar snapshot para el desglose
+          for (const hoja of hojas) {
+            updateStock.run(hoja.cantidad, hoja.producto_id)
+            insertComponente.run(ventaDetalleId, hoja.producto_id, hoja.cantidad)
+          }
+        } else if (det.producto_id) {
           updateStock.run(det.cantidad, det.producto_id)
         }
       }
@@ -210,7 +249,7 @@ export function registerVentasHandlers(): void {
 
     const anularVenta = db.transaction(() => {
       const detalles = db!.prepare(`
-        SELECT vd.producto_id, vd.cantidad, p.tipo as tipo
+        SELECT vd.id as detalle_id, vd.producto_id, vd.cantidad, p.tipo as tipo
         FROM venta_detalles vd
         LEFT JOIN productos p ON vd.producto_id = p.id
         WHERE vd.venta_id = ?
@@ -219,8 +258,19 @@ export function registerVentasHandlers(): void {
       const updateStock = db!.prepare(
         "UPDATE productos SET stock = stock + ? WHERE id = ? AND tipo != 'servicio'"
       )
+      const componentesDetalle = db!.prepare(
+        'SELECT componente_id, cantidad FROM venta_detalle_componentes WHERE venta_detalle_id = ?'
+      ) as any
+      const tipoComponente = db!.prepare('SELECT tipo FROM productos WHERE id = ?')
       for (const det of detalles) {
-        if (det.producto_id && det.tipo !== 'servicio') {
+        // Si el detalle fue un combo, el stock se descontó de sus componentes: restaurar desde el snapshot.
+        const comps = componentesDetalle.all(det.detalle_id) as { componente_id: number; cantidad: number }[]
+        if (comps.length > 0) {
+          for (const c of comps) {
+            const tipo = (tipoComponente.get(c.componente_id) as any)?.tipo
+            if (tipo !== 'servicio') updateStock.run(c.cantidad, c.componente_id)
+          }
+        } else if (det.producto_id && det.tipo !== 'servicio') {
           updateStock.run(det.cantidad, det.producto_id)
         }
       }

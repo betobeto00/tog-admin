@@ -17,6 +17,8 @@ import {
   Contact,
   ClipboardList,
   Wallet,
+  TruckIcon,
+  Tag,
 } from 'lucide-react'
 import type { ModuleId } from '@shared/modules'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -39,6 +41,8 @@ export default function Sidebar() {
     { to: '/proveedores', icon: Users, label: t('nav.suppliers'), permission: 'compras_suppliers' },
     { to: '/clientes', icon: Contact, label: t('nav.clients'), permission: 'distribuidor_clientes_view', modulo: 'distribuidor' as ModuleId },
     { to: '/pedidos', icon: ClipboardList, label: t('nav.orders'), permission: 'distribuidor_pedidos_view', modulo: 'distribuidor' as ModuleId },
+    { to: '/remitos', icon: TruckIcon, label: t('nav.remitos'), permission: 'distribuidor_pedidos_view', modulo: 'distribuidor' as ModuleId },
+    { to: '/listas-precio', icon: Tag, label: t('nav.priceLists'), permission: 'distribuidor_listas_precio_view', modulo: 'distribuidor' as ModuleId },
     { to: '/cotizaciones', icon: FileText, label: t('nav.quotes'), permission: 'quotes_access' },
     { to: '/reportes', icon: BarChart3, label: t('nav.reports'), permission: 'reportes_access' },
     { to: '/configuracion', icon: Settings, label: t('nav.settings'), permission: 'config_access' },

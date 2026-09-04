@@ -351,10 +351,21 @@ export default function POSPage() {
         return
       }
 
+      // Releer la venta guardada: devuelve totales reales + desglose de combos
+      let ventaGuardada: any = null
+      if (result?.id) {
+        try {
+          ventaGuardada = await callApi<any>('ventas:getById', { id: result.id })
+        } catch { ventaGuardada = null }
+      }
       setUltimoTicket({
         ...result,
+        ventaGuardada,
         items: [...cart],
-        total,
+        total: ventaGuardada ? ventaGuardada.total : total,
+        subtotal: ventaGuardada ? ventaGuardada.subtotal : subtotalConGlobal,
+        impuesto: ventaGuardada ? ventaGuardada.impuesto : impuesto,
+        descuento: ventaGuardada ? ventaGuardada.descuento : (descuentoItems + descuentoGlobalMonto),
         metodo_pago: metodoPago,
         datosTarjeta,
         esFiado,
@@ -784,19 +795,27 @@ export default function POSPage() {
                 <p className="text-gray-400">{t('ventas.ticket')} {formatTicketNumber(ultimoTicket.numero_venta)}</p>
               </div>
               <div className="border-t border-dashed border-gray-200 pt-2">
-                {ultimoTicket.items?.map((item: any, i: number) => (
-                  <div key={i} className="flex justify-between">
-                    <span>{item.nombre} x{item.cantidad}</span>
-                    <span>{formatCurrency(item.precio_unitario * item.cantidad)}</span>
+                {(ultimoTicket.ventaGuardada?.detalles || ultimoTicket.items)?.map((item: any, i: number) => (
+                  <div key={i}>
+                    <div className="flex justify-between">
+                      <span>{item.producto_nombre || item.descripcion || item.nombre} x{item.cantidad}</span>
+                      <span>{formatCurrency(item.precio_unitario * item.cantidad)}</span>
+                    </div>
+                    {item.componentes?.map((c: any, j: number) => (
+                      <div key={j} className="flex justify-between pl-3 text-gray-500">
+                        <span>└ {c.nombre || c.descripcion} x{c.cantidad}</span>
+                        <span />
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
               <div className="border-t border-dashed border-gray-200 pt-2 space-y-1">
-                <div className="flex justify-between"><span>{t('common.subtotal')}:</span><span>{formatCurrency(subtotalBruto)}</span></div>
-                {(descuentoItems + descuentoGlobalMonto) > 0 && (
-                  <div className="flex justify-between text-red-500"><span>{t('common.discount')}:</span><span>-{formatCurrency(descuentoItems + descuentoGlobalMonto)}</span></div>
+                <div className="flex justify-between"><span>{t('common.subtotal')}:</span><span>{formatCurrency(ultimoTicket.subtotal ?? subtotalBruto)}</span></div>
+                {(ultimoTicket.descuento ?? (descuentoItems + descuentoGlobalMonto)) > 0 && (
+                  <div className="flex justify-between text-red-500"><span>{t('common.discount')}:</span><span>-{formatCurrency(ultimoTicket.descuento ?? (descuentoItems + descuentoGlobalMonto))}</span></div>
                 )}
-                <div className="flex justify-between"><span>{t('common.tax')}:</span><span>{formatCurrency(impuesto)}</span></div>
+                <div className="flex justify-between"><span>{t('common.tax')}:</span><span>{formatCurrency(ultimoTicket.impuesto ?? impuesto)}</span></div>
                 <div className="flex justify-between font-bold text-sm"><span>TOTAL:</span><span>{formatCurrency(ultimoTicket.total)}</span></div>
               </div>
               <div className="border-t border-dashed border-gray-200 pt-2">

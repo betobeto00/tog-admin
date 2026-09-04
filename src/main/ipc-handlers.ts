@@ -6,7 +6,7 @@ import { registerTerminalHandlers } from './modules/terminal'
 import { registerLicenseHandlers } from './modules/license'
 import { registerDistribuidorHandlers } from './modules/distribuidor'
 import { registerCajaExtraHandlers } from './modules/caja-extra'
-import { registerAppHandlers, registerI18nHandlers } from './modules/shared'
+import { registerAppHandlers, registerI18nHandlers, registerFeedbackHandlers } from './modules/shared'
 import { registerCrashReportHandlers } from './modules/crash-report'
 import { registerUpdaterHandlers } from './services/updater'
 
@@ -22,6 +22,7 @@ export function registerIpcHandlers(): void {
   registerCajaExtraHandlers()
   registerAppHandlers()
   registerI18nHandlers()
+  registerFeedbackHandlers()
   registerCrashReportHandlers()
   registerUpdaterHandlers()
 }

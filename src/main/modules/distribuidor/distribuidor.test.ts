@@ -74,6 +74,23 @@ const { db, handles, state } = vi.hoisted(() => {
       precio REAL NOT NULL,
       subtotal REAL NOT NULL
     );
+    CREATE TABLE remitos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      numero TEXT NOT NULL UNIQUE,
+      pedido_id INTEGER,
+      cliente_id INTEGER NOT NULL,
+      fecha TEXT NOT NULL DEFAULT (datetime('now')),
+      estado TEXT NOT NULL DEFAULT 'pendiente',
+      observaciones TEXT,
+      creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE listas_precio (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre TEXT NOT NULL,
+      factor REAL NOT NULL DEFAULT 1,
+      activo INTEGER NOT NULL DEFAULT 1,
+      creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+    );
     CREATE TABLE configuracion (
       clave TEXT PRIMARY KEY,
       valor TEXT NOT NULL,
@@ -107,9 +124,13 @@ vi.mock('../../services/license', () => ({
 
 import { registerClientesHandlers } from './clientes'
 import { registerPedidosHandlers } from './pedidos'
+import { registerRemitosHandlers } from './remitos'
+import { registerListasPrecioHandlers } from './listas-precio'
 
 registerClientesHandlers()
 registerPedidosHandlers()
+registerRemitosHandlers()
+registerListasPrecioHandlers()
 
 const list = (ch: string) => handles[ch](null, { usuario_id: 1 })
 const send = (ch: string, data: any) => handles[ch](null, data)
@@ -304,5 +325,105 @@ describe('pedidos (Distribuidor)', () => {
     expect(res.success).toBe(false)
     expect(res.error).toContain('no está activo')
     state.active = ['comercializador', 'distribuidor']
+  })
+})
+
+describe('remitos (Distribuidor)', () => {
+  beforeEach(() => {
+    db.prepare('DELETE FROM remitos').run()
+    db.prepare('DELETE FROM pedido_detalles').run()
+    db.prepare('DELETE FROM pedidos').run()
+    db.prepare('DELETE FROM clientes').run()
+    db.exec("DELETE FROM sqlite_sequence WHERE name IN ('remitos','pedidos','clientes')")
+  })
+
+  const crearPedido = async () => {
+    const cliente = db.prepare("INSERT INTO clientes (nombre) VALUES ('Cliente X')").run()
+    const clienteId = cliente.lastInsertRowid as number
+    const producto = db.prepare("SELECT id FROM productos LIMIT 1").get() as { id: number }
+    const pedido: any = await send('pedidos:create', {
+      usuario_id: 1,
+      cliente_id: clienteId,
+      items: [{ producto_id: producto.id, cantidad: 2, precio: 25 }],
+    })
+    return { clienteId, pedido }
+  }
+
+  it('crea un remito desde un pedido con numeración secuencial', async () => {
+    const { pedido } = await crearPedido()
+    const res = await send('remitos:create', { usuario_id: 1, pedido_id: pedido.id, observaciones: 'Entrega mañana' })
+    expect(res.success).toBe(true)
+    expect(res.numero).toBe(1)
+
+    const segundo: any = await send('remitos:create', { usuario_id: 1, pedido_id: pedido.id })
+    expect(segundo.success).toBe(false)
+    expect(segundo.error).toContain('ya tiene un remito')
+
+    const row: any = db.prepare('SELECT * FROM remitos WHERE id = ?').get(res.id)
+    expect(row.estado).toBe('pendiente')
+    expect(row.observaciones).toBe('Entrega mañana')
+  })
+
+  it('lista remitos con cliente y número de pedido', async () => {
+    const { clienteId, pedido } = await crearPedido()
+    db.prepare("UPDATE clientes SET nombre = 'Cliente X' WHERE id = ?").run(clienteId)
+    await send('remitos:create', { usuario_id: 1, pedido_id: pedido.id })
+    const rows: any[] = await list('remitos:list')
+    expect(rows).toHaveLength(1)
+    expect(rows[0].cliente_nombre).toBe('Cliente X')
+    expect(rows[0].pedido_numero).toBe(pedido.numero)
+  })
+
+  it('actualiza estado y observaciones del remito', async () => {
+    const { pedido } = await crearPedido()
+    const creado: any = await send('remitos:create', { usuario_id: 1, pedido_id: pedido.id })
+    const upd = await send('remitos:update', { usuario_id: 1, id: creado.id, estado: 'despachado', observaciones: 'Entregado OK' })
+    expect(upd.success).toBe(true)
+    const row: any = db.prepare('SELECT * FROM remitos WHERE id = ?').get(creado.id)
+    expect(row.estado).toBe('despachado')
+    expect(row.observaciones).toBe('Entregado OK')
+  })
+
+  it('rechaza remito de pedido anulado', async () => {
+    const { pedido } = await crearPedido()
+    await send('pedidos:update', { usuario_id: 1, id: pedido.id, estado: 'anulado' })
+    const res = await send('remitos:create', { usuario_id: 1, pedido_id: pedido.id })
+    expect(res.success).toBe(false)
+    expect(res.error).toContain('anulado')
+  })
+})
+
+describe('listas de precio (Distribuidor)', () => {
+  beforeEach(() => {
+    db.prepare('DELETE FROM listas_precio').run()
+    db.exec("DELETE FROM sqlite_sequence WHERE name IN ('listas_precio')")
+  })
+
+  it('crea, lista, actualiza y elimina listas de precio', async () => {
+    const creada: any = await send('listas-precio:create', { usuario_id: 1, nombre: 'Mayorista', factor: 0.85 })
+    expect(creada.success).toBe(true)
+
+    const rows: any[] = await list('listas-precio:list')
+    expect(rows).toHaveLength(1)
+    expect(rows[0].nombre).toBe('Mayorista')
+    expect(rows[0].factor).toBe(0.85)
+
+    const upd = await send('listas-precio:update', { usuario_id: 1, id: creada.id, data: { factor: 0.9, activo: 0 } })
+    expect(upd.success).toBe(true)
+    const row: any = db.prepare('SELECT * FROM listas_precio WHERE id = ?').get(creada.id)
+    expect(row.factor).toBe(0.9)
+    expect(row.activo).toBe(0)
+
+    const del = await send('listas-precio:delete', { usuario_id: 1, id: creada.id })
+    expect(del.success).toBe(true)
+    const vacias: any[] = await list('listas-precio:list')
+    expect(vacias).toHaveLength(0)
+  })
+
+  it('rechaza nombre vacío o factor inválido', async () => {
+    const sinNombre = await send('listas-precio:create', { usuario_id: 1, nombre: ' ', factor: 1 })
+    expect(sinNombre.success).toBe(false)
+    const sinFactor = await send('listas-precio:create', { usuario_id: 1, nombre: 'X', factor: 0 })
+    expect(sinFactor.success).toBe(false)
   })
 })

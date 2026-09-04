@@ -167,6 +167,28 @@ const { db, handles, state } = vi.hoisted(() => {
       creado_en TEXT NOT NULL DEFAULT (datetime('now')),
       actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
     );
+    CREATE TABLE usuarios (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario TEXT NOT NULL,
+      contrasena TEXT NOT NULL,
+      nombre TEXT NOT NULL,
+      rol TEXT NOT NULL DEFAULT 'cajero',
+      activo INTEGER NOT NULL DEFAULT 1
+    );
+    CREATE TABLE producto_componentes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      producto_id INTEGER NOT NULL,
+      componente_id INTEGER NOT NULL,
+      cantidad REAL NOT NULL DEFAULT 1,
+      creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE venta_detalle_componentes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      venta_detalle_id INTEGER NOT NULL,
+      componente_id INTEGER NOT NULL,
+      cantidad REAL NOT NULL,
+      creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `)
   db.prepare("INSERT INTO configuracion (clave, valor) VALUES ('ticket_numero_venta', '0')").run()
   const handles: Record<string, (event: any, data: any) => Promise<any>> = {}
@@ -197,11 +219,13 @@ import { registerVentasHandlers } from './ventas'
 import { registerCreditosHandlers } from './creditos'
 import { registerProductosHandlers } from '../inventario/productos'
 import { registerSubcategoriasHandlers } from '../inventario/subcategorias'
+import { registerCombosHandlers } from '../inventario/combos'
 
 registerVentasHandlers()
 registerCreditosHandlers()
 registerProductosHandlers()
 registerSubcategoriasHandlers()
+registerCombosHandlers()
 
 const send = (ch: string, data: any) => handles[ch](null, data)
 
@@ -552,5 +576,162 @@ describe('ventas:resumen-dia — distribución por método configurado', () => {
     expect(res.monto_total).toBe(100)
     const efectivo = res.por_metodo.find((p: any) => p.clave === 'efectivo')
     expect(efectivo?.total).toBe(100)
+  })
+})
+
+describe('combos / productos compuestos', () => {
+  const limpiar = () => {
+    db.prepare('DELETE FROM venta_detalle_componentes').run()
+    db.prepare('DELETE FROM venta_detalles').run()
+    db.prepare('DELETE FROM ventas').run()
+    db.prepare('DELETE FROM creditos').run()
+    db.prepare('DELETE FROM producto_componentes').run()
+    db.prepare('DELETE FROM productos').run()
+    db.exec("DELETE FROM sqlite_sequence WHERE name IN ('productos','ventas','venta_detalles','venta_detalle_componentes','producto_componentes')")
+  }
+
+  const guardarCombo = async (productoId: number, componentes: { componente_id: number; cantidad: number }[]) =>
+    send('combos:guardar', { usuario_id: 1, producto_id: productoId, componentes })
+
+  it('guarda componentes y calcula el costo real', async () => {
+    const harina = crearProducto({ nombre: 'Harina', precio_compra: 2, stock: 100 })
+    const queso = crearProducto({ nombre: 'Queso', precio_compra: 5, stock: 50 })
+    const combo = crearProducto({ nombre: 'Arepa rellena', precio_compra: 0, precio_venta: 12 })
+
+    const res = await guardarCombo(combo, [
+      { componente_id: harina, cantidad: 1 },
+      { componente_id: queso, cantidad: 2 },
+    ])
+    expect(res.success).toBe(true)
+    expect(res.costo_real).toBe(12)
+
+    const detalle = await send('combos:get', { usuario_id: 1, producto_id: combo })
+    expect(detalle.costo_real).toBe(12)
+    expect(detalle.componentes).toHaveLength(2)
+
+    const listado = await send('productos:list', { usuario_id: 1 })
+    const fila = listado.find((p: any) => p.id === combo)
+    expect(fila.es_combo).toBe(1)
+    expect(fila.stock).toBe(25) // min(floor(100/1), floor(50/2))
+    expect(fila.costo_real).toBe(12)
+  })
+
+  it('rechaza componentes duplicados, inexistentes y ciclos', async () => {
+    limpiar()
+    const a = crearProducto({ nombre: 'A', stock: 10 })
+    const b = crearProducto({ nombre: 'B', stock: 10 })
+    const c = crearProducto({ nombre: 'C', stock: 10 })
+
+    const dup = await guardarCombo(a, [{ componente_id: b, cantidad: 1 }, { componente_id: b, cantidad: 2 }])
+    expect(dup.success).toBe(false)
+    const duplicado = db.prepare('SELECT COUNT(*) as n FROM producto_componentes').get() as any
+    expect(duplicado.n).toBe(0) // la validación no insertó nada
+
+    // a → b válido; b → a crearía ciclo
+    expect((await guardarCombo(a, [{ componente_id: b, cantidad: 1 }])).success).toBe(true)
+    const ciclo = await guardarCombo(b, [{ componente_id: a, cantidad: 1 }])
+    expect(ciclo.success).toBe(false)
+
+    // c → a válido; a → c después crearía ciclo (a→b…→c→a no, pero c→a ya no existe como hijo de a)
+    expect((await guardarCombo(c, [{ componente_id: a, cantidad: 1 }])).success).toBe(true)
+    const ciclo2 = await guardarCombo(a, [{ componente_id: c, cantidad: 1 }])
+    expect(ciclo2.success).toBe(false)
+
+    const inexistente = await guardarCombo(a, [{ componente_id: 9999, cantidad: 1 }])
+    expect(inexistente.success).toBe(false)
+  })
+
+  it('vender un combo descuenta el stock de los componentes y guarda el desglose', async () => {
+    limpiar()
+    const harina = crearProducto({ nombre: 'Harina', precio_compra: 2, stock: 100 })
+    const queso = crearProducto({ nombre: 'Queso', precio_compra: 5, stock: 10 })
+    const combo = crearProducto({ nombre: 'Arepa', precio_compra: 0, precio_venta: 12 })
+    await guardarCombo(combo, [
+      { componente_id: harina, cantidad: 1 },
+      { componente_id: queso, cantidad: 2 },
+    ])
+
+    const res = await send('ventas:create', baseVenta({
+      total: 12,
+      monto_pagado: 12,
+      detalles: [{ producto_id: combo, cantidad: 3, precio_unitario: 12, descuento: 0, subtotal: 36 }],
+    }))
+    expect(res.success).toBe(true)
+
+    const h: any = db.prepare('SELECT stock FROM productos WHERE id = ?').get(harina)
+    const q: any = db.prepare('SELECT stock FROM productos WHERE id = ?').get(queso)
+    const c: any = db.prepare('SELECT stock FROM productos WHERE id = ?').get(combo)
+    expect(h.stock).toBe(97) // 100 - 3×1
+    expect(q.stock).toBe(4) // 10 - 3×2
+    expect(c.stock).toBe(50) // el combo no descontó su propio stock (default crearProducto)
+
+    const lineas = db.prepare('SELECT * FROM venta_detalle_componentes').all() as any[]
+    expect(lineas).toHaveLength(2)
+    expect(lineas.map((l: any) => l.cantidad).sort()).toEqual([3, 6])
+  })
+
+  it('rechaza la venta si algún componente no tiene stock suficiente', async () => {
+    limpiar()
+    const harina = crearProducto({ nombre: 'Harina', stock: 100 })
+    const queso = crearProducto({ nombre: 'Queso', stock: 1 })
+    const combo = crearProducto({ nombre: 'Arepa', stock: 0 })
+    await guardarCombo(combo, [
+      { componente_id: harina, cantidad: 1 },
+      { componente_id: queso, cantidad: 2 },
+    ])
+
+    const res = await send('ventas:create', baseVenta({
+      detalles: [{ producto_id: combo, cantidad: 1, precio_unitario: 12, descuento: 0, subtotal: 12 }],
+    }))
+    expect(res.success).toBe(false)
+    expect(res.error).toContain('Queso')
+  })
+
+  it('anular una venta con combo restaura el stock de los componentes', async () => {
+    limpiar()
+    const harina = crearProducto({ nombre: 'Harina', stock: 100 })
+    const queso = crearProducto({ nombre: 'Queso', stock: 10 })
+    const combo = crearProducto({ nombre: 'Arepa', stock: 0 })
+    await guardarCombo(combo, [
+      { componente_id: harina, cantidad: 1 },
+      { componente_id: queso, cantidad: 2 },
+    ])
+
+    const venta = await send('ventas:create', baseVenta({
+      detalles: [{ producto_id: combo, cantidad: 2, precio_unitario: 12, descuento: 0, subtotal: 24 }],
+    }))
+    expect(venta.success).toBe(true)
+
+    const anulada = await send('ventas:anular', { usuario_id: 1, id: venta.id, motivo: 'prueba' })
+    expect(anulada.success).toBe(true)
+
+    const h: any = db.prepare('SELECT stock FROM productos WHERE id = ?').get(harina)
+    const q: any = db.prepare('SELECT stock FROM productos WHERE id = ?').get(queso)
+    expect(h.stock).toBe(100)
+    expect(q.stock).toBe(10)
+  })
+
+  it('expone el desglose de componentes en ventas:getById', async () => {
+    limpiar()
+    const harina = crearProducto({ nombre: 'Harina', stock: 100 })
+    const queso = crearProducto({ nombre: 'Queso', stock: 10 })
+    const combo = crearProducto({ nombre: 'Arepa', stock: 0 })
+    await guardarCombo(combo, [
+      { componente_id: harina, cantidad: 1 },
+      { componente_id: queso, cantidad: 2 },
+    ])
+
+    const venta = await send('ventas:create', baseVenta({
+      detalles: [{ producto_id: combo, cantidad: 1, precio_unitario: 12, descuento: 0, subtotal: 12 }],
+    }))
+    const detalle = await send('ventas:getById', { usuario_id: 1, id: venta.id })
+    const linea = detalle.detalles.find((d: any) => d.producto_id === combo)
+    expect(linea).toBeTruthy()
+    expect(linea.componentes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ componente_id: harina, cantidad: 1, nombre: 'Harina' }),
+        expect.objectContaining({ componente_id: queso, cantidad: 2, nombre: 'Queso' }),
+      ]),
+    )
   })
 })

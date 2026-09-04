@@ -14,10 +14,12 @@ export type IpcChannel =
   | 'categorias:delete'
   | 'categorias:list'
   | 'categorias:update'
-  | 'clientes:create'
+  |  'clientes:create'
   | 'clientes:delete'
   | 'clientes:list'
   | 'clientes:update'
+  | 'combos:get'
+  | 'combos:guardar'
   | 'compras:create'
   | 'compras:list'
   | 'config:get'
@@ -32,6 +34,7 @@ export type IpcChannel =
   | 'crash-report:read'
   | 'crash-report:save'
   | 'db:reset'
+  | 'feedback:send'
   | 'i18n:get-lang'
   | 'i18n:set-lang'
   | 'license:import'
@@ -39,6 +42,13 @@ export type IpcChannel =
   | 'license:status'
   | 'license:sync'
   | 'license:validate'
+  | 'listas-precio:create'
+  | 'listas-precio:delete'
+  | 'listas-precio:list'
+  | 'listas-precio:update'
+  | 'remitos:create'
+  | 'remitos:list'
+  | 'remitos:update'
   | 'metodos-pago:create'
   | 'metodos-pago:delete'
   | 'metodos-pago:list'
@@ -108,6 +118,7 @@ export const PREAUTH_CHANNELS: readonly IpcChannel[] = [
   'app:version',
   'auth:login',
   'crash-report:save',
+  'feedback:send',
   'i18n:get-lang',
   'i18n:set-lang',
   'license:status',

@@ -21,6 +21,12 @@ interface Producto {
   stock_minimo: number;  unidad: string; activo: number
   categoria_nombre: string | null
   subcategoria_nombre?: string | null
+  es_combo?: number
+  costo_real?: number
+}
+interface LineaComponente {
+  producto_id: number
+  cantidad: string
 }
 interface Categoria { id: number; nombre: string; descripcion: string | null; activo: number }
 interface UnidadMedida { id: number; nombre: string; abreviatura: string | null; activo: number }
@@ -58,6 +64,22 @@ export default function InventarioPage() {
   const [editing, setEditing] = useState<Producto | null>(null)
   const [form, setForm] = useState(emptyProduct)
   const [saving, setSaving] = useState(false)
+  // Componentes del producto compuesto (combos)
+  const [componentes, setComponentes] = useState<LineaComponente[]>([])
+  const [comboMode, setComboMode] = useState(false)
+
+  const esProductoCombo = comboMode || componentes.length > 0
+  // Catálogo disponible para ser componente (productos físicos, no servicios, no el propio producto)
+  const candidatosComponente = productos.filter(
+    (p) => p.tipo === 'producto' && p.id !== (editing?.id ?? -1) && p.activo === 1,
+  )
+  const costoLineaComponente = (l: LineaComponente) => {
+    const prod = productos.find((p) => p.id === l.producto_id)
+    if (!prod) return 0
+    const costoUnit = prod.es_combo === 1 ? (prod.costo_real ?? prod.precio_compra) : prod.precio_compra
+    return (Number(l.cantidad) || 0) * costoUnit
+  }
+  const costoComboPreview = componentes.reduce((acc, l) => acc + costoLineaComponente(l), 0)
 
   // Modal categoría
   const [catModalOpen, setCatModalOpen] = useState(false)
@@ -224,12 +246,16 @@ export default function InventarioPage() {
   const openCreate = () => {
     setEditing(null)
     setForm(emptyProduct)
+    setComponentes([])
+    setComboMode(false)
     setBarcodeMode(true)
     setModalOpen(true)
   }
 
-  const openEdit = (p: Producto) => {
+  const openEdit = async (p: Producto) => {
     setEditing(p)
+    setComponentes([])
+    setComboMode(p.es_combo === 1)
     setForm({
       nombre: p.nombre,
       codigo_barras: p.codigo_barras || '',
@@ -247,6 +273,15 @@ export default function InventarioPage() {
       imagen: p.imagen || null,
     })
     setBarcodeMode(false)
+    // Si el producto es compuesto, cargar sus componentes para editarlos
+    if (p.es_combo) {
+      try {
+        const detalle = await callApi<{ success: boolean; componentes: { componente_id: number; cantidad: number }[] }>('combos:get', { producto_id: p.id })
+        if (detalle?.success) {
+          setComponentes((detalle.componentes || []).map((c) => ({ producto_id: c.componente_id, cantidad: String(c.cantidad) })))
+        }
+      } catch { /* sin componentes que cargar */ }
+    }
     setModalOpen(true)
   }
 
@@ -254,6 +289,7 @@ export default function InventarioPage() {
     if (!form.nombre.trim()) return
     setSaving(true)
     try {
+      const esComboFinal = form.tipo === 'producto' && comboMode
       const data = {
         ...form,
         codigo_barras: form.codigo_barras || undefined,
@@ -264,14 +300,38 @@ export default function InventarioPage() {
         marca: form.marca.trim(),
         tipo: form.tipo,
         imagen: form.imagen || '',
+        // Los combos no tienen stock propio: se calcula desde componentes
+        ...(esComboFinal ? { stock: 0, stock_minimo: 0 } : {}),
       }
+      let productoId: number | null = editing?.id ?? null
       if (editing) {
         await callApi('productos:update', { id: editing.id, data })
       } else {
-        await callApi('productos:create', data)
+        const creado = await callApi<{ id: number }>('productos:create', data)
+        productoId = creado.id
+      }
+      // Guardar componentes del combo (solo productos, no servicios)
+      if (productoId != null && form.tipo === 'producto') {
+        const items = componentes
+          .filter((c) => c.producto_id)
+          .map((c) => ({ componente_id: c.producto_id, cantidad: Math.max(0.01, Number(c.cantidad) || 1) }))
+        const res = await callApi<{ success: boolean; error?: string; costo_real?: number }>('combos:guardar', {
+          producto_id: productoId,
+          componentes: esComboFinal ? items : [],
+        })
+        if (res && res.success === false) throw new Error(res.error)
+        if (esComboFinal && res?.success && typeof res.costo_real === 'number') {
+          const margen = form.precio_venta - res.costo_real
+          toast.success(
+            `${i18n.language === 'en' ? 'Real cost' : 'Costo real'}: ${formatCurrency(res.costo_real)} · ` +
+            `${i18n.language === 'en' ? 'Margin' : 'Margen'}: ${formatCurrency(margen)}`,
+          )
+        }
       }
       setModalOpen(false)
       await loadData()
+    } catch (err: any) {
+      toast.error(err?.message || (i18n.language === 'en' ? 'Error saving product' : 'Error guardando producto'))
     } finally {
       setSaving(false)
     }
@@ -638,6 +698,11 @@ export default function InventarioPage() {
                           {p.tipo === 'servicio' && (
                             <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-sky-100 text-sky-700">{i18n.language === 'en' ? 'Service' : 'Servicio'}</span>
                           )}
+                          {p.es_combo === 1 && (
+                            <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700" title={i18n.language === 'en' ? 'Composite product / combo. Real cost from components.' : 'Producto compuesto / combo. Costo real desde componentes.'}>
+                              {i18n.language === 'en' ? 'Combo' : 'Combo'}
+                            </span>
+                          )}
                         </div>
                         {p.codigo_barras && <p className="text-xs text-gray-400">CB: {p.codigo_barras}</p>}
                         {p.marca && <p className="text-xs text-gray-500">{p.marca}</p>}
@@ -648,7 +713,9 @@ export default function InventarioPage() {
                     <div>{p.categoria_nombre || '—'}</div>
                     {p.subcategoria_nombre && <div className="text-xs text-gray-400">{p.subcategoria_nombre}</div>}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600 text-right">{formatCurrency(p.precio_compra)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600 text-right" title={p.es_combo === 1 ? (i18n.language === 'en' ? 'Real cost from components' : 'Costo real desde componentes') : undefined}>
+                    {formatCurrency(p.es_combo === 1 ? (p.costo_real ?? p.precio_compra) : p.precio_compra)}
+                  </td>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900 text-right">{formatCurrency(p.precio_venta)}</td>
                   <td className="px-4 py-3 text-center">
                     <span className={`inline-flex items-center gap-1 text-sm font-medium ${
@@ -661,7 +728,7 @@ export default function InventarioPage() {
                   <td className="px-4 py-3 text-sm text-gray-500 text-center capitalize">{p.unidad}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      {has('inventario_adjust') && (
+                      {has('inventario_adjust') && p.es_combo !== 1 && (
                         <button onClick={() => openAjuste(p)} className="p-1.5 hover:bg-blue-50 rounded-lg" title={i18n.language === 'en' ? 'Adjust stock' : 'Ajustar stock'}>
                           <Package className="w-4 h-4 text-blue-500" />
                         </button>
@@ -867,6 +934,115 @@ export default function InventarioPage() {
                 )}
               </div>
             </div>
+
+            {/* ===== Producto compuesto / combo ===== */}
+            {form.tipo === 'producto' && (
+              <div className="col-span-2 border border-emerald-200 rounded-xl p-4 bg-emerald-50/40">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {i18n.language === 'en' ? 'Composite product / combo' : 'Producto compuesto / combo'}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {i18n.language === 'en'
+                        ? 'Builds from other products. Real cost and stock come from its components.'
+                        : 'Se arma con otros productos. El costo real y el stock vienen de sus componentes.'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setComboMode(!comboMode)}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${esProductoCombo ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                  >
+                    <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${esProductoCombo ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+
+                {esProductoCombo && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      {componentes.length === 0 && (
+                        <p className="text-xs text-gray-400 text-center py-2 bg-white/60 rounded-lg">
+                          {i18n.language === 'en' ? 'No components yet. Add the first one.' : 'Todavía sin componentes. Agrega el primero.'}
+                        </p>
+                      )}
+                      {componentes.map((c, idx) => (
+                        <div key={idx} className="flex items-center gap-2 bg-white rounded-lg p-2 border border-emerald-100">
+                          <select
+                            value={c.producto_id}
+                            onChange={(e) => {
+                              const nuevo = [...componentes]
+                              nuevo[idx] = { ...c, producto_id: Number(e.target.value) }
+                              setComponentes(nuevo)
+                            }}
+                            className="flex-1 px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm bg-white"
+                          >
+                            <option value="">{i18n.language === 'en' ? 'Choose a product' : 'Elige un producto'}</option>
+                            {candidatosComponente.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.nombre} · {formatCurrency(p.es_combo === 1 ? (p.costo_real ?? p.precio_compra) : p.precio_compra)} c/u
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            value={c.cantidad}
+                            onChange={(e) => {
+                              const nuevo = [...componentes]
+                              nuevo[idx] = { ...c, cantidad: e.target.value }
+                              setComponentes(nuevo)
+                            }}
+                            title={i18n.language === 'en' ? 'Quantity' : 'Cantidad'}
+                            className="w-20 px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm text-center"
+                          />
+                          <span className="w-16 text-right text-xs text-gray-500 whitespace-nowrap">
+                            {formatCurrency(costoLineaComponente(c))}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setComponentes(componentes.filter((_, i) => i !== idx))}
+                            className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setComponentes([...componentes, { producto_id: 0, cantidad: '1' }])}
+                      disabled={candidatosComponente.length === 0}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-100 rounded-lg hover:bg-emerald-200 disabled:opacity-50"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> {i18n.language === 'en' ? 'Add component' : 'Agregar componente'}
+                    </button>
+                    <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm pt-2 border-t border-emerald-100">
+                      <span className="text-gray-600">
+                        {i18n.language === 'en' ? 'Real cost' : 'Costo real'}: <strong className="text-gray-900">{formatCurrency(costoComboPreview)}</strong>
+                      </span>
+                      <span className="text-gray-600">
+                        {i18n.language === 'en' ? 'Sale price' : 'Precio venta'}: <strong className="text-gray-900">{formatCurrency(form.precio_venta || 0)}</strong>
+                      </span>
+                      <span className="text-gray-600">
+                        {i18n.language === 'en' ? 'Margin' : 'Margen'}:{' '}
+                        <strong className={(form.precio_venta || 0) - costoComboPreview >= 0 ? 'text-emerald-700' : 'text-red-600'}>
+                          {formatCurrency((form.precio_venta || 0) - costoComboPreview)}
+                        </strong>
+                      </span>
+                    </div>
+                    {editing && (
+                      <p className="text-xs text-amber-600">
+                        {i18n.language === 'en'
+                          ? 'Note: the saved margin is recalculated from the components and their current cost.'
+                          : 'Nota: al guardar, el margen se recalcula con los componentes y su costo actual.'}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <button onClick={() => setModalOpen(false)}

@@ -550,6 +550,31 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
           ('fiado', 'Fiado', 'HandCoins', 0, 1, 3);
       `,
     },
+    {
+      nombre: '023_productos_compuestos',
+      sql: `
+        CREATE TABLE IF NOT EXISTS producto_componentes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          producto_id INTEGER NOT NULL REFERENCES productos(id),
+          componente_id INTEGER NOT NULL REFERENCES productos(id),
+          cantidad REAL NOT NULL DEFAULT 1,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE (producto_id, componente_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_producto_componentes_producto ON producto_componentes(producto_id);
+        CREATE INDEX IF NOT EXISTS idx_producto_componentes_componente ON producto_componentes(componente_id);
+
+        -- Snapshot de componentes consumidos por una venta (desglose de ticket + anulación)
+        CREATE TABLE IF NOT EXISTS venta_detalle_componentes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          venta_detalle_id INTEGER NOT NULL REFERENCES venta_detalles(id),
+          componente_id INTEGER NOT NULL REFERENCES productos(id),
+          cantidad REAL NOT NULL,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_vdc_detalle ON venta_detalle_componentes(venta_detalle_id);
+      `,
+    },
   ]
 }
 

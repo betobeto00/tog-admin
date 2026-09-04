@@ -440,6 +440,24 @@ export interface IpcChannels {
   'config:get': void
   'config:set': { clave: string; valor: string }
 
+  // Feedback
+  'feedback:send': { mensaje: string; contacto?: string }
+
+  // Combos / productos compuestos
+  'combos:get': { producto_id: number }
+  'combos:guardar': { producto_id: number; componentes: { componente_id: number; cantidad: number }[] }
+
+  // Remitos (Distribuidor)
+  'remitos:list': void
+  'remitos:create': { pedido_id: number; observaciones?: string }
+  'remitos:update': { id: number; estado: string; observaciones?: string | null }
+
+  // Listas de precio (Distribuidor)
+  'listas-precio:list': void
+  'listas-precio:create': { nombre: string; factor: number }
+  'listas-precio:update': { id: number; data: { nombre?: string; factor?: number; activo?: number } }
+  'listas-precio:delete': { id: number }
+
   // Métodos de pago
   'metodos-pago:list': { activoOnly?: boolean }
   'metodos-pago:create': MetodoPagoCreate

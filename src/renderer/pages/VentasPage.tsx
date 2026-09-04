@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Search, Eye, XCircle, Printer, Calendar, Receipt,
@@ -20,6 +20,7 @@ interface VentaDetalle {
   id: number; producto_id: number | null; descripcion: string | null; producto_nombre: string | null
   cantidad: number; precio_unitario: number; descuento: number; subtotal: number
   notas: string | null
+  componentes?: { componente_id: number; cantidad: number; nombre: string | null }[]
 }
 
 export default function VentasPage() {
@@ -269,12 +270,29 @@ export default function VentasPage() {
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {detalleVenta.detalles?.map((d) => (
-                      <tr key={d.id}>
-                        <td className="px-3 py-2">{d.producto_nombre || d.descripcion || '—'}</td>
-                        <td className="px-3 py-2 text-right">{formatCurrency(d.precio_unitario)}</td>
-                        <td className="px-3 py-2 text-center">{d.cantidad}</td>
-                        <td className="px-3 py-2 text-right font-medium">{formatCurrency(d.subtotal)}</td>
-                      </tr>
+                      <Fragment key={d.id}>
+                        <tr>
+                          <td className="px-3 py-2">
+                            {d.producto_nombre || d.descripcion || '—'}
+                            {d.componentes && d.componentes.length > 0 && (
+                              <span className="ml-2 text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">
+                                {i18n.language === 'en' ? 'Combo' : 'Combo'}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(d.precio_unitario)}</td>
+                          <td className="px-3 py-2 text-center">{d.cantidad}</td>
+                          <td className="px-3 py-2 text-right font-medium">{formatCurrency(d.subtotal)}</td>
+                        </tr>
+                        {d.componentes?.map((c, i) => (
+                          <tr key={`${d.id}-c${i}`} className="bg-emerald-50/40">
+                            <td className="px-3 py-1 pl-8 text-xs text-gray-500">
+                              └ {i18n.language === 'en' ? 'includes' : 'incluye'} · {c.nombre || `#${c.componente_id}`} ×{c.cantidad}
+                            </td>
+                            <td colSpan={3} />
+                          </tr>
+                        ))}
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>

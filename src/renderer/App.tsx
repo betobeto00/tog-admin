@@ -17,6 +17,8 @@ import ComprasPage from './pages/ComprasPage'
 import ProveedoresPage from './pages/ProveedoresPage'
 import ClientesPage from './pages/ClientesPage'
 import PedidosPage from './pages/PedidosPage'
+import RemitosPage from './pages/RemitosPage'
+import ListasPrecioPage from './pages/ListasPrecioPage'
 import ReportesPage from './pages/ReportesPage'
 import ConfigPage from './pages/ConfigPage'
 import QuotesPage from './pages/QuotesPage'
@@ -81,6 +83,8 @@ export default function App() {
           <Route path="proveedores" element={<ProveedoresPage />} />
           <Route path="clientes" element={<ClientesPage />} />
           <Route path="pedidos" element={<PedidosPage />} />
+          <Route path="remitos" element={<RemitosPage />} />
+          <Route path="listas-precio" element={<ListasPrecioPage />} />
           <Route path="reportes" element={<ReportesPage />} />
           <Route path="cotizaciones" element={<QuotesPage />} />
           <Route path="configuracion" element={<ConfigPage />} />

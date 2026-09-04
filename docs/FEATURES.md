@@ -204,7 +204,7 @@
 | INF1 | Auto-update (electron-updater) | 🟡 | ✅ | Actualizaciones vía GitHub Releases |
 | INF2 | NSIS installer | 🟡 | ✅ | Instalador Windows con acceso directo |
 | INF3 | i18n (ES/EN) | 🟡 | ✅ | ~1,382 keys por idioma (ES/EN, renderer) |
-| INF4 | Tests automatizados | 🟡 | ✅ | 185 tests (Vitest: validaciones, servicios, handlers IPC, componentes) |
+| INF4 | Tests automatizados | 🟡 | ✅ | 204 tests (Vitest: validaciones, servicios, handlers IPC, componentes) |
 | INF5 | Build portable | 🟢 | ✅ | Versión sin instalador |
 | INF6 | Instalador X32 | 🟡 | ⏳ | Instalador para arquitectura de 32 bits |
 | INF7 | Logging estructurado (winston) | 🟡 | ⏳ | Logging centralizado en main process |
@@ -216,7 +216,7 @@
 
 | # | Feature | Prioridad | Estado | Descripción |
 |---|---------|-----------|--------|-------------|
-| F1 | Combos de productos | 🔴 | ⏳ | Paquetes de productos con descuento (Fase 6) — **combos compuestos con rentabilidad real** y revisión de si los componentes vienen de producción |
+| F1 | Combos de productos | 🔴 | ✅ | Combos compuestos con rentabilidad real: componentes en el modal de producto, costo real + margen, stock por componentes al vender y desglose en el ticket (migración 023) |
 | F2 | Multi-sucursal | 🟡 | ⏳ | Varias ubicaciones con DB compartida (Fase 7) |
 | F3 | Pantalla auxiliar | 🟢 | ⏳ | Segunda pantalla para clientes (Fase 9) |
 | F4 | Facturación fiscal Venezuela | 🔴 | ⏳ | Comprobante fiscal válido (Fase 8) |
@@ -226,7 +226,7 @@
 | F8 | Imprimir etiquetas | 🟡 | ⏳ | Etiquetas con código de barras (Fase 3) |
 | F9 | WiFi para VP800 | 🟡 | ⏳ | Comunicación WiFi vía Valor Connect (Fase 3) |
 | F10 | Reportes modificables visuales | 🔴 | ⏳ | Herramienta visual para armar/editear reportes (arrastrar campos, filtros, exportar) sin código |
-| F11 | Feedback desde el login | 🟢 | ⏳ | Botón en pantalla de login que envía feedback del cliente a un bot de Telegram del dueño |
+| F11 | Feedback desde el login | 🟢 | ✅ | Botón en pantalla de login que envía feedback del cliente a un bot de Telegram del dueño (token configurable en Configuración → Sistema) |
 | F12 | Manager remoto | 🟡 | ⏳ | Rol manager: ver reportes remotos, agregar productos y modificar precios sin estar en la caja |
 
 ---
@@ -248,7 +248,7 @@
 | Configuración | 11 | 10 | 1 |
 | Seguridad | 8 | 6 | 2 |
 | Infraestructura | 8 | 5 | 3 |
-| Futuro/Expansión | 12 | 1 | 11 |
-| **TOTAL** | **123** | **101** | **22** |
+| Futuro/Expansión | 12 | 3 | 9 |
+| **TOTAL** | **123** | **103** | **20** |
 
-**Porcentaje completado: 82.1%**
+**Porcentaje completado: 83.7%**

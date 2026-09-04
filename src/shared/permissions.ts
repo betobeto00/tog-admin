@@ -239,6 +239,16 @@ export const PERMISSIONS = {
     category: { es: 'Distribuidor', en: 'Distributor' },
     description: { es: 'Crear, editar y despachar pedidos', en: 'Create, edit and dispatch orders' },
   },
+  distribuidor_listas_precio_view: {
+    label: { es: 'Ver Listas de Precio', en: 'View Price Lists' },
+    category: { es: 'Distribuidor', en: 'Distributor' },
+    description: { es: 'Ver listas de precio del módulo Distribuidor', en: 'View Distributor price lists' },
+  },
+  distribuidor_listas_precio_edit: {
+    label: { es: 'Crear/Editar Listas de Precio', en: 'Create/Edit Price Lists' },
+    category: { es: 'Distribuidor', en: 'Distributor' },
+    description: { es: 'Crear y editar listas de precio', en: 'Create and edit price lists' },
+  },
 } as const
 
 export type PermissionKey = keyof typeof PERMISSIONS
