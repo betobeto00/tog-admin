@@ -2,8 +2,8 @@
 
 ## Resumen
 
-TOG Admin - Sistema de punto de venta de escritorio para papelería, centro de copiado e impresión.
-Una PC, una caja, un usuario.
+TOG Admin - Ecosistema modular de punto de venta y gestión de escritorio para cualquier negocio, de la producción a la postventa.
+Una PC, una caja, un usuario. Módulos activables por licencia (Comercializador, Distribuidor, y más).
 
 ---
 

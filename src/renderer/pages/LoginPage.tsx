@@ -343,8 +343,8 @@ export default function LoginPage() {
       <Modal open={modalContent === 'terms'} onClose={() => setModalContent(null)} title={t('login.termsTitle')}>
         <div className="space-y-4 text-sm text-gray-600 max-h-96 overflow-y-auto">              <h4 className="font-semibold text-gray-800">{t('login.termsUse')}</h4>
           <p className="text-xs">{i18n.language === 'en'
-            ? 'TOG Admin is a point-of-sale software designed for commercial use in stationery stores, copy centers and printing shops. The user is responsible for proper use of the software and the accuracy of entered data.'
-            : 'TOG Admin es un software de punto de venta diseñado para uso comercial en negocios de papelería, centros de copiado e impresión. El usuario es responsable del uso adecuado del software y de la exactitud de los datos ingresados.'}
+            ? 'TOG Admin is modular management software designed for commercial use in any type of business, from the counter to distribution. The user is responsible for proper use of the software and the accuracy of entered data.'
+            : 'TOG Admin es un software de gestión modular diseñado para uso comercial en cualquier tipo de negocio, del mostrador a la distribución. El usuario es responsable del uso adecuado del software y de la exactitud de los datos ingresados.'}
           </p>              <h4 className="font-semibold text-gray-800">{t('login.termsLiability')}</h4>
           <ul className="list-disc list-inside space-y-1 text-xs">
             <li>{i18n.language === 'en' ? 'The software is provided "as is" without warranties' : 'El software se ofrece "tal cual" sin garantías de idoneidad para un propósito particular'}</li>                <li>{t('login.termsBackup')}</li>

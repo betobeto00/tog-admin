@@ -94,7 +94,7 @@ CREATE TABLE categorias (
 );
 ```
 
-**Categorías iniciales sugeridas:**
+**Categorías iniciales sugeridas** (ejemplo para un negocio de papelería/copiado; cada cliente crea las suyas):
 - Papelería
 - Copiado
 - Impresión

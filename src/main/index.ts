@@ -102,7 +102,7 @@ function createTray() {
   // Crear tray icon (usar un icono placeholder)
   const icon = nativeImage.createEmpty()
   tray = new Tray(icon)
-  tray.setToolTip('Papelería POS')
+  tray.setToolTip('TOG Admin POS')
 
   const contextMenu = Menu.buildFromTemplate([
     {

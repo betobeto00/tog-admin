@@ -1,7 +1,7 @@
 {
   "name": "tog-admin",
   "version": "1.0.8",
-  "description": "TOG Admin - Sistema de Punto de Venta para Papelería, Centro de Copiado e Impresión",
+  "description": "TOG Admin - Ecosistema modular de punto de venta y gestión para cualquier negocio, de la producción a la postventa",
   "main": "dist-electron/main/index.js",
   "author": "betobeto00",
   "license": "MIT",

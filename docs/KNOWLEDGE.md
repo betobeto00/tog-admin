@@ -1,6 +1,6 @@
 # Knowledge Base — TOG Admin: Papelería, Centro de Copiado e Impresión
 
-> 📌 **Referencia viva de dominio** (papelería / centro de copiado / impresión): sigue siendo válida para entender el negocio y los casos de uso. Las secciones de diagnóstico de problemas ya “resueltos” son notas históricas.
+> 📌 **Referencia viva de dominio** (papelería / centro de copiado / impresión): describe el primer vertical real (un cliente propietario de librería) y sigue siendo válida para entender ese negocio y sus casos de uso. El producto ya **no es solo para ese rubro**: es un ecosistema modular (ver `MODULOS.md` y `MISION-VISION.md` en tog-platform) que cubre desde la producción hasta la postventa. Las secciones de diagnóstico de problemas ya “resueltos” son notas históricas.
 
 ## El Negocio
 

@@ -1,8 +1,8 @@
 # TOG Admin
 
-**Sistema de Punto de Venta para Papelería, Centro de Copiado e Impresión**
+**Ecosistema modular de punto de venta y gestión — de la producción a la postventa**
 
-Desktop app construida con Electron + React + TypeScript + SQLite. Una PC, una caja, cero servidores.
+Desktop app construida con Electron + React + TypeScript + SQLite. Una PC, una caja, cero servidores. Activa solo los módulos que tu negocio necesita (Comercializador, Distribuidor, y más).
 
 ---
 
