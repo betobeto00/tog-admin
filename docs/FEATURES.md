@@ -187,7 +187,7 @@
 | # | Feature | Prioridad | Estado | Descripción |
 |---|---------|-----------|--------|-------------|
 | SEC1 | Sistema de licencias RSA-2048 | 🔴 | ✅ | Licencias offline con validación de firma + **Sincronizar** (canal pre-auth `license:sync`, re-validación RSA local) |
-| SEC2 | Permisos por usuario (39 permisos) | 🟡 | ✅ | 10 categorías de permisos granulares (incl. `distribuidor_*`) |
+| SEC2 | Permisos por usuario (41 permisos) | 🟡 | ✅ | 8 categorías de permisos granulares (incl. `distribuidor_*` y `creditos_*`) |
 | SEC3 | Rate limiting en login | 🔴 | ✅ | Bloqueo después de 5 intentos |
 | SEC4 | Session timeout | 🔴 | ✅ | 30 min de inactividad |
 | SEC5 | Password hashing (bcrypt) | 🔴 | ✅ | 10 salt rounds |
@@ -203,8 +203,8 @@
 |---|---------|-----------|--------|-------------|
 | INF1 | Auto-update (electron-updater) | 🟡 | ✅ | Actualizaciones vía GitHub Releases |
 | INF2 | NSIS installer | 🟡 | ✅ | Instalador Windows con acceso directo |
-| INF3 | i18n (ES/EN) | 🟡 | ✅ | ~1,329 keys por idioma (ES/EN) |
-| INF4 | Tests automatizados | 🟡 | ✅ | 159 tests (Vitest: validaciones, servicios, handlers IPC, componentes) |
+| INF3 | i18n (ES/EN) | 🟡 | ✅ | ~1,382 keys por idioma (ES/EN, renderer) |
+| INF4 | Tests automatizados | 🟡 | ✅ | 185 tests (Vitest: validaciones, servicios, handlers IPC, componentes) |
 | INF5 | Build portable | 🟢 | ✅ | Versión sin instalador |
 | INF6 | Instalador X32 | 🟡 | ⏳ | Instalador para arquitectura de 32 bits |
 | INF7 | Logging estructurado (winston) | 🟡 | ⏳ | Logging centralizado en main process |
@@ -233,8 +233,8 @@
 | Categoría | Total | ✅ Completado | ⏳ Pendiente |
 |-----------|-------|--------------|-------------|
 | Autenticación | 6 | 6 | 0 |
-| POS | 19 | 16 | 3 |
-| Inventario | 15 | 11 | 4 |
+| POS | 19 | 17 | 2 |
+| Inventario | 15 | 15 | 0 |
 | Caja | 9 | 9 | 0 |
 | Ventas | 8 | 8 | 0 |
 | Compras | 4 | 4 | 0 |
@@ -245,7 +245,7 @@
 | Configuración | 11 | 10 | 1 |
 | Seguridad | 8 | 6 | 2 |
 | Infraestructura | 8 | 5 | 3 |
-| Futuro/Expansión | 9 | 0 | 9 |
-| **TOTAL** | **120** | **95** | **25** |
+| Futuro/Expansión | 9 | 1 | 8 |
+| **TOTAL** | **120** | **101** | **19** |
 
-**Porcentaje completado: 79.2%**
+**Porcentaje completado: 84.2%**

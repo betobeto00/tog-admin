@@ -26,8 +26,8 @@ La visión de **TOG Platform** es que cada eslabón sea un **módulo activable p
 | 0 | **Core (base)** | ✅ Existe (`tog-admin`) | UI shell, auth, licencia, IPC, persistencia local, auto-update | — |
 | 1 | **Productor** | 🟡 Diseño | Siembra, costos de campo, estimación de cosecha, logística de acopio | Core |
 | 2 | **Procesador** | 🟡 Diseño | Recepción de materia prima, recetas/BOM, transformación, mermas, lote de salida | Core + Productor (opcional) |
-| 3 | **Comercializador** | ✅ Parcial (`tog-admin`) | Inventario, compras, ventas, cotizaciones, caja, POS | Core |
-| 4 | **Distribuidor** | ✅ MVP v1 — clientes + pedidos CRUD (migraciones 015/016, gating por licencia y permisos, tests) | Clientes (con documento de registro internacional: RIF, RFC, EIN…), pedidos con estados y numeración. Pendientes: remitos, listas de precio, crédito; rutas, flotas y despachos | Core + Comercializador |
+| 3 | **Comercializador** | ✅ Parcial (`tog-admin`) | Inventario (catálogo con producto/servicio, subcategorías, marca e imagen), compras, ventas (incl. **crédito/fiado** con cuentas por cobrar y abonos), cotizaciones, caja, POS | Core |
+| 4 | **Distribuidor** | ✅ MVP v1 — clientes + pedidos CRUD (migraciones 015/016, gating por licencia y permisos, tests) | Clientes (con documento de registro internacional: RIF, RFC, EIN…), pedidos con estados y numeración. El **crédito a clientes vive en Comercializador** (migración 021): el POS vende fiado y valida `limite_credito` cuando se vincula a un cliente de este módulo. Pendientes: remitos, listas de precio, rutas, flotas y despachos | Core + Comercializador |
 | 5 | **Postventa** | 🟡 Diseño | Tickets de soporte, devoluciones, garantías, notas de crédito | Core + Comercializador |
 
 **Leyenda**: ✅ existe · 🟡 en diseño · ⚪ no iniciado
@@ -187,7 +187,8 @@ Estos números son una **referencia para el roadmap**, no la tabla de precios fi
 ### Corto plazo (mes 2–6): Distribuidor + Stripe
 - [x] Módulo Distribuidor: tablas `clientes`, `pedidos`, `pedido_detalles`, `remitos`, `listas_precio` (migraciones 015/016).
 - [x] CRUD de clientes y pedidos (numeración secuencial, estados: pendiente/despachado/entregado/anulado) con tests.
-- [ ] Remitos y listas de precio con UI; crédito a clientes; rutas/flotas/despachos.
+- [x] Venta a crédito/fiado en Comercializador: método de pago `fiado` en el POS + página **Créditos** con saldos y abonos (migraciones 020–022; validación de `limite_credito` del cliente cuando la licencia incluye Distribuidor).
+- [ ] Remitos y listas de precio con UI; rutas/flotas/despachos.
 - [x] Integración Stripe Checkout + webhooks (implementada y testeada en `tog-platform`) — ⏸️ **EN ESPERA** de cliente que pague online.
 - [ ] Renovación automática online (idem, EN ESPERA).
 

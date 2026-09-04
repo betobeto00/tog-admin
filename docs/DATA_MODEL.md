@@ -1,6 +1,6 @@
 # Modelo de Datos — TOG Admin
 
-> ⚠️ **Esquema canónico:** la fuente de verdad es la cadena de **migraciones 001 → 016** en `src/main/db/database.ts` (tabla `schema_migrations`). Este documento describe el modelo **v1** (POS) y el apéndice al final cubre las tablas agregadas después. Si un detalle discrepa con `database.ts`, manda `database.ts`.
+> ⚠️ **Esquema canónico:** la fuente de verdad es la cadena de **migraciones 001 → 022** en `src/main/db/database.ts` (tabla `_migrations`). Este documento describe el modelo **v1** (POS) y el apéndice al final cubre las tablas y columnas agregadas después (010–022). Si un detalle discrepa con `database.ts`, manda `database.ts`.
 
 ## Diagrama ER (Simplificado)
 
@@ -113,15 +113,31 @@ CREATE TABLE productos (
     nombre TEXT NOT NULL,
     descripcion TEXT,
     categoria_id INTEGER REFERENCES categorias(id),
+    subcategoria_id INTEGER,          -- migración 018 → subcategorias(id)
+    marca TEXT,                       -- migración 019 (opcional)
+    tipo TEXT NOT NULL DEFAULT 'producto', -- migración 017: 'producto' | 'servicio'
     precio_compra REAL NOT NULL DEFAULT 0,
     precio_venta REAL NOT NULL DEFAULT 0,
     stock INTEGER NOT NULL DEFAULT 0,
     stock_minimo INTEGER NOT NULL DEFAULT 5,
-    unidad TEXT NOT NULL DEFAULT 'unidad', -- 'unidad' | 'paquete' | 'hoja' | 'servicio'
-    imagen TEXT,
+    unidad TEXT NOT NULL DEFAULT 'unidad', -- texto libre (catálogo unidades_medida); NO define servicio
+    imagen TEXT,                      -- dataURL PNG/JPG/WebP ≤ 1MB (máx. 1,6M caracteres)
     activo INTEGER NOT NULL DEFAULT 1,
     creado_en TEXT NOT NULL DEFAULT (datetime('now')),
     actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
+);
+```
+
+> **Producto vs Servicio:** el tipo real es `tipo` (migración 017). Un servicio **no descuenta stock** en ventas/compras/anulaciones ni aparece en stock bajo. `unidad` es solo la unidad de medida a mostrar.
+
+### subcategorias (migración 018)
+```sql
+CREATE TABLE subcategorias (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL,
+    categoria_id INTEGER NOT NULL REFERENCES categorias(id),
+    activo INTEGER NOT NULL DEFAULT 1,
+    creado_en TEXT NOT NULL DEFAULT (datetime('now'))
 );
 ```
 
@@ -151,8 +167,8 @@ CREATE TABLE ventas (
     impuesto REAL NOT NULL DEFAULT 0,
     descuento REAL NOT NULL DEFAULT 0,
     total REAL NOT NULL DEFAULT 0,
-    metodo_pago TEXT NOT NULL DEFAULT 'efectivo', -- 'efectivo' | 'transferencia' | 'pago_movil' | 'mixto'
-    monto_pagado REAL NOT NULL DEFAULT 0,
+    metodo_pago TEXT NOT NULL DEFAULT 'efectivo', -- 'efectivo' | 'transferencia' | 'pago_movil' | 'mixto' | 'fiado'
+    monto_pagado REAL NOT NULL DEFAULT 0,          -- en fiado = abono inicial
     cambio REAL NOT NULL DEFAULT 0,
     estado TEXT NOT NULL DEFAULT 'completada', -- 'completada' | 'anulada'
     notas TEXT,
@@ -165,7 +181,8 @@ CREATE TABLE ventas (
 CREATE TABLE venta_detalles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     venta_id INTEGER NOT NULL REFERENCES ventas(id),
-    producto_id INTEGER NOT NULL REFERENCES productos(id),
+    producto_id INTEGER REFERENCES productos(id), -- NULLABLE desde 020 (venta rápida / servicio sin producto)
+    descripcion TEXT,                              -- nombre de la línea cuando no hay producto (020)
     cantidad REAL NOT NULL DEFAULT 1,
     precio_unitario REAL NOT NULL,
     descuento REAL NOT NULL DEFAULT 0,
@@ -297,14 +314,17 @@ CREATE INDEX idx_movimientos_caja_caja ON movimientos_caja(caja_id);
 ## Reglas de Negocio en DB
 
 1. **Stock negativo no permitido:** CHECK constraint o validación en app
-2. **Número de venta secuencial:** Se incrementa por día, se resetea
-3. **Borrado lógico:** Tablas usan `activo` en vez de DELETE
-4. **Caja abierta única:** Solo puede haber una caja abierta a la vez
-5. **Auditoría:** `creado_en` y `actualizado_en` en tablas principales
+2. **Servicios no consumen stock:** `tipo = 'servicio'` nunca descuenta/devuelve stock en ventas, compras ni anulaciones
+3. **Número de venta secuencial:** Se incrementa por día, se resetea
+4. **Borrado lógico:** Tablas usan `activo` en vez de DELETE
+5. **Caja abierta única:** Solo puede haber una caja abierta a la vez
+6. **Línea sin producto:** `venta_detalles` sin `producto_id` exige `descripcion` (venta rápida)
+7. **Crédito:** el abono no puede superar el saldo; al saldarse el crédito pasa a `pagado`; si hay `cliente_id` se valida `clientes.limite_credito` (0 = sin límite)
+8. **Auditoría:** `creado_en` y `actualizado_en` en tablas principales
 
 ---
 
-## Apéndice: tablas y columnas agregadas después de v1 (migraciones 010–016)
+## Apéndice: tablas y columnas agregadas después de v1 (migraciones 010–022)
 
 | Migración | Cambio |
 |-----------|--------|
@@ -315,6 +335,47 @@ CREATE INDEX idx_movimientos_caja_caja ON movimientos_caja(caja_id);
 | 014 | `metodos_pago` (efectivo, tarjeta VP800…) |
 | 015 | `clientes`, `pedidos`, `pedido_detalles`, `remitos`, `listas_precio` (módulo Distribuidor) |
 | 016 | `clientes.rif` → `clientes.documento` (identidad internacional) |
+| 017 | `productos.tipo` (`producto`/`servicio`) + backfill desde `LOWER(unidad) = 'servicio'` |
+| 018 | `subcategorias` + `productos.subcategoria_id` (ver SQL arriba) |
+| 019 | `productos.marca` |
+| 020 | reconstrucción de `venta_detalles`: `producto_id` nullable + `descripcion` (ver SQL arriba) |
+| 021 | `creditos`, `credito_abonos` (ver SQL abajo) |
+| 022 | inserta el método de pago `fiado` en `metodos_pago` |
+
+### creditos + credito_abonos (Crédito / Fiado, migración 021)
+```sql
+CREATE TABLE creditos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    venta_id INTEGER NOT NULL REFERENCES ventas(id),
+    cliente_id INTEGER REFERENCES clientes(id),   -- NULL si es fiado a nombre libre
+    deudor_nombre TEXT NOT NULL,                  -- nombre del cliente (si vino de clientes) o del deudor libre
+    deudor_telefono TEXT,
+    deudor_documento TEXT,
+    monto_total REAL NOT NULL DEFAULT 0,
+    saldo REAL NOT NULL DEFAULT 0,                -- pendiente de cobro
+    fecha TEXT NOT NULL DEFAULT (datetime('now')),
+    estado TEXT NOT NULL DEFAULT 'pendiente',     -- pendiente | pagado | anulado
+    usuario_id INTEGER REFERENCES usuarios(id),
+    notas TEXT,
+    creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE credito_abonos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    credito_id INTEGER NOT NULL REFERENCES creditos(id),
+    monto REAL NOT NULL,
+    fecha TEXT NOT NULL DEFAULT (datetime('now')),
+    usuario_id INTEGER REFERENCES usuarios(id),
+    notas TEXT
+);
+
+CREATE INDEX idx_creditos_estado ON creditos(estado);
+CREATE INDEX idx_creditos_cliente ON creditos(cliente_id);
+CREATE INDEX idx_creditos_venta ON creditos(venta_id);
+CREATE INDEX idx_credito_abonos_credito ON credito_abonos(credito_id);
+```
+
+> El POS registra la venta con `metodo_pago = 'fiado'` y un abono inicial (`monto_pagado`, puede ser 0). La caja solo cuenta lo realmente cobrado; el saldo queda en `creditos` y se reduce con `credito_abonos`. Si la venta se anula antes de cobrar nada, el crédito pasa a `anulado`; con abonos ya registrados la anulación queda bloqueada.
 
 ### clientes (Distribuidor, migraciones 015/016)
 ```sql

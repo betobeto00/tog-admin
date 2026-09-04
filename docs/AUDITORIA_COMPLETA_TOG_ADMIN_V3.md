@@ -1,6 +1,6 @@
 # AUDITORÍA COMPLETA - TOG ADMIN
 
-> 🕓 **Auditoría histórica (snapshot v1.0.5, 30-Ago-2026).** El código evolucionó desde entonces: handlers por módulo (`src/main/modules/*`), permisos 39/10, módulo Distribuidor, backend TOG Platform y sincronización de licencias. Ver `ARCHITECTURE.md` para la realidad vigente.
+> 🕓 **Auditoría histórica (snapshot v1.0.5, 30-Ago-2026).** El código evolucionó desde entonces: handlers por módulo (`src/main/modules/*`), permisos 41 en 8 categorías, módulo Distribuidor, backend TOG Platform y sincronización de licencias. Ver `ARCHITECTURE.md` para la realidad vigente.
 ## Sistema de Punto de Venta para Papelería
 
 **Fecha:** 30 de Agosto, 2026  

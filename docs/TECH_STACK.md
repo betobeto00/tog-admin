@@ -168,14 +168,14 @@ D-E/
 │   │   ├── App.tsx
 │   │   ├── main.tsx
 │   │   ├── components/      # 10+ componentes (incl. LicenseGate, LicenseSyncForm)
-│   │   ├── pages/           # 14 páginas (Core + Clientes/Pedidos del Distribuidor)
+│   │   ├── pages/           # 15 páginas (Core + Clientes/Pedidos del Distribuidor + Créditos)
 │   │   ├── core/auth/store.ts  # Store de sesión (Zustand) — antes en stores/
 │   │   ├── hooks/           # usePermissions, useBarcodeScanner, useModules (useActiveModules)
 │   │   ├── i18n/            # Traducciones renderer
 │   │   │   └── locales/     # es/, en/
 │   │   └── lib/             # api-client.ts (callApi), utils.ts
 │   └── shared/              # Código compartido main+renderer
-│       ├── permissions.ts   # Catálogo de permisos (39 claves, 10 categorías)
+│       ├── permissions.ts   # Catálogo de permisos (41 claves, 8 categorías)
 │       ├── ipc-channels.ts  # Tipos de canales + PREAUTH_CHANNELS (license:import y license:sync pre-auth)
 │       ├── modules.ts       # Catálogo de módulos TOG Platform (ModuleId + CATALOGO)
 │       ├── papeleria-api.d.ts

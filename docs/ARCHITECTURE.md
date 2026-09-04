@@ -23,7 +23,7 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │              SQLite Database                         │    │
 │  │         (tog-admin.db — archivo local)               │    │
-│  │         16 migraciones · 21 tablas · 22+ índices     │    │
+│  │         22 migraciones · 25 tablas · 25+ índices     │    │
 │  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -64,6 +64,7 @@ Router (HashRouter)
 ├── /pos                → POSPage (precio editable + venta rápida + validación caja + barcode scanner)
 ├── /inventario         → InventarioPage (CSV import/export + ajustes + stock bajo + barcode scanner)
 ├── /ventas             → VentasPage
+├── /creditos           → CreditosPage (cuentas por cobrar: saldos + abonos)
 ├── /caja               → CajaPage (Reporte X + backup automático)
 ├── /compras            → ComprasPage (barcode scanner)
 ├── /proveedores        → ProveedoresPage
@@ -81,7 +82,7 @@ Router (HashRouter)
 - **Un solo archivo:** `tog-admin.db` en `%APPDATA%/tog-admin/`
 - **Sin servidor:** No necesita MySQL ni nada externo
 - **Respaldo:** Copiar el archivo `.db` = respaldo completo
-- **Migraciones:** Sistema de versionado de esquema (16 migraciones)
+- **Migraciones:** Sistema de versionado de esquema (22 migraciones)
 - **WAL mode:** Permite lectura mientras escribe
 
 ### 4. Comunicación IPC
@@ -109,9 +110,11 @@ Renderer (React)                    Main (Node.js)
 | App | `app:version` |
 | Productos | `productos:list`, `getById`, `create`, `update`, `delete`, `low-stock`, `ajustar`, `ajustes-historial`, `buscar-por-codigo`, `export-csv`, `import-csv` |
 | Categorías | `categorias:list`, `create`, `update`, `delete` |
+| Subcategorías | `subcategorias:list`, `create`, `update`, `delete` |
 | Unidades | `unidades:list`, `create`, `update`, `delete` |
 | Proveedores | `proveedores:list`, `create`, `update`, `delete` |
 | Ventas | `ventas:list`, `getById`, `create`, `anular`, `resumen-dia` |
+| Créditos / Fiado | `creditos:list`, `getById`, `abono` |
 | Compras | `compras:list`, `create` |
 | Caja | `caja:status`, `abrir`, `cerrar`, `movimiento`, `historial`, `reporte-x`, `backup-auto` |
 | Quotes | `quotes:list`, `getById`, `create`, `update`, `delete` |
@@ -130,7 +133,7 @@ Renderer (React)                    Main (Node.js)
 
 ---
 
-## Modelo de Datos (16 Migraciones)
+## Modelo de Datos (22 Migraciones)
 
 ### Migraciones
 
@@ -152,18 +155,25 @@ Renderer (React)                    Main (Node.js)
 | 014 | metodos_pago | `metodos_pago` |
 | 015 | distribuidor | `clientes`, `pedidos`, `pedido_detalles`, `remitos`, `listas_precio` + 3 índices |
 | 016 | clientes_documento | renombra `clientes.rif` → `clientes.documento` (identidad internacional) |
+| 017 | producto_tipo | `productos.tipo` (`producto`/`servicio`) + backfill desde `unidad` |
+| 018 | subcategorias | `subcategorias` + `productos.subcategoria_id` + 2 índices |
+| 019 | producto_marca | `productos.marca` |
+| 020 | venta_detalles_libre | reconstruye `venta_detalles`: `producto_id` nullable + `descripcion` (venta rápida / servicios sin producto) |
+| 021 | creditos | `creditos`, `credito_abonos` + 4 índices |
+| 022 | metodo_pago_fiado | inserta método de pago `fiado` |
 
 ### Tablas Principales
 
 | Tabla | Registros típicos | Descripción |
 |-------|-------------------|-------------|
 | `usuarios` | 2-10 | Usuarios del sistema con roles y permisos |
-| `productos` | 100-5000 | Inventario de productos |
+| `productos` | 100-5000 | Inventario (incl. `tipo` producto/servicio, `marca`, `subcategoria_id`, `imagen`) |
 | `categorias` | 5-50 | Categorías de productos |
+| `subcategorias` | 10-200 | Subcategorías por categoría |
 | `unidades_medida` | 10-20 | Unidades de medida (seeded: ud, paq, cj, res, etc.) |
 | `proveedores` | 5-30 | Proveedores del negocio |
 | `ventas` | 100-10000 | Historial de ventas |
-| `venta_detalles` | 500-50000 | Items de cada venta |
+| `venta_detalles` | 500-50000 | Items de cada venta (`producto_id` nullable + `descripcion` para venta rápida/servicios) |
 | `compras` | 10-500 | Historial de compras |
 | `compra_detalles` | 50-2500 | Items de cada compra |
 | `caja` | 50-500 | Sesiones de caja (apertura/cierre) |
@@ -178,6 +188,8 @@ Renderer (React)                    Main (Node.js)
 | `pedido_detalles` | 50-25000 | Líneas de cada pedido |
 | `remitos` | 10-1000 | Remitos (creada en 015; sin UI aún) |
 | `listas_precio` | 1-20 | Listas de precio (creada en 015; sin UI aún) |
+| `creditos` | 10-2000 | Ventas a crédito/fiado con saldo pendiente (`pendiente`/`pagado`/`anulado`) |
+| `credito_abonos` | 10-10000 | Abonos parciales contra cada crédito |
 
 ### Índices (22+)
 
@@ -219,12 +231,12 @@ Todos los índices están optimizados para los patrones de consulta típicos del
 | Session timeout | 30 min de inactividad → auto-logout |
 | Context isolation | `contextIsolation: true`, `nodeIntegration: false` |
 | contextBridge | API expuesta de forma controlada y tipada |
-| Validación IPC | 19 schemas Zod en handlers críticos |
+| Validación IPC | 24 schemas Zod en handlers críticos |
 | Licencias | RSA-2048 con validación offline |
 | Error handling | ErrorBoundary global + crash reports + logging diagnóstico |
-| Internacionalización | i18n con 2 idiomas (ES/EN), ~1,329 keys por idioma |
+| Internacionalización | i18n con 2 idiomas (ES/EN), ~1,382 keys por idioma en el renderer (+97 en main) |
 | Backup automático | Al cerrar caja se crea backup de la DB |
-| Permisos | 39 permisos en 10 categorías (`pos`, `caja`, `inventario`, `compras`, `quotes`, `reportes`, `config`, `usuarios`, `license`, `distribuidor`), control granular por usuario |
+| Permisos | 41 permisos en 8 categorías (ventas+créditos, caja, inventario, compras, cotizaciones, reportes, administración, distribuidor), control granular por usuario |
 
 ---
 
@@ -248,13 +260,14 @@ Todos los índices están optimizados para los patrones de consulta típicos del
 1. **Abrir caja** → Se registra el fondo de caja inicial (con default configurable)
 2. **Escanear/buscar producto** → Se agrega al carrito (USB HID barcode scanner)
 3. **Cantidad / Precio** → Precio editable directamente en el carrito
-4. **Venta rápida** → Botón para servicios por cobrar sin crear producto
+4. **Venta rápida** → Botón para servicios por cobrar sin crear producto (se guarda como línea con `descripcion`, sin `producto_id`)
 5. **Confirmar venta** → Se inserta en tabla `ventas` + `venta_detalles`
-6. **Pago** → Efectivo, transferencia, pago móvil, tarjeta (VP800), mixto (configurable)
+6. **Pago** → Efectivo, transferencia, pago móvil, tarjeta (VP800), mixto o **fiado/crédito** (configurable)
 7. **Descuento de stock** → Se actualiza `productos.stock` (solo para productos, no servicios)
-8. **Imprimir ticket** → Se genera y envía a impresora
+8. **Imprimir ticket** → Se genera y envía a impresora (el ticket fiado muestra deudor y saldo pendiente)
 9. **Reporte X** → Ver totales parciales sin cerrar caja
 10. **Cierre de caja** → Backup automático + totalización del día
+11. **Fiado / Créditos** → si el pago fue fiado se crea un registro en `creditos` (saldo = total − abono inicial); los cobros posteriores son **abonos** que se registran en la página Créditos y, con caja abierta, entran como movimiento de caja (entrada)
 
 ---
 
@@ -302,17 +315,20 @@ Desarrollador                          Cliente
 
 ## Roadmap de Expansión
 
-Para el roadmap completo con todas las fases (incluyendo pendientes), ver:
-- **[ROADMAP.md](./ROADMAP.md)** — Roadmap principal con 10 fases
-- **[ROADMAP-INTEGRACION.md](./ROADMAP-INTEGRACION.md)** — Detalle de features pendientes
-- **[Caso-Venezuela.md](./Caso-Venezuela.md)** — Análisis regulatorio Venezuela
-- **[benchmarkin-Integra-POS.md](./benchmarkin-Integra-POS.md)** — Benchmarking competitivo
+Para el histórico completo con todas las fases (incluyendo pendientes), ver:
+- **[ROADMAP.md](./ROADMAP.md)** — Roadmap histórico (referencia; no aplicar sus migraciones propuestas)
+- **[ROADMAP-INTEGRACION.md](./ROADMAP-INTEGRACION.md)** — Borrador histórico de planificación
+- **[Caso-Venezuela.md](./Caso-Venezuela.md)** — Análisis regulatorio Venezuela (referencia)
+- **[benchmarkin-Integra-POS.md](./benchmarkin-Integra-POS.md)** — Benchmarking competitivo (referencia)
 
-### Próximas prioridades (Fase 5-8)
+### Próximas prioridades
 
-1. **Producto vs Servicio** — Base para todo (Fase 5)
-2. **Subcategorías + Marca** — Organización del catálogo (Fase 5)
-3. **Tasa de cambio + Símbolo moneda** — Expansión internacional (Fase 8)
-4. **Combos de productos** — Paquetes con descuento (Fase 6)
-5. **Exportar cotización a PDF** — Profesionalismo (Fase 6)
-6. **Facturación fiscal Venezuela** — Cumplimiento legal (Fase 8)
+1. ✅ **Producto vs Servicio** — implementado: columna `tipo`, servicios sin control de stock (migración 017)
+2. ✅ **Subcategorías + Marca** — implementado: tabla `subcategorias`, `productos.marca` (migraciones 018/019)
+3. ✅ **Venta a crédito/fiado** — implementado: método Fiado + página Créditos con abonos (migraciones 020-022)
+4. **Tasa de cambio + Símbolo moneda** — Expansión internacional (Fase 8)
+5. **Combos de productos** — Paquetes con descuento (Fase 6)
+6. **Exportar cotización a PDF** — Profesionalismo (Fase 6)
+7. **Facturación fiscal Venezuela** — Cumplimiento legal (Fase 8)
+
+> El estado por feature vive en `FEATURES.md`; `ROADMAP.md` y `ROADMAP-INTEGRACION.md` son históricos (sus SQL de migraciones propuestas no coinciden con la numeración real).
