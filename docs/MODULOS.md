@@ -31,7 +31,7 @@ La visión de **TOG Platform** es que cada eslabón sea un **módulo activable p
 | 5 | **Postventa** | 🟡 Diseño | Tickets de soporte, devoluciones, garantías, notas de crédito | Core + Comercializador |
 | 6 | **Administración** | 🟡 Diseño | **Submódulo Contable** (libros: compras, ventas, inventario, mayor, diario; retenciones de ley según el país del cliente), reportes de gestión | Core + Comercializador |
 | 7 | **Recursos Humanos** | 🟡 Diseño | Empleados, roles, nómina básica, asistencia (alcance a definir al implementar) | Core |
-| 8 | **Restaurant** | 🟡 Diseño | Mesas, comanda, cocina, cierre de mesa (alcance a definir al implementar) | Core + Comercializador |
+| 8 | **Restaurant** | ✅ MVP v1 (migración 024, gating por licencia y permisos, tests) | Mesas (CRUD + estado libre/ocupada), comanda por mesa (productos del catálogo con precio autocompletado + ítems manuales), pantalla de cocina (en preparación/listo/servido), **cobro de mesa** que factura solo ítems servidos/listos reutilizando `createVenta` (stock, combos, fiado, caja) | Core + Comercializador |
 
 **Leyenda**: ✅ existe · 🟡 en diseño · ⚪ no iniciado
 
@@ -175,6 +175,7 @@ Migración gradual:
 |----------|-----------------|
 | Core + Comercializador (Starter) | $30/mes por empresa + $5/usuario extra |
 | Distribuidor (addon) | $25/mes |
+| Restaurant (addon) | $25/mes |
 | Productor (addon) | $25/mes |
 | Procesador (addon) | $30/mes (más complejo, recetas) |
 | Postventa (addon) | $15/mes |
@@ -213,7 +214,7 @@ Estos números son una **referencia para el roadmap**, no la tabla de precios fi
 - [ ] Módulo Postventa.
 - [ ] Módulo Administración: submódulo **contable** completo (libros: compras, ventas, inventario, mayor, diario; **retenciones de ley según el país del cliente**), reportes de gestión.
 - [ ] Módulo Recursos Humanos (empleados, nómina básica, asistencia).
-- [ ] Módulo Restaurant (mesas, comanda, cocina).
+- [x] Módulo Restaurant (mesas, comanda, cocina) — **MVP v1 (4-Sep-2026)**: ver `docs/DISENO-MODULO-RESTAURANTE.md` y `docs/FEATURES.md` (RST1–RST5). Pendientes v2: cuentas divididas, enrutado de comandas a una impresora térmica dedicada (la impresión de comanda ya existe vía el flujo estándar), propinas, áreas del salón.
 - [ ] Interconexión por red local/Intranet entre PC Base y PC hijas (ver `tog-platform/docs/INTERCONEXION-RED.md`).
 - [ ] Multi-moneda, multi-idioma, fiscal por país.
 

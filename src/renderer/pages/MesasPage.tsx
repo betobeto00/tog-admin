@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Plus, Search, Trash2, Utensils, ArrowRight, Send,
-  CheckCircle, Minus, PlusCircle, Banknote
+  CheckCircle, Minus, PlusCircle, Banknote, Smartphone, Printer
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { useToast } from '../components/ui/Toast'
 import { usePermissions } from '../hooks/usePermissions'
-import { formatCurrency } from '../lib/utils'
+import { formatCurrency, formatDateTime } from '../lib/utils'
 import { callApi } from '../lib/api-client'
 
 interface Mesa {
@@ -75,6 +75,10 @@ export default function MesasPage() {
   const [checkingOut, setCheckingOut] = useState(false)
 
   const [deleteTable, setDeleteTable] = useState<Mesa | null>(null)
+
+  // Modo touch + atajos de teclado (F2 buscar · F5 cobrar · F9 cocina)
+  const [touchMode, setTouchMode] = useState(() => localStorage.getItem('restaurant_touch_mode') === '1')
+  const actionsRef = useRef({ openCheckout: () => {}, sendKitchen: () => {} })
 
   const loadMesas = async () => {
     try {
@@ -200,6 +204,7 @@ export default function MesasPage() {
     try {
       await callApi('comandas:send-kitchen', { comanda_id: comanda.id })
       toast.success(t('restaurant.sentToKitchen'))
+      await printComanda()
       await refreshComanda()
     } catch (err: any) {
       toast.error(err?.message || t('restaurant.error'))
@@ -224,6 +229,74 @@ export default function MesasPage() {
     setCheckoutForm({ metodo_pago: 'efectivo', monto_pagado: comanda.total, deudor_nombre: '' })
     setCheckoutOpen(true)
   }
+
+  const toggleTouchMode = () => {
+    const next = !touchMode
+    setTouchMode(next)
+    localStorage.setItem('restaurant_touch_mode', next ? '1' : '0')
+  }
+
+  const printComanda = async () => {
+    if (!comanda) return
+    let bizName = '', bizAddr = '', bizPhone = ''
+    try {
+      const cfg = await callApi<any[]>('config:get')
+      const get = (k: string) => cfg.find((c: any) => c.clave === k)?.valor || ''
+      bizName = get('nombre_negocio')
+      bizAddr = get('direccion')
+      bizPhone = get('telefono')
+    } catch {}
+    const rows = comanda.detalles
+      .filter((d) => d.estado !== 'cancelado')
+      .map((d) => `<tr><td style="text-align:center">${d.cantidad}</td><td>${d.descripcion}${d.notas ? ` <span style="color:#888">(${d.notas})</span>` : ''}</td></tr>`)
+      .join('')
+    const win = window.open('', '_blank', 'width=400,height=700')
+    if (!win) return
+    win.document.write(`<!DOCTYPE html><html><head><style>
+      body{font-family:monospace;font-size:11px;width:300px;margin:0 auto;padding:12px}
+      h2{text-align:center;margin:4px 0;font-size:14px}
+      table{width:100%;border-collapse:collapse;margin:6px 0}
+      td{padding:2px 0;font-size:11px}
+      .center{text-align:center}hr{border:none;border-top:1px dashed #000;margin:6px 0}
+      .big{font-size:13px;font-weight:bold}
+    </style></head><body>
+      <div class="center big">${bizName || 'TOG Admin'}</div>
+      ${bizAddr ? `<div class="center" style="font-size:9px">${bizAddr}</div>` : ''}
+      ${bizPhone ? `<div class="center" style="font-size:9px">${bizPhone}</div>` : ''}
+      <h2>${t('restaurant.comandaTicket')}</h2>
+      <div class="center">${comanda.mesa_nombre} — #${comanda.id}</div>
+      <div class="center" style="font-size:10px;color:#666">${formatDateTime(new Date().toISOString())}</div>
+      <hr>
+      <table>${rows || `<tr><td class="center">—</td></tr>`}</table>
+      <hr>
+      <div class="center" style="font-size:10px">${t('quotes.receiptThankYou')}</div>
+    </body></html>`)
+    win.document.close()
+    win.print()
+  }
+
+  // Atajos: F2 busca · F5 cobra · F9 envía a cocina (siempre que haya comanda abierta)
+  useEffect(() => {
+    actionsRef.current = { openCheckout, sendKitchen }
+  }, [openCheckout, sendKitchen])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!comanda) return
+      if (e.key === 'F2') {
+        e.preventDefault()
+        document.getElementById('restaurant-search')?.focus()
+      } else if (e.key === 'F5') {
+        e.preventDefault()
+        actionsRef.current.openCheckout()
+      } else if (e.key === 'F9') {
+        e.preventDefault()
+        actionsRef.current.sendKitchen()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [comanda])
 
   const doCheckout = async () => {
     if (!comanda || checkingOut) return
@@ -257,15 +330,23 @@ export default function MesasPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('restaurant.tablesTitle')}</h1>
-          <p className="text-sm text-gray-500">{mesas.length} {t('restaurant.tablesTitle').toLowerCase()}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('restaurant.tablesTitle')}</h1>              <p className="text-sm text-gray-500">{mesas.length} {t('restaurant.tablesTitle').toLowerCase()}</p>
+              <p className="text-xs text-gray-400">{t('restaurant.shortcutHint')}</p>
         </div>
-        {has('restaurant_mesas_edit') && (
-          <button onClick={() => setNewTableOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-            <Plus className="w-4 h-4" /> {t('restaurant.newTable')}
+        <div className="flex items-center gap-2">
+          <button onClick={toggleTouchMode}
+            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+              touchMode ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}>
+            <Smartphone className="w-4 h-4" /> {t('restaurant.touchMode')}
           </button>
-        )}
+          {has('restaurant_mesas_edit') && (
+            <button onClick={() => setNewTableOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+              <Plus className="w-4 h-4" /> {t('restaurant.newTable')}
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -273,16 +354,16 @@ export default function MesasPage() {
       ) : mesas.length === 0 ? (
         <div className="text-center py-16 text-gray-400"><Utensils className="w-12 h-12 mx-auto mb-2 opacity-50" /><p>{t('restaurant.noTables')}</p></div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className={`grid gap-4 ${touchMode ? 'grid-cols-2 md:grid-cols-4 xl:grid-cols-6' : 'grid-cols-2 md:grid-cols-3 xl:grid-cols-4'}`}>
           {mesas.map((mesa) => {
             const libre = mesa.estado === 'libre'
             return (
               <div key={mesa.id}
                 onClick={() => openComanda(mesa)}
-                className={`rounded-xl border p-5 cursor-pointer transition-shadow hover:shadow-md ${libre ? 'bg-white border-gray-200' : 'bg-blue-50 border-blue-200'}`}>
+                className={`rounded-xl border cursor-pointer transition-shadow hover:shadow-md ${touchMode ? 'p-6 min-h-[120px]' : 'p-5'} ${libre ? 'bg-white border-gray-200' : 'bg-blue-50 border-blue-200'}`}>
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="font-bold text-gray-900">{mesa.nombre}</p>
+                    <p className={`font-bold text-gray-900 ${touchMode ? 'text-xl' : ''}`}>{mesa.nombre}</p>
                     <p className="text-xs text-gray-500">{mesa.capacidad} {t('restaurant.capacity').toLowerCase()}</p>
                   </div>
                   <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${libre ? 'bg-green-100 text-green-700' : 'bg-blue-600 text-white'}`}>
@@ -291,7 +372,7 @@ export default function MesasPage() {
                 </div>
                 {!libre && (
                   <div className="mt-3 pt-3 border-t border-blue-100 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-gray-900">{formatCurrency(mesa.total_actual || 0)}</span>
+                    <span className={`font-semibold text-gray-900 ${touchMode ? 'text-lg' : 'text-sm'}`}>{formatCurrency(mesa.total_actual || 0)}</span>
                     <span className="text-xs text-blue-600 flex items-center gap-1">
                       {t('restaurant.openTable')} <ArrowRight className="w-3 h-3" />
                     </span>
@@ -363,19 +444,29 @@ export default function MesasPage() {
               </div>
             </div>
 
-            {comanda.estado === 'abierta' && (
-              <button onClick={sendKitchen}
-                className="w-full py-2.5 text-sm font-semibold text-white bg-orange-500 rounded-lg hover:bg-orange-600 flex items-center justify-center gap-2">
-                <Send className="w-4 h-4" /> {t('restaurant.sendToKitchen')}
+            <div className="flex gap-2">
+              {comanda.estado === 'abierta' && (
+                <button onClick={sendKitchen}
+                  className={`flex-1 font-semibold text-white bg-orange-500 rounded-lg hover:bg-orange-600 flex items-center justify-center gap-2 ${touchMode ? 'py-4 text-lg' : 'py-2.5 text-sm'}`}>
+                  <Send className="w-5 h-5" /> {t('restaurant.sendToKitchen')} <span className="text-xs opacity-70 hidden md:inline">F9</span>
+                </button>
+              )}
+              <button onClick={printComanda}
+                className={`px-4 font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 flex items-center justify-center gap-2 ${touchMode ? 'py-4 text-lg' : 'py-2.5 text-sm'}`}
+                title={t('restaurant.printComanda')}>
+                <Printer className="w-5 h-5" />
               </button>
-            )}
+            </div>
 
             {/* Agregar ítem */}
             <div className="bg-gray-50 rounded-xl p-4 space-y-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input value={searchProd} onChange={(e) => setSearchProd(e.target.value)} placeholder={t('restaurant.searchProduct')}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+                <input id="restaurant-search" value={searchProd}
+                  onChange={(e) => setSearchProd(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && searchResults.length > 0) { e.preventDefault(); addProductItem(searchResults[0]) } }}
+                  placeholder={`${t('restaurant.searchProduct')} ${touchMode ? '(F2)' : ''}`}
+                  className={`w-full pl-10 pr-4 border border-gray-200 rounded-lg bg-white ${touchMode ? 'py-3 text-base' : 'py-2 text-sm'}`} />
                 {searchResults.length > 0 && (
                   <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                     {searchResults.map((p) => (
@@ -469,8 +560,8 @@ export default function MesasPage() {
 
             <div className="flex justify-end pt-2 border-t border-gray-100">
               <button onClick={openCheckout} disabled={comanda.detalles.length === 0}
-                className="px-6 py-2.5 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-green-300 flex items-center gap-2">
-                <Banknote className="w-4 h-4" /> {t('restaurant.chargeTable')} — {formatCurrency(totalCobrar)}
+                className={`px-6 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-green-300 flex items-center gap-2 ${touchMode ? 'py-4 text-lg' : 'py-2.5 text-sm'}`}>
+                <Banknote className="w-5 h-5" /> {t('restaurant.chargeTable')} — {formatCurrency(totalCobrar)} <span className="text-xs opacity-70 hidden md:inline">F5</span>
               </button>
             </div>
           </div>

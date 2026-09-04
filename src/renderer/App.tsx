@@ -22,6 +22,7 @@ import ListasPrecioPage from './pages/ListasPrecioPage'
 import MesasPage from './pages/MesasPage'
 import CocinaPage from './pages/CocinaPage'
 import ReportesPage from './pages/ReportesPage'
+import ReportesVisualesPage from './pages/ReportesVisualesPage'
 import ConfigPage from './pages/ConfigPage'
 import QuotesPage from './pages/QuotesPage'
 import HelpPage from './pages/HelpPage'
@@ -90,6 +91,7 @@ export default function App() {
           <Route path="restaurant-mesas" element={<MesasPage />} />
           <Route path="restaurant-cocina" element={<CocinaPage />} />
           <Route path="reportes" element={<ReportesPage />} />
+          <Route path="reportes-visuales" element={<ReportesVisualesPage />} />
           <Route path="cotizaciones" element={<QuotesPage />} />
           <Route path="configuracion" element={<ConfigPage />} />
           <Route path="ayuda" element={<HelpPage />} />

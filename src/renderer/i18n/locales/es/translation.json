@@ -82,7 +82,8 @@
     "remitos": "Remitos",
     "priceLists": "Listas de Precio",
     "restaurantTables": "Mesas",
-    "restaurantKitchen": "Cocina"
+    "restaurantKitchen": "Cocina",
+    "visualReports": "Reportes Visuales"
   },
   "restaurant": {
     "title": "Restaurant",
@@ -132,6 +133,10 @@
     "deleteTable": "Eliminar mesa",
     "deleteTableMsg": "La mesa se ocultará. Solo puedes eliminar mesas libres.",
     "noItems": "Aún no hay ítems en la comanda",
+    "touchMode": "Modo touch",
+    "shortcutHint": "Atajos: F2 buscar · F5 cobrar · F9 cocina",
+    "printComanda": "Imprimir comanda",
+    "comandaTicket": "COMANDA",
     "refresh": "Refrescar",
     "error": "Error",
     "saving": "Guardando…"
@@ -682,6 +687,37 @@
     "periodLabel": "Período:",
     "generated": "Generado:",
     "periodSummary": "ventas en {{days}} días"
+  },
+  "reportesVisuales": {
+    "title": "Reportes Visuales",
+    "subtitle": "Arma reportes a tu medida: elige la fuente, las columnas y exporta",
+    "dataSource": "Fuente de datos",
+    "fields": "Columnas visibles",
+    "dateRange": "Período",
+    "from": "Desde",
+    "to": "Hasta",
+    "generate": "Generar reporte",
+    "exportCsv": "Exportar CSV",
+    "exportPdf": "Exportar PDF",
+    "rows": "filas",
+    "noData": "Sin datos para el período seleccionado",
+    "sourceSalesPerDay": "Ventas por día",
+    "sourceTopProducts": "Productos más vendidos",
+    "sourceByCategory": "Ventas por categoría",
+    "sourceRecentSales": "Últimas ventas",
+    "fDate": "Fecha",
+    "fSales": "Ventas",
+    "fAmount": "Monto",
+    "fProduct": "Producto",
+    "fCode": "Código",
+    "fUnits": "Unidades",
+    "fIncome": "Ingreso",
+    "fCategory": "Categoría",
+    "fNumber": "N°",
+    "fUser": "Usuario",
+    "fMethod": "Método de pago",
+    "fTotal": "Total",
+    "generated": "Generado"
   },
   "quotes": {
     "title": "Cotizaciones",

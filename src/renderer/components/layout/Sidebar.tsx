@@ -21,6 +21,7 @@ import {
   Tag,
   Utensils,
   ChefHat,
+  PieChart,
 } from 'lucide-react'
 import type { ModuleId } from '@shared/modules'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -49,6 +50,7 @@ export default function Sidebar() {
     { to: '/restaurant-cocina', icon: ChefHat, label: t('nav.restaurantKitchen'), permission: 'restaurant_comandas_view', modulo: 'restaurant' as ModuleId },
     { to: '/cotizaciones', icon: FileText, label: t('nav.quotes'), permission: 'quotes_access' },
     { to: '/reportes', icon: BarChart3, label: t('nav.reports'), permission: 'reportes_access' },
+    { to: '/reportes-visuales', icon: PieChart, label: t('nav.visualReports'), permission: 'reportes_access' },
     { to: '/configuracion', icon: Settings, label: t('nav.settings'), permission: 'config_access' },
     { to: '/ayuda', icon: HelpCircle, label: t('nav.help'), permission: null as string | null },
   ]

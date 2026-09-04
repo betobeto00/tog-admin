@@ -82,7 +82,8 @@
     "remitos": "Delivery Notes",
     "priceLists": "Price Lists",
     "restaurantTables": "Tables",
-    "restaurantKitchen": "Kitchen"
+    "restaurantKitchen": "Kitchen",
+    "visualReports": "Visual Reports"
   },
   "restaurant": {
     "title": "Restaurant",
@@ -132,6 +133,10 @@
     "deleteTable": "Delete table",
     "deleteTableMsg": "The table will be hidden. You can only delete free tables.",
     "noItems": "No items on this order yet",
+    "touchMode": "Touch mode",
+    "shortcutHint": "Shortcuts: F2 search · F5 charge · F9 kitchen",
+    "printComanda": "Print order",
+    "comandaTicket": "KITCHEN ORDER",
     "refresh": "Refresh",
     "error": "Error",
     "saving": "Saving…"
@@ -682,6 +687,37 @@
     "periodLabel": "Period:",
     "generated": "Generated:",
     "periodSummary": "sales in {{days}} days"
+  },
+  "reportesVisuales": {
+    "title": "Visual Reports",
+    "subtitle": "Build reports your way: pick the source, the columns and export",
+    "dataSource": "Data source",
+    "fields": "Visible columns",
+    "dateRange": "Period",
+    "from": "From",
+    "to": "To",
+    "generate": "Generate report",
+    "exportCsv": "Export CSV",
+    "exportPdf": "Export PDF",
+    "rows": "rows",
+    "noData": "No data for the selected period",
+    "sourceSalesPerDay": "Sales per day",
+    "sourceTopProducts": "Top products",
+    "sourceByCategory": "Sales by category",
+    "sourceRecentSales": "Recent sales",
+    "fDate": "Date",
+    "fSales": "Sales",
+    "fAmount": "Amount",
+    "fProduct": "Product",
+    "fCode": "Code",
+    "fUnits": "Units",
+    "fIncome": "Income",
+    "fCategory": "Category",
+    "fNumber": "#",
+    "fUser": "User",
+    "fMethod": "Payment method",
+    "fTotal": "Total",
+    "generated": "Generated"
   },
   "quotes": {
     "title": "Quotes",

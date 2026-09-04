@@ -145,6 +145,8 @@
 | RST3 | Pantalla de cocina | 🔴 | ✅ | Pedidos pendientes por comanda; marcar en preparación / listo / servido; comanda queda `servida` al servir todo |
 | RST4 | Cobro de mesa | 🔴 | ✅ | `comandas:checkout` factura solo ítems servidos/listos reutilizando `createVenta` (stock, combos, fiado, caja); libera la mesa |
 | RST5 | Gating por licencia y permisos | 🔴 | ✅ | Menú/rutas/handlers solo con módulo `restaurant` en la licencia + permisos `restaurant_*` |
+| RST6 | Modo touch + atajos | 🟡 | ✅ | Modo touch (botones grandes, persistido) + atajos F2 buscar / F5 cobrar / F9 cocina |
+| RST7 | Impresión de comanda | 🟡 | ✅ | Ticket térmico de comanda al enviar a cocina + botón imprimir (misma convención de impresión del Core) |
 
 ---
 
@@ -237,7 +239,7 @@
 | F7 | Venta a crédito/fiado | 🟡 | ✅ | Cuentas por cobrar: deudores, abonos y saldos (Fase 3) |
 | F8 | Imprimir etiquetas | 🟡 | ⏳ | Etiquetas con código de barras (Fase 3) |
 | F9 | WiFi para VP800 | 🟡 | ⏳ | Comunicación WiFi vía Valor Connect (Fase 3) |
-| F10 | Reportes modificables visuales | 🔴 | ⏳ | Herramienta visual para armar/editear reportes (arrastrar campos, filtros, exportar) sin código |
+| F10 | Reportes modificables visuales | 🔴 | ✅ | **Reportes Visuales** (`/reportes-visuales`): elegir fuente (ventas por día, top productos, por categoría, últimas ventas), columnas visibles, período → previsualización + exportar CSV/PDF |
 | F11 | Feedback desde el login | 🟢 | ✅ | Botón en pantalla de login que envía feedback del cliente a un bot de Telegram del dueño (token configurable en Configuración → Sistema) |
 | F12 | Manager remoto | 🟡 | ⏳ | Rol manager: ver reportes remotos, agregar productos y modificar precios sin estar en la caja |
 
@@ -255,13 +257,13 @@
 | Compras | 4 | 4 | 0 |
 | Proveedores | 3 | 3 | 0 |
 | Distribuidor | 6 | 6 | 0 |
-| Restaurant | 5 | 5 | 0 |
+| Restaurant | 7 | 7 | 0 |
 | Cotizaciones | 7 | 7 | 0 |
-| Reportes | 7 | 6 | 1 |
+| Reportes | 7 | 7 | 0 |
 | Configuración | 11 | 11 | 0 |
 | Seguridad | 8 | 8 | 0 |
 | Infraestructura | 8 | 5 | 3 |
 | Futuro/Expansión | 12 | 3 | 9 |
-| **TOTAL** | **128** | **113** | **15** |
+| **TOTAL** | **130** | **116** | **14** |
 
-**Porcentaje completado: 88.3%**
+**Porcentaje completado: 89.2%**
