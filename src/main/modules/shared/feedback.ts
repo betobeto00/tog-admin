@@ -1,11 +1,10 @@
 import { app } from 'electron'
 import { handleIpc } from '../../core/auth/ipc-guard'
-import { getConfig } from '../../services/configCache'
 
 export function registerFeedbackHandlers(): void {
   handleIpc('feedback:send', async (_event, data: { mensaje: string; contacto?: string }) => {
-    const botToken = getConfig('telegram_bot_token') || process.env.TELEGRAM_BOT_TOKEN || ''
-    const chatId = getConfig('telegram_chat_id') || process.env.TELEGRAM_CHAT_ID || ''
+    const botToken = process.env.TELEGRAM_BOT_TOKEN || ''
+    const chatId = process.env.TELEGRAM_CHAT_ID || ''
 
     if (!botToken || !chatId) {
       return { success: false, error: 'Feedback no configurado (token/chat de Telegram)' }

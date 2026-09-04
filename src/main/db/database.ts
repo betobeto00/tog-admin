@@ -619,6 +619,28 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
           ('Mesa 4', 2, 'libre'), ('Mesa 5', 6, 'libre'), ('Mesa 6', 2, 'libre');
       `,
     },
+    {
+      nombre: '025_reportes_guardados',
+      sql: `
+        CREATE TABLE IF NOT EXISTS reportes_guardados (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+          nombre TEXT NOT NULL,
+          fuente TEXT NOT NULL,
+          campos TEXT NOT NULL,
+          fecha_inicio TEXT,
+          fecha_fin TEXT,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_reportes_guardados_usuario ON reportes_guardados(usuario_id);
+      `,
+    },
+    {
+      nombre: '026_remove_telegram_config',
+      sql: `
+        DELETE FROM configuracion WHERE clave IN ('telegram_bot_token', 'telegram_chat_id');
+      `,
+    },
   ]
 }
 
