@@ -1,16 +1,16 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 
 export function registerCategoriasHandlers(): void {
-  ipcMain.handle('categorias:list', async (_event, data: any) => {
+  handleIpc('categorias:list', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'categorias:list', 'inventario_access')
     if (fail) return fail
     const db = getDatabase()
     return db.prepare('SELECT * FROM categorias WHERE activo = 1 ORDER BY nombre').all()
   })
 
-  ipcMain.handle('categorias:create', async (_event, data: any) => {
+  handleIpc('categorias:create', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'categorias:create', 'inventario_categories')
     if (fail) return fail
     const db = getDatabase()
@@ -21,7 +21,7 @@ export function registerCategoriasHandlers(): void {
     return { id: result.lastInsertRowid }
   })
 
-  ipcMain.handle('categorias:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
+  handleIpc('categorias:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'categorias:update', 'inventario_categories')
     if (fail) return fail
     const db = getDatabase()
@@ -33,7 +33,7 @@ export function registerCategoriasHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('categorias:delete', async (_event, data: { id: number; usuario_id: number }) => {
+  handleIpc('categorias:delete', async (_event, data: { id: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'categorias:delete', 'inventario_categories')
     if (fail) return fail
     const db = getDatabase()

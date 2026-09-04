@@ -136,6 +136,18 @@
 
 ---
 
+## Módulo: Restaurant 🟡 (adicional por licencia)
+
+| # | Feature | Prioridad | Estado | Descripción |
+|---|---------|-----------|--------|-------------|
+| RST1 | CRUD de mesas | 🔴 | ✅ | Mesas con capacidad y estado (libre/ocupada); seeds iniciales; borrado lógico |
+| RST2 | Comanda por mesa | 🔴 | ✅ | Abrir mesa, agregar productos del catálogo (precio autocompletado) o ítems manuales, mover mesa |
+| RST3 | Pantalla de cocina | 🔴 | ✅ | Pedidos pendientes por comanda; marcar en preparación / listo / servido; comanda queda `servida` al servir todo |
+| RST4 | Cobro de mesa | 🔴 | ✅ | `comandas:checkout` factura solo ítems servidos/listos reutilizando `createVenta` (stock, combos, fiado, caja); libera la mesa |
+| RST5 | Gating por licencia y permisos | 🔴 | ✅ | Menú/rutas/handlers solo con módulo `restaurant` en la licencia + permisos `restaurant_*` |
+
+---
+
 ## Módulo: Cotizaciones 🟡
 
 | # | Feature | Prioridad | Estado | Descripción |
@@ -145,8 +157,8 @@
 | Q3 | Detalle de cotización | 🟡 | ✅ | Ver items y totales |
 | Q4 | Editar cotización | 🟡 | ✅ | Modificar cotización existente |
 | Q5 | Eliminar cotización | 🟡 | ✅ | Eliminar cotización |
-| Q6 | Exportar cotización a PDF | 🔴 | ⏳ | Generar PDF profesional con template (Fase 6) |
-| Q7 | Convertir cotización a venta | 🟡 | ⏳ | From QuotesPage → crear venta (Fase 6) |
+| Q6 | Exportar cotización a PDF | 🔴 | ✅ | Plantilla A4 imprimible/guardable como PDF con encabezado de la empresa (misma convención print-to-PDF de Reportes) |
+| Q7 | Convertir cotización a venta | 🟡 | ✅ | Modal de cobro (método de pago + monto) → crea la venta real vía `ventas:create` y marca la cotización como `convertida` |
 
 ---
 
@@ -177,7 +189,7 @@
 | CF7 | Gestión de usuarios | 🔴 | ✅ | CRUD de usuarios con roles y permisos |
 | CF8 | Tutorial | 🟢 | ✅ | Onboarding de 5 pasos |
 | CF9 | Métodos de pago | 🟡 | ✅ | Configurar métodos de pago (efectivo, tarjeta, etc.) |
-| CF10 | **Tasa de cambio** | 🔴 | ⏳ | Configurar tasa de cambio y símbolo de moneda (Fase 8) |
+| CF10 | **Tasa de cambio** | 🔴 | ✅ | Campo `tasa_cambio` en Config → Negocio (referencia, no altera precios) |
 | CF11 | **Módulos de TOG Platform** | 🔴 | ✅ | Catálogo de módulos por licencia (estado, importar v2, **Sincronizar** desde el backend) |
 
 ---
@@ -192,8 +204,8 @@
 | SEC4 | Session timeout | 🔴 | ✅ | 30 min de inactividad |
 | SEC5 | Password hashing (bcrypt) | 🔴 | ✅ | 10 salt rounds |
 | SEC6 | ErrorBoundary + Crash Reports | 🟡 | ✅ | Captura de errores + reportes automáticos |
-| SEC7 | CSP headers | 🟢 | ⏳ | Content Security Policy |
-| SEC8 | Validar origen IPC | 🟢 | ⏳ | webContents.getURL validation |
+| SEC7 | CSP headers | 🟢 | ✅ | CSP meta: estricta en producción (sin inline scripts), relajada en dev vía `inject-csp` (Vite) |
+| SEC8 | Validar origen IPC | 🟢 | ✅ | Guard `handleIpc` (`core/auth/ipc-guard.ts`): solo main-frame + file:// o dev-server; todos los handlers pasan por él |
 
 ---
 
@@ -243,12 +255,13 @@
 | Compras | 4 | 4 | 0 |
 | Proveedores | 3 | 3 | 0 |
 | Distribuidor | 6 | 6 | 0 |
-| Cotizaciones | 7 | 5 | 2 |
+| Restaurant | 5 | 5 | 0 |
+| Cotizaciones | 7 | 7 | 0 |
 | Reportes | 7 | 6 | 1 |
-| Configuración | 11 | 10 | 1 |
-| Seguridad | 8 | 6 | 2 |
+| Configuración | 11 | 11 | 0 |
+| Seguridad | 8 | 8 | 0 |
 | Infraestructura | 8 | 5 | 3 |
 | Futuro/Expansión | 12 | 3 | 9 |
-| **TOTAL** | **123** | **103** | **20** |
+| **TOTAL** | **128** | **113** | **15** |
 
-**Porcentaje completado: 83.7%**
+**Porcentaje completado: 88.3%**

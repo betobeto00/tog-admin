@@ -249,6 +249,28 @@ export const PERMISSIONS = {
     category: { es: 'Distribuidor', en: 'Distributor' },
     description: { es: 'Crear y editar listas de precio', en: 'Create and edit price lists' },
   },
+
+  // === RESTAURANT ===
+  restaurant_mesas_view: {
+    label: { es: 'Ver Mesas', en: 'View Tables' },
+    category: { es: 'Restaurant', en: 'Restaurant' },
+    description: { es: 'Ver el salón de mesas del módulo Restaurant', en: 'View the dining room tables of the Restaurant module' },
+  },
+  restaurant_mesas_edit: {
+    label: { es: 'Gestionar Mesas', en: 'Manage Tables' },
+    category: { es: 'Restaurant', en: 'Restaurant' },
+    description: { es: 'Crear, editar y eliminar mesas', en: 'Create, edit and delete tables' },
+  },
+  restaurant_comandas_view: {
+    label: { es: 'Ver Comandas', en: 'View Orders' },
+    category: { es: 'Restaurant', en: 'Restaurant' },
+    description: { es: 'Ver comandas y pantalla de cocina', en: 'View table orders and the kitchen screen' },
+  },
+  restaurant_comandas_edit: {
+    label: { es: 'Crear/Cobrar Comandas', en: 'Create/Charge Orders' },
+    category: { es: 'Restaurant', en: 'Restaurant' },
+    description: { es: 'Abrir comandas, agregar ítems, enviar a cocina y cobrar la mesa', en: 'Open orders, add items, send to kitchen and charge the table' },
+  },
 } as const
 
 export type PermissionKey = keyof typeof PERMISSIONS
@@ -289,6 +311,7 @@ export const PERMISSION_CATEGORIES = [
   { key: 'Cotizaciones', icon: '📝', color: 'cyan' },
   { key: 'Reportes', icon: '📊', color: 'indigo' },
   { key: 'Distribuidor', icon: '🚚', color: 'orange' },
+  { key: 'Restaurant', icon: '🍽️', color: 'yellow' },
   { key: 'Administración', icon: '⚙️', color: 'red' },
 ] as const
 

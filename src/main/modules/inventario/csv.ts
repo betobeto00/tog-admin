@@ -1,11 +1,12 @@
-import { dialog, ipcMain } from 'electron'
+import { dialog } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import fs from 'fs'
 import { getDatabase } from '../../db/database'
 import { t } from '../../i18n'
 import { checkPermissionOrFail } from '../../core/auth'
 
 export function registerProductosCsvHandlers(): void {
-  ipcMain.handle('productos:export-csv', async (_event, data?: any) => {
+  handleIpc('productos:export-csv', async (_event, data?: any) => {
     const fail = checkPermissionOrFail(data, 'productos:export-csv', 'reportes_export')
     if (fail) return fail
     try {
@@ -41,7 +42,7 @@ export function registerProductosCsvHandlers(): void {
     }
   })
 
-  ipcMain.handle('productos:import-csv', async (_event, filePath: string, data?: any) => {
+  handleIpc('productos:import-csv', async (_event, filePath: string, data?: any) => {
     const fail = checkPermissionOrFail(data, 'productos:import-csv', 'inventario_create')
     if (fail) return fail
     try {

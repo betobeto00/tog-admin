@@ -1,16 +1,16 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 
 export function registerUnidadesHandlers(): void {
-  ipcMain.handle('unidades:list', async (_event, data: any) => {
+  handleIpc('unidades:list', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'unidades:list', 'inventario_access')
     if (fail) return fail
     const db = getDatabase()
     return db.prepare('SELECT * FROM unidades_medida WHERE activo = 1 ORDER BY nombre').all()
   })
 
-  ipcMain.handle('unidades:create', async (_event, data: any) => {
+  handleIpc('unidades:create', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'unidades:create', 'inventario_units')
     if (fail) return fail
     const db = getDatabase()
@@ -21,7 +21,7 @@ export function registerUnidadesHandlers(): void {
     return { id: result.lastInsertRowid }
   })
 
-  ipcMain.handle('unidades:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
+  handleIpc('unidades:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'unidades:update', 'inventario_units')
     if (fail) return fail
     const db = getDatabase()
@@ -33,7 +33,7 @@ export function registerUnidadesHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('unidades:delete', async (_event, data: { id: number; usuario_id: number }) => {
+  handleIpc('unidades:delete', async (_event, data: { id: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'unidades:delete', 'inventario_units')
     if (fail) return fail
     const db = getDatabase()

@@ -1,12 +1,182 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { getActiveModules } from '../../services/license'
 import { ventaCreateSchema } from '../../../shared/validations'
 import { esCombo, explotar, agruparHojas } from '../inventario/combos'
 
+/**
+ * Crea una venta completa (validación, stock, combos, crédito/fiado y caja).
+ * Compartido por `ventas:create` y el cobro de mesas del módulo Restaurant
+ * (`comandas:checkout`).
+ */
+export function createVenta(data: any): any {
+  const parsed = ventaCreateSchema.safeParse(data)
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0].message }
+  }
+  const db = getDatabase()
+  const esFiado = data.metodo_pago === 'fiado'
+  let clienteRes: any = null
+
+  if (data.cliente_id) {
+    if (!getActiveModules().includes('distribuidor')) {
+      return { success: false, error: 'El módulo Distribuidor no está activo en la licencia' }
+    }
+    const cliente = db.prepare('SELECT id, nombre, limite_credito FROM clientes WHERE id = ? AND activo = 1').get(data.cliente_id) as any
+    if (!cliente) {
+      return { success: false, error: 'Cliente no encontrado' }
+    }
+    clienteRes = cliente
+    if (esFiado && cliente.limite_credito > 0) {
+      const deuda = db.prepare(`
+        SELECT COALESCE(SUM(saldo), 0) as total FROM creditos
+        WHERE cliente_id = ? AND estado = 'pendiente'
+      `).get(data.cliente_id) as any
+      if ((deuda.total || 0) + data.total > cliente.limite_credito) {
+        return {
+          success: false,
+          error: `Límite de crédito excedido para "${cliente.nombre}". Disponible: ${cliente.limite_credito - (deuda.total || 0)}`,
+        }
+      }
+    }
+  }
+
+  // Validación de stock. Un producto compuesto valida sus hojas (componentes
+  // sin componentes propios); un producto normal valida su propio stock.
+  const hojasPorDetalle: Map<number, { producto_id: number; nombre: string; tipo: string; cantidad: number }[]> = new Map()
+  for (let idx = 0; idx < data.detalles.length; idx++) {
+    const det = data.detalles[idx]
+    if (!det.producto_id) continue
+    const producto = db.prepare('SELECT id, nombre, stock, tipo FROM productos WHERE id = ?').get(det.producto_id) as any
+    if (!producto) {
+      return { success: false, error: `Producto con ID ${det.producto_id} no encontrado` }
+    }
+    if (esCombo(db, det.producto_id)) {
+      const hojas = agruparHojas(explotar(db, det.producto_id, det.cantidad))
+      hojasPorDetalle.set(idx, hojas)
+      for (const hoja of hojas) {
+        if (hoja.tipo === 'servicio') continue
+        const stockHoja = (db.prepare('SELECT stock FROM productos WHERE id = ?').get(hoja.producto_id) as any)?.stock ?? 0
+        if (Number(stockHoja) < hoja.cantidad) {
+          return { success: false, error: `Stock insuficiente de "${hoja.nombre}" para el combo "${producto.nombre}". Disponible: ${stockHoja}, Necesario: ${hoja.cantidad}` }
+        }
+      }
+    } else if (producto.tipo !== 'servicio' && producto.stock < det.cantidad) {
+      return { success: false, error: `Stock insuficiente para "${producto.nombre}". Disponible: ${producto.stock}, Solicitado: ${det.cantidad}` }
+    }
+  }
+
+  const insertVenta = db.transaction(() => {
+    const hoy = new Date().toISOString().split('T')[0]
+    const lastVenta = db!.prepare(
+      "SELECT MAX(numero_venta) as max_num FROM ventas WHERE DATE(fecha) = ?"
+    ).get(hoy) as any
+    const numeroVenta = (lastVenta?.max_num || 0) + 1
+
+    const result = db!.prepare(`
+      INSERT INTO ventas (numero_venta, usuario_id, subtotal, impuesto, descuento, total,
+        metodo_pago, monto_pagado, cambio, notas)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      numeroVenta,
+      data.usuario_id,
+      data.subtotal,
+      data.impuesto,
+      data.descuento,
+      data.total,
+      data.metodo_pago,
+      data.monto_pagado,
+      data.cambio,
+      data.notas || null,
+    )
+
+    const ventaId = result.lastInsertRowid
+
+    const insertDetalle = db!.prepare(`
+      INSERT INTO venta_detalles (venta_id, producto_id, descripcion, cantidad, precio_unitario, descuento, subtotal, notas)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `)
+    const updateStock = db!.prepare(
+      "UPDATE productos SET stock = stock - ? WHERE id = ? AND tipo != 'servicio'"
+    )
+    const insertComponente = db!.prepare(
+      'INSERT INTO venta_detalle_componentes (venta_detalle_id, componente_id, cantidad) VALUES (?, ?, ?)'
+    )
+
+    for (let idx = 0; idx < data.detalles.length; idx++) {
+      const det = data.detalles[idx]
+      const detalleResult = insertDetalle.run(
+        ventaId,
+        det.producto_id || null,
+        det.descripcion || null,
+        det.cantidad,
+        det.precio_unitario,
+        det.descuento,
+        det.subtotal,
+        det.notas || null,
+      )
+      const ventaDetalleId = detalleResult.lastInsertRowid
+      const hojas = hojasPorDetalle.get(idx)
+      if (det.producto_id && hojas) {
+        // Combo: descontar stock de cada hoja y guardar snapshot para el desglose
+        for (const hoja of hojas) {
+          updateStock.run(hoja.cantidad, hoja.producto_id)
+          insertComponente.run(ventaDetalleId, hoja.producto_id, hoja.cantidad)
+        }
+      } else if (det.producto_id) {
+        updateStock.run(det.cantidad, det.producto_id)
+      }
+    }
+
+    let creditoId: number | null = null
+    if (esFiado) {
+      const saldo = Math.max(0, data.total - (data.monto_pagado || 0))
+      const resultCredito = db!.prepare(`
+        INSERT INTO creditos (venta_id, cliente_id, deudor_nombre, deudor_telefono, deudor_documento,
+          monto_total, saldo, estado, usuario_id, notas)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        ventaId,
+        data.cliente_id || null,
+        clienteRes ? clienteRes.nombre : (data.deudor_nombre || 'Cliente'),
+        data.deudor_telefono || null,
+        data.deudor_documento || null,
+        data.total,
+        saldo,
+        saldo <= 0.005 ? 'pagado' : 'pendiente',
+        data.usuario_id,
+        data.notas || null,
+      )
+      creditoId = resultCredito.lastInsertRowid as number
+    }
+
+    const cajaAbierta = db!.prepare("SELECT id FROM caja WHERE estado = 'abierta' LIMIT 1").get() as any
+    const montoCaja = esFiado ? (data.monto_pagado || 0) : data.total
+    if (cajaAbierta && montoCaja > 0) {
+      db!.prepare(`
+        INSERT INTO movimientos_caja (caja_id, tipo, monto, descripcion, referencia_id)
+        VALUES (?, 'venta', ?, ?, ?)
+      `).run(cajaAbierta.id, montoCaja, esFiado ? `Venta #${numeroVenta} (fiado)` : `Venta #${numeroVenta}`, ventaId)
+
+      db!.prepare('UPDATE caja SET total_ventas = total_ventas + ? WHERE id = ?').run(
+        montoCaja, cajaAbierta.id,
+      )
+    }
+
+    db!.prepare(
+      "UPDATE configuracion SET valor = ? WHERE clave = 'ticket_numero_venta'"
+    ).run(String(numeroVenta))
+
+    return { id: ventaId, numero_venta: numeroVenta, credito_id: creditoId }
+  })
+
+  const result = insertVenta()
+  return { success: true, ...result }
+}
+
 export function registerVentasHandlers(): void {
-  ipcMain.handle('ventas:list', async (_event, filters?: any) => {
+  handleIpc('ventas:list', async (_event, filters?: any) => {
     const fail = checkPermissionOrFail(filters, 'ventas:list', 'pos_access')
     if (fail) return fail
     const db = getDatabase()
@@ -31,7 +201,7 @@ export function registerVentasHandlers(): void {
     return db.prepare(sql).all(...params)
   })
 
-  ipcMain.handle('ventas:getById', async (_event, data: { id: number; usuario_id: number }) => {
+  handleIpc('ventas:getById', async (_event, data: { id: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'ventas:getById', 'pos_access')
     if (fail) return fail
     const db = getDatabase()
@@ -66,175 +236,13 @@ export function registerVentasHandlers(): void {
     return venta
   })
 
-  ipcMain.handle('ventas:create', async (_event, data: any) => {
+  handleIpc('ventas:create', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'ventas:create', 'pos_access')
     if (fail) return fail
-    const parsed = ventaCreateSchema.safeParse(data)
-    if (!parsed.success) {
-      return { success: false, error: parsed.error.errors[0].message }
-    }
-
-    const db = getDatabase()
-    const esFiado = data.metodo_pago === 'fiado'
-    let clienteRes: any = null
-
-    if (data.cliente_id) {
-      if (!getActiveModules().includes('distribuidor')) {
-        return { success: false, error: 'El módulo Distribuidor no está activo en la licencia' }
-      }
-      const cliente = db.prepare('SELECT id, nombre, limite_credito FROM clientes WHERE id = ? AND activo = 1').get(data.cliente_id) as any
-      if (!cliente) {
-        return { success: false, error: 'Cliente no encontrado' }
-      }
-      clienteRes = cliente
-      if (esFiado && cliente.limite_credito > 0) {
-        const deuda = db.prepare(`
-          SELECT COALESCE(SUM(saldo), 0) as total FROM creditos
-          WHERE cliente_id = ? AND estado = 'pendiente'
-        `).get(data.cliente_id) as any
-        if ((deuda.total || 0) + data.total > cliente.limite_credito) {
-          return {
-            success: false,
-            error: `Límite de crédito excedido para "${cliente.nombre}". Disponible: ${cliente.limite_credito - (deuda.total || 0)}`,
-          }
-        }
-      }
-    }
-
-    // Validación de stock. Un producto compuesto valida sus hojas (componentes
-    // sin componentes propios); un producto normal valida su propio stock.
-    const hojasPorDetalle: Map<number, { producto_id: number; nombre: string; tipo: string; cantidad: number }[]> = new Map()
-    for (let idx = 0; idx < data.detalles.length; idx++) {
-      const det = data.detalles[idx]
-      if (!det.producto_id) continue
-      const producto = db.prepare('SELECT id, nombre, stock, tipo FROM productos WHERE id = ?').get(det.producto_id) as any
-      if (!producto) {
-        return { success: false, error: `Producto con ID ${det.producto_id} no encontrado` }
-      }
-      if (esCombo(db, det.producto_id)) {
-        const hojas = agruparHojas(explotar(db, det.producto_id, det.cantidad))
-        hojasPorDetalle.set(idx, hojas)
-        for (const hoja of hojas) {
-          if (hoja.tipo === 'servicio') continue
-          const stockHoja = (db.prepare('SELECT stock FROM productos WHERE id = ?').get(hoja.producto_id) as any)?.stock ?? 0
-          if (Number(stockHoja) < hoja.cantidad) {
-            return { success: false, error: `Stock insuficiente de "${hoja.nombre}" para el combo "${producto.nombre}". Disponible: ${stockHoja}, Necesario: ${hoja.cantidad}` }
-          }
-        }
-      } else if (producto.tipo !== 'servicio' && producto.stock < det.cantidad) {
-        return { success: false, error: `Stock insuficiente para "${producto.nombre}". Disponible: ${producto.stock}, Solicitado: ${det.cantidad}` }
-      }
-    }
-
-    const createVenta = db.transaction(() => {
-      const hoy = new Date().toISOString().split('T')[0]
-      const lastVenta = db!.prepare(
-        "SELECT MAX(numero_venta) as max_num FROM ventas WHERE DATE(fecha) = ?"
-      ).get(hoy) as any
-      const numeroVenta = (lastVenta?.max_num || 0) + 1
-
-      const result = db!.prepare(`
-        INSERT INTO ventas (numero_venta, usuario_id, subtotal, impuesto, descuento, total,
-          metodo_pago, monto_pagado, cambio, notas)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        numeroVenta,
-        data.usuario_id,
-        data.subtotal,
-        data.impuesto,
-        data.descuento,
-        data.total,
-        data.metodo_pago,
-        data.monto_pagado,
-        data.cambio,
-        data.notas || null,
-      )
-
-      const ventaId = result.lastInsertRowid
-
-      const insertDetalle = db!.prepare(`
-        INSERT INTO venta_detalles (venta_id, producto_id, descripcion, cantidad, precio_unitario, descuento, subtotal, notas)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `)
-      const updateStock = db!.prepare(
-        "UPDATE productos SET stock = stock - ? WHERE id = ? AND tipo != 'servicio'"
-      )
-      const insertComponente = db!.prepare(
-        'INSERT INTO venta_detalle_componentes (venta_detalle_id, componente_id, cantidad) VALUES (?, ?, ?)'
-      )
-
-      for (let idx = 0; idx < data.detalles.length; idx++) {
-        const det = data.detalles[idx]
-        const detalleResult = insertDetalle.run(
-          ventaId,
-          det.producto_id || null,
-          det.descripcion || null,
-          det.cantidad,
-          det.precio_unitario,
-          det.descuento,
-          det.subtotal,
-          det.notas || null,
-        )
-        const ventaDetalleId = detalleResult.lastInsertRowid
-        const hojas = hojasPorDetalle.get(idx)
-        if (det.producto_id && hojas) {
-          // Combo: descontar stock de cada hoja y guardar snapshot para el desglose
-          for (const hoja of hojas) {
-            updateStock.run(hoja.cantidad, hoja.producto_id)
-            insertComponente.run(ventaDetalleId, hoja.producto_id, hoja.cantidad)
-          }
-        } else if (det.producto_id) {
-          updateStock.run(det.cantidad, det.producto_id)
-        }
-      }
-
-      let creditoId: number | null = null
-      if (esFiado) {
-        const saldo = Math.max(0, data.total - (data.monto_pagado || 0))
-        const resultCredito = db!.prepare(`
-          INSERT INTO creditos (venta_id, cliente_id, deudor_nombre, deudor_telefono, deudor_documento,
-            monto_total, saldo, estado, usuario_id, notas)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-          ventaId,
-          data.cliente_id || null,
-          clienteRes ? clienteRes.nombre : (data.deudor_nombre || 'Cliente'),
-          data.deudor_telefono || null,
-          data.deudor_documento || null,
-          data.total,
-          saldo,
-          saldo <= 0.005 ? 'pagado' : 'pendiente',
-          data.usuario_id,
-          data.notas || null,
-        )
-        creditoId = resultCredito.lastInsertRowid as number
-      }
-
-      const cajaAbierta = db!.prepare("SELECT id FROM caja WHERE estado = 'abierta' LIMIT 1").get() as any
-      const montoCaja = esFiado ? (data.monto_pagado || 0) : data.total
-      if (cajaAbierta && montoCaja > 0) {
-        db!.prepare(`
-          INSERT INTO movimientos_caja (caja_id, tipo, monto, descripcion, referencia_id)
-          VALUES (?, 'venta', ?, ?, ?)
-        `).run(cajaAbierta.id, montoCaja, esFiado ? `Venta #${numeroVenta} (fiado)` : `Venta #${numeroVenta}`, ventaId)
-
-        db!.prepare('UPDATE caja SET total_ventas = total_ventas + ? WHERE id = ?').run(
-          montoCaja, cajaAbierta.id,
-        )
-      }
-
-      db!.prepare(
-        "UPDATE configuracion SET valor = ? WHERE clave = 'ticket_numero_venta'"
-      ).run(String(numeroVenta))
-
-      return { id: ventaId, numero_venta: numeroVenta, credito_id: creditoId }
-    })
-
-    const result = createVenta()
-    return { success: true, ...result }
+    return createVenta(data)
   })
 
-  ipcMain.handle('ventas:anular', async (_event, data: { id: number; motivo: string; usuario_id: number }) => {
+  handleIpc('ventas:anular', async (_event, data: { id: number; motivo: string; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'ventas:anular', 'pos_void_sale')
     if (fail) return fail
     const db = getDatabase()
@@ -290,7 +298,7 @@ export function registerVentasHandlers(): void {
     return anularVenta()
   })
 
-  ipcMain.handle('ventas:resumen-dia', async (_event, data?: { fecha?: string; usuario_id?: number }) => {
+  handleIpc('ventas:resumen-dia', async (_event, data?: { fecha?: string; usuario_id?: number }) => {
     const fail = checkPermissionOrFail(data, 'ventas:resumen-dia', 'caja_report_x')
     if (fail) return fail
     const db = getDatabase()

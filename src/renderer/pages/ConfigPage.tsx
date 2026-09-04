@@ -28,7 +28,7 @@ export default function ConfigPage() {
   // Form datos negocio
   const [form, setForm] = useState({
     nombre_negocio: '', ein: '', telefono: '', direccion: '',
-    sales_tax_rate: '', currency_symbol: '$',
+    sales_tax_rate: '', currency_symbol: '$', tasa_cambio: '',
   })
 
   // Logo de la empresa (base64)
@@ -114,6 +114,7 @@ const ts = await callApi<{ conectado: boolean; puerto?: string }>('terminal:esta
       direccion: get('direccion'),
       sales_tax_rate: get('sales_tax_rate'),
       currency_symbol: get('currency_symbol') || '$',
+      tasa_cambio: get('tasa_cambio'),
     })
     setPrinterName(get('printer_name'))
     setFondoDefault(get('fondo_inicial_default'))
@@ -414,6 +415,14 @@ const ts = await callApi('terminal:estado')
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                 placeholder="$" />
               <p className="text-xs text-gray-400 mt-1">{t('config.currencyHelp')}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('config.exchangeRateLabel')}</label>
+              <input type="number" step="0.01" min="0" value={form.tasa_cambio}
+                onChange={(e) => setForm({ ...form, tasa_cambio: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                placeholder="0.00" />
+              <p className="text-xs text-gray-400 mt-1">{t('config.exchangeRateHelp')}</p>
             </div>
           </div>
 

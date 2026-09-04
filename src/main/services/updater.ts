@@ -1,5 +1,6 @@
 import { autoUpdater, UpdateInfo } from 'electron-updater'
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, dialog, shell } from 'electron'
+import { handleIpc } from '../core/auth/ipc-guard'
 import log from 'electron-log'
 
 // Configurar logging
@@ -138,11 +139,11 @@ export function installUpdate(): void {
 }
 
 export function registerUpdaterHandlers(): void {
-  ipcMain.handle('update:check', () => checkForUpdatesManual())
-  ipcMain.handle('update:download', () => {
+  handleIpc('update:check', () => checkForUpdatesManual())
+  handleIpc('update:download', () => {
     downloadUpdate()
   })
-  ipcMain.handle('update:install', () => {
+  handleIpc('update:install', () => {
     installUpdate()
   })
 }

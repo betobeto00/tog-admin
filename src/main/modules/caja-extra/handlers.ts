@@ -1,4 +1,5 @@
-import { app, ipcMain } from 'electron'
+import { app } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import fs from 'fs'
 import path from 'path'
 import { getDatabase, getDbPath } from '../../db/database'
@@ -6,7 +7,7 @@ import { t } from '../../i18n'
 import { checkPermissionOrFail } from '../../core/auth'
 
 export function registerCajaExtraHandlers(): void {
-  ipcMain.handle('caja:reporte-x', async (_event, data?: any) => {
+  handleIpc('caja:reporte-x', async (_event, data?: any) => {
     const fail = checkPermissionOrFail(data, 'caja:reporte-x', 'caja_report_x')
     if (fail) return fail
     try {
@@ -48,7 +49,7 @@ export function registerCajaExtraHandlers(): void {
     }
   })
 
-  ipcMain.handle('caja:backup-auto', async (_event, data?: any) => {
+  handleIpc('caja:backup-auto', async (_event, data?: any) => {
     const fail = checkPermissionOrFail(data, 'caja:backup-auto', 'config_backup')
     if (fail) return fail
     try {

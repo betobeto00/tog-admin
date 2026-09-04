@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { getActiveModules } from '../../services/license'
@@ -27,7 +27,7 @@ function round2(n: number): number {
 }
 
 export function registerPedidosHandlers(): void {
-  ipcMain.handle('pedidos:list', async (_event, data?: any) => {
+  handleIpc('pedidos:list', async (_event, data?: any) => {
     const fail = checkPermissionOrFail(data, 'pedidos:list', 'distribuidor_pedidos_view')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
@@ -46,7 +46,7 @@ export function registerPedidosHandlers(): void {
   })
 
   // Catálogo de productos del Core para armar pedidos (no requiere permiso de inventario)
-  ipcMain.handle('pedidos:catalogo', async (_event, data?: any) => {
+  handleIpc('pedidos:catalogo', async (_event, data?: any) => {
     const fail = checkPermissionOrFail(data, 'pedidos:catalogo', 'distribuidor_pedidos_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
@@ -57,7 +57,7 @@ export function registerPedidosHandlers(): void {
       .all()
   })
 
-  ipcMain.handle('pedidos:create', async (_event, data: any) => {
+  handleIpc('pedidos:create', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'pedidos:create', 'distribuidor_pedidos_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
@@ -98,7 +98,7 @@ export function registerPedidosHandlers(): void {
     return { success: true, id: pedidoId, numero, total: subtotal }
   })
 
-  ipcMain.handle('pedidos:update', async (_event, data: { id: number; estado?: string; notas?: string | null; usuario_id: number }) => {
+  handleIpc('pedidos:update', async (_event, data: { id: number; estado?: string; notas?: string | null; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'pedidos:update', 'distribuidor_pedidos_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()

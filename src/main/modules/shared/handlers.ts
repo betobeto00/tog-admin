@@ -1,16 +1,17 @@
-import { app, ipcMain } from 'electron'
+import { app } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getLang, setLang, type SupportedLang } from '../../i18n'
 
 export function registerAppHandlers(): void {
-  ipcMain.handle('app:version', () => {
+  handleIpc('app:version', () => {
     return app.getVersion()
   })
 }
 
 export function registerI18nHandlers(): void {
-  ipcMain.handle('i18n:get-lang', () => getLang())
+  handleIpc('i18n:get-lang', () => getLang())
 
-  ipcMain.handle('i18n:set-lang', (_evt, payload: { lang: string }) => {
+  handleIpc('i18n:set-lang', (_evt, payload: { lang: string }) => {
     if (payload?.lang !== 'es' && payload?.lang !== 'en') {
       return { success: false, lang: getLang() }
     }

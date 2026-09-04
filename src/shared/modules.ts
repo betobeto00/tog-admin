@@ -4,7 +4,7 @@
  * Ver docs/MODULOS.md para la visión de producto.
  */
 
-export type ModuleId = 'comercializador' | 'distribuidor' | 'productor' | 'procesador' | 'postventa'
+export type ModuleId = 'comercializador' | 'distribuidor' | 'restaurant' | 'productor' | 'procesador' | 'postventa'
 
 export interface ModuleInfo {
   id: ModuleId
@@ -31,6 +31,13 @@ export const ADDON_MODULES: ModuleInfo[] = [
     id: 'distribuidor',
     nombre: 'Distribuidor',
     descripcion: 'Clientes, pedidos, remitos, despachos, rutas y listas de precio para venta a comercios.',
+    requiere: ['comercializador'],
+    base: false,
+  },
+  {
+    id: 'restaurant',
+    nombre: 'Restaurant',
+    descripcion: 'Mesas, comandas y cocina para restaurantes y afines. Reusa el catálogo de productos y el cobro del Core.',
     requiere: ['comercializador'],
     base: false,
   },
@@ -63,6 +70,7 @@ export const MODULE_CATALOG: ModuleInfo[] = [
   ADDON_MODULES.find((m) => m.id === 'procesador')!,
   BASE_MODULE,
   ADDON_MODULES.find((m) => m.id === 'distribuidor')!,
+  ADDON_MODULES.find((m) => m.id === 'restaurant')!,
   ADDON_MODULES.find((m) => m.id === 'postventa')!,
 ]
 

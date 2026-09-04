@@ -1,10 +1,10 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { creditoAbonoSchema } from '../../../shared/validations'
 
 export function registerCreditosHandlers(): void {
-  ipcMain.handle('creditos:list', async (_event, filters?: any) => {
+  handleIpc('creditos:list', async (_event, filters?: any) => {
     const fail = checkPermissionOrFail(filters, 'creditos:list', 'creditos_view')
     if (fail) return fail
     const db = getDatabase()
@@ -29,7 +29,7 @@ export function registerCreditosHandlers(): void {
     return db.prepare(sql).all(...params)
   })
 
-  ipcMain.handle('creditos:getById', async (_event, data: { id: number; usuario_id: number }) => {
+  handleIpc('creditos:getById', async (_event, data: { id: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'creditos:getById', 'creditos_view')
     if (fail) return fail
     const db = getDatabase()
@@ -60,7 +60,7 @@ export function registerCreditosHandlers(): void {
     return credito
   })
 
-  ipcMain.handle('creditos:abono', async (_event, data: any) => {
+  handleIpc('creditos:abono', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'creditos:abono', 'creditos_edit')
     if (fail) return fail
     const parsed = creditoAbonoSchema.safeParse(data)

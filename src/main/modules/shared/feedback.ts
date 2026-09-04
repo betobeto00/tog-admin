@@ -1,8 +1,9 @@
-import { app, ipcMain } from 'electron'
+import { app } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getConfig } from '../../services/configCache'
 
 export function registerFeedbackHandlers(): void {
-  ipcMain.handle('feedback:send', async (_event, data: { mensaje: string; contacto?: string }) => {
+  handleIpc('feedback:send', async (_event, data: { mensaje: string; contacto?: string }) => {
     const botToken = getConfig('telegram_bot_token') || process.env.TELEGRAM_BOT_TOKEN || ''
     const chatId = getConfig('telegram_chat_id') || process.env.TELEGRAM_CHAT_ID || ''
 

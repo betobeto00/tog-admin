@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import {
   saveCrashReport,
   listCrashReports,
@@ -10,7 +10,7 @@ import {
 import { checkPermissionOrFail } from '../../core/auth'
 
 export function registerCrashReportHandlers(): void {
-  ipcMain.handle('crash-report:save', async (_event, data: {
+  handleIpc('crash-report:save', async (_event, data: {
     type: string
     message: string
     stack?: string
@@ -35,7 +35,7 @@ export function registerCrashReportHandlers(): void {
     }
   })
 
-  ipcMain.handle('crash-report:list', async (_event, data: any) => {
+  handleIpc('crash-report:list', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'crash-report:list', 'config_access')
     if (fail) return fail
     try {
@@ -45,7 +45,7 @@ export function registerCrashReportHandlers(): void {
     }
   })
 
-  ipcMain.handle('crash-report:read', async (_event, data: { filename: string; usuario_id: number }) => {
+  handleIpc('crash-report:read', async (_event, data: { filename: string; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'crash-report:read', 'config_access')
     if (fail) return fail
     try {
@@ -57,7 +57,7 @@ export function registerCrashReportHandlers(): void {
     }
   })
 
-  ipcMain.handle('crash-report:delete', async (_event, data: { filename: string; usuario_id: number }) => {
+  handleIpc('crash-report:delete', async (_event, data: { filename: string; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'crash-report:delete', 'config_access')
     if (fail) return fail
     try {
@@ -68,7 +68,7 @@ export function registerCrashReportHandlers(): void {
     }
   })
 
-  ipcMain.handle('crash-report:open-folder', async (_event, data: any) => {
+  handleIpc('crash-report:open-folder', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'crash-report:open-folder', 'config_access')
     if (fail) return fail
     try {
@@ -79,7 +79,7 @@ export function registerCrashReportHandlers(): void {
     }
   })
 
-  ipcMain.handle('crash-report:path', async (_event, data: any) => {
+  handleIpc('crash-report:path', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'crash-report:path', 'config_access')
     if (fail) return fail
     return getCrashReportsPath()

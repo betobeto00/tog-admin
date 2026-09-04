@@ -1,4 +1,5 @@
-import { dialog, ipcMain } from 'electron'
+import { dialog } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import fs from 'fs'
 import path from 'path'
 import { app } from 'electron'
@@ -7,7 +8,7 @@ import { t } from '../../i18n'
 import { checkPermissionOrFail } from '../../core/auth'
 
 export function registerBackupHandlers(): void {
-  ipcMain.handle('backup:create', async (_event, data?: { ruta?: string; usuario_id?: number }) => {
+  handleIpc('backup:create', async (_event, data?: { ruta?: string; usuario_id?: number }) => {
     const fail = checkPermissionOrFail(data, 'backup:create', 'config_backup')
     if (fail) return fail
     try {
@@ -41,7 +42,7 @@ export function registerBackupHandlers(): void {
     }
   })
 
-  ipcMain.handle('backup:restore', async (_event, data?: { ruta?: string; usuario_id?: number }) => {
+  handleIpc('backup:restore', async (_event, data?: { ruta?: string; usuario_id?: number }) => {
     const fail = checkPermissionOrFail(data, 'backup:restore', 'config_backup')
     if (fail) return fail
     try {
@@ -96,7 +97,7 @@ export function registerBackupHandlers(): void {
     }
   })
 
-  ipcMain.handle('db:reset', async (_event, data?: any) => {
+  handleIpc('db:reset', async (_event, data?: any) => {
     const fail = checkPermissionOrFail(data, 'db:reset', 'config_db_reset')
     if (fail) return fail
     try {

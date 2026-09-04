@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { getActiveModules } from '../../services/license'
@@ -12,7 +12,7 @@ function checkModuleOrFail(): { success: false; error: string } | null {
 }
 
 export function registerClientesHandlers(): void {
-  ipcMain.handle('clientes:list', async (_event, data?: any) => {
+  handleIpc('clientes:list', async (_event, data?: any) => {
     const fail = checkPermissionOrFail(data, 'clientes:list', 'distribuidor_clientes_view')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
@@ -21,7 +21,7 @@ export function registerClientesHandlers(): void {
     return db.prepare('SELECT * FROM clientes WHERE activo = 1 ORDER BY nombre').all()
   })
 
-  ipcMain.handle('clientes:create', async (_event, data: any) => {
+  handleIpc('clientes:create', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'clientes:create', 'distribuidor_clientes_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
@@ -45,7 +45,7 @@ export function registerClientesHandlers(): void {
     return { id: result.lastInsertRowid }
   })
 
-  ipcMain.handle('clientes:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
+  handleIpc('clientes:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'clientes:update', 'distribuidor_clientes_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
@@ -63,7 +63,7 @@ export function registerClientesHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('clientes:delete', async (_event, data: { id: number; usuario_id: number }) => {
+  handleIpc('clientes:delete', async (_event, data: { id: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'clientes:delete', 'distribuidor_clientes_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()

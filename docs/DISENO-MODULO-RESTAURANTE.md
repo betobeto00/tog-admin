@@ -1,8 +1,13 @@
 # 🍽️ Diseño — Módulo Restaurant (primer módulo *gated* nuevo)
 
-> **Estado: DISEÑO — planificación, no implementado.**
-> Documento de diseño para desarrollarlo cuando corresponda. Sigue la política
-> del ecosistema: **sin sobreingeniería, mínimo viable primero**.
+> **Estado: ✅ IMPLEMENTADO (v1, 2025-09-04).** Este documento fue la guía de
+> implementación; el módulo ya vive en el código como segundo módulo *gated*:
+> migración `024_restaurant` (`mesas`, `comandas`, `comanda_detalles`),
+> `src/main/modules/restaurant/` (handlers `mesas:*` y `comandas:*`), catálogo
+> `restaurant` en `src/shared/modules.ts`, permisos `restaurant_*` y páginas
+> `MesasPage` (`/restaurant-mesas`) y `CocinaPage` (`/restaurant-cocina`).
+> El cobro reusa `createVenta` (stock, combos, fiado, caja) — ver `docs/FEATURES.md`.
+> Sigue la política del ecosistema: **sin sobreingeniería, mínimo viable primero**.
 > Fuente de verdad de módulos: `tog-platform/docs/MODULOS.md` · Catálogo en
 > código: `src/shared/modules.ts` · Patrón de módulo activado por licencia: **Distribuidor**.
 
@@ -96,14 +101,15 @@ comandas_venta  (o columna venta_id en comandas)
 
 ---
 
-## 6. Decisiones abiertas (antes de implementar)
+## 6. Decisiones abiertas (estado post-v1)
 
-- [ ] ¿Cuentas divididas (split) en v1 o v2? → Recomendado **v2**.
+- [x] ¿Mover/fusionar mesas? → **v1**: `comandas:move` traslada la comanda a
+      otra mesa libre (fusionar mesas con suma de cuentas queda para v2).
+- [ ] ¿Cuentas divididas (split) en v1 o v2? → **v2**.
 - [ ] ¿Impresión de comanda por impresora térmica dedicada? → **v2** (el Core ya
       imprime tickets; falta enrutar comandas a otra impresora).
-- [ ] ¿Fusionar mesas? → Se puede incluir en v1 (solo un campo `mesa_id` destino
-      + lógica de traslado de comanda), es barato.
 - [ ] ¿Propinas? → **v2**, requiere decisión fiscal por país.
+- [ ] ¿Áreas del salón y mapa drag & drop? → **v2**.
 
 ---
 

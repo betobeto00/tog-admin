@@ -200,6 +200,10 @@ vi.mock('electron', () => ({
   ipcMain: { handle: (channel: string, fn: any) => { handles[channel] = fn } },
 }))
 
+vi.mock('../../core/auth/ipc-guard', () => ({
+  handleIpc: (channel: string, fn: any) => { handles[channel] = fn },
+}))
+
 vi.mock('../../db/database', () => ({ getDatabase: () => db }))
 
 vi.mock('../../core/auth', () => ({

@@ -458,6 +458,21 @@ export interface IpcChannels {
   'listas-precio:update': { id: number; data: { nombre?: string; factor?: number; activo?: number } }
   'listas-precio:delete': { id: number }
 
+  // Restaurant
+  'mesas:list': void
+  'mesas:create': { nombre: string; capacidad?: number }
+  'mesas:update': { id: number; data: { nombre?: string; capacidad?: number; estado?: string; activo?: number } }
+  'mesas:delete': { id: number }
+  'comandas:list': { activas?: boolean }
+  'comandas:open': { mesa_id: number; notas?: string }
+  'comandas:add-item': { comanda_id: number; producto_id?: number | null; descripcion?: string; cantidad: number; precio_unitario?: number; notas?: string }
+  'comandas:update-item': { comanda_id: number; detalle_id: number; data: { cantidad?: number; notas?: string; estado?: string } }
+  'comandas:remove-item': { comanda_id: number; detalle_id: number }
+  'comandas:send-kitchen': { comanda_id: number }
+  'comandas:mark-item': { comanda_id: number; detalle_id: number; estado: string }
+  'comandas:move': { comanda_id: number; mesa_destino_id: number }
+  'comandas:checkout': { comanda_id: number; metodo_pago: string; monto_pagado?: number; notas?: string; deudor_nombre?: string }
+
   // Métodos de pago
   'metodos-pago:list': { activoOnly?: boolean }
   'metodos-pago:create': MetodoPagoCreate

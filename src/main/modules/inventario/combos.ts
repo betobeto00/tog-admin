@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import type { Database } from 'better-sqlite3'
@@ -164,7 +164,7 @@ function creaCiclo(db: any, productoId: number, componenteId: number): boolean {
 
 export function registerCombosHandlers(): void {
   // Devuelve componentes + costo real de un producto compuesto
-  ipcMain.handle('combos:get', async (_event, data: { producto_id: number; usuario_id: number }) => {
+  handleIpc('combos:get', async (_event, data: { producto_id: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'combos:get', 'inventario_edit')
     if (fail) return fail
     const db = getDb()
@@ -174,7 +174,7 @@ export function registerCombosHandlers(): void {
   })
 
   // Reemplaza la lista de componentes de un producto (vacía = ya no es combo)
-  ipcMain.handle('combos:guardar', async (_event, data: {
+  handleIpc('combos:guardar', async (_event, data: {
     producto_id: number
     componentes: { componente_id: number; cantidad: number }[]
     usuario_id: number

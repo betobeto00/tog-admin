@@ -19,6 +19,8 @@ import {
   Wallet,
   TruckIcon,
   Tag,
+  Utensils,
+  ChefHat,
 } from 'lucide-react'
 import type { ModuleId } from '@shared/modules'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -43,6 +45,8 @@ export default function Sidebar() {
     { to: '/pedidos', icon: ClipboardList, label: t('nav.orders'), permission: 'distribuidor_pedidos_view', modulo: 'distribuidor' as ModuleId },
     { to: '/remitos', icon: TruckIcon, label: t('nav.remitos'), permission: 'distribuidor_pedidos_view', modulo: 'distribuidor' as ModuleId },
     { to: '/listas-precio', icon: Tag, label: t('nav.priceLists'), permission: 'distribuidor_listas_precio_view', modulo: 'distribuidor' as ModuleId },
+    { to: '/restaurant-mesas', icon: Utensils, label: t('nav.restaurantTables'), permission: 'restaurant_mesas_view', modulo: 'restaurant' as ModuleId },
+    { to: '/restaurant-cocina', icon: ChefHat, label: t('nav.restaurantKitchen'), permission: 'restaurant_comandas_view', modulo: 'restaurant' as ModuleId },
     { to: '/cotizaciones', icon: FileText, label: t('nav.quotes'), permission: 'quotes_access' },
     { to: '/reportes', icon: BarChart3, label: t('nav.reports'), permission: 'reportes_access' },
     { to: '/configuracion', icon: Settings, label: t('nav.settings'), permission: 'config_access' },

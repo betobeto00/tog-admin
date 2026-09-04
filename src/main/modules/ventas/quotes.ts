@@ -1,11 +1,11 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { quoteCreateSchema } from '../../../shared/validations'
 import type { PermissionKey } from '../../../shared/permissions'
 
 export function registerQuotesHandlers(): void {
-  ipcMain.handle('quotes:list', async (_event, filters?: any) => {
+  handleIpc('quotes:list', async (_event, filters?: any) => {
     const fail = checkPermissionOrFail(filters, 'quotes:list', 'quotes_access')
     if (fail) return fail
     const db = getDatabase()
@@ -20,7 +20,7 @@ export function registerQuotesHandlers(): void {
     return db.prepare(sql).all(...params)
   })
 
-  ipcMain.handle('quotes:getById', async (_event, data: { id: number; usuario_id: number }) => {
+  handleIpc('quotes:getById', async (_event, data: { id: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'quotes:getById', 'quotes_access')
     if (fail) return fail
     const db = getDatabase()
@@ -31,7 +31,7 @@ export function registerQuotesHandlers(): void {
     return quote
   })
 
-  ipcMain.handle('quotes:create', async (_event, data: any) => {
+  handleIpc('quotes:create', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'quotes:create', 'quotes_create')
     if (fail) return fail
     const parsed = quoteCreateSchema.safeParse(data)
@@ -56,7 +56,7 @@ export function registerQuotesHandlers(): void {
     return createQuote()
   })
 
-  ipcMain.handle('quotes:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
+  handleIpc('quotes:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'quotes:update', 'quotes_edit')
     if (fail) return fail
     const db = getDatabase()
@@ -78,7 +78,7 @@ export function registerQuotesHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('quotes:delete', async (_event, data: { id: number; usuario_id: number }) => {
+  handleIpc('quotes:delete', async (_event, data: { id: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'quotes:delete', 'quotes_delete')
     if (fail) return fail
     const db = getDatabase()

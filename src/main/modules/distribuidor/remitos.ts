@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { getActiveModules } from '../../services/license'
@@ -14,7 +14,7 @@ function checkModuleOrFail(): { success: false; error: string } | null {
 }
 
 export function registerRemitosHandlers(): void {
-  ipcMain.handle('remitos:list', async (_event, data?: any) => {
+  handleIpc('remitos:list', async (_event, data?: any) => {
     const fail = checkPermissionOrFail(data, 'remitos:list', 'distribuidor_pedidos_view')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
@@ -33,7 +33,7 @@ export function registerRemitosHandlers(): void {
       .all()
   })
 
-  ipcMain.handle('remitos:create', async (_event, data: { pedido_id: number; observaciones?: string; usuario_id: number }) => {
+  handleIpc('remitos:create', async (_event, data: { pedido_id: number; observaciones?: string; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'remitos:create', 'distribuidor_pedidos_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
@@ -61,7 +61,7 @@ export function registerRemitosHandlers(): void {
     return { success: true, id: result.lastInsertRowid, numero: Number(numero) }
   })
 
-  ipcMain.handle('remitos:update', async (_event, data: { id: number; estado?: string; observaciones?: string | null; usuario_id: number }) => {
+  handleIpc('remitos:update', async (_event, data: { id: number; estado?: string; observaciones?: string | null; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'remitos:update', 'distribuidor_pedidos_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()

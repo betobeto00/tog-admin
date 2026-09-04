@@ -1,23 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { registerFeedbackHandlers } from './feedback'
 
 const configValues: Record<string, string> = {}
 const fetchMock = vi.fn()
 
+const { handles } = vi.hoisted(() => ({
+  handles: {} as Record<string, (event: any, data: any) => Promise<any>>,
+}))
+
 vi.mock('electron', () => ({
   app: { getVersion: () => '1.0.8' },
-  ipcMain: {
-    handle: (channel: string, fn: any) => {
-      handles[channel] = fn
-    },
-  },
 }))
 
 vi.mock('../../services/configCache', () => ({
   getConfig: (key: string, fallback = '') => configValues[key] ?? fallback,
 }))
 
-const handles: Record<string, (event: any, data: any) => Promise<any>> = {}
-const { registerFeedbackHandlers } = await import('./feedback')
+vi.mock('../../core/auth/ipc-guard', () => ({
+  handleIpc: (channel: string, fn: any) => { handles[channel] = fn },
+}))
+
 registerFeedbackHandlers()
 
 // global.fetch con tipado mínimo

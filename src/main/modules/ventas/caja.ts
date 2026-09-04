@@ -1,10 +1,10 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { t } from '../../i18n'
 import { checkPermissionOrFail } from '../../core/auth'
 
 export function registerCajaHandlers(): void {
-  ipcMain.handle('caja:status', async (_event, data?: any) => {
+  handleIpc('caja:status', async (_event, data?: any) => {
     const fail = checkPermissionOrFail(data, 'caja:status', 'caja_access')
     if (fail) return fail
     const db = getDatabase()
@@ -18,7 +18,7 @@ export function registerCajaHandlers(): void {
     `).get()
   })
 
-  ipcMain.handle('caja:abrir', async (_event, data: any) => {
+  handleIpc('caja:abrir', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'caja:abrir', 'caja_open')
     if (fail) return fail
     const db = getDatabase()
@@ -35,7 +35,7 @@ export function registerCajaHandlers(): void {
     return { success: true, id: result.lastInsertRowid }
   })
 
-  ipcMain.handle('caja:cerrar', async (_event, data: any) => {
+  handleIpc('caja:cerrar', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'caja:cerrar', 'caja_close')
     if (fail) return fail
     const db = getDatabase()
@@ -65,7 +65,7 @@ export function registerCajaHandlers(): void {
     return cerrarCaja()
   })
 
-  ipcMain.handle('caja:movimiento', async (_event, data: any) => {
+  handleIpc('caja:movimiento', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'caja:movimiento', 'caja_movement')
     if (fail) return fail
     const db = getDatabase()
@@ -89,7 +89,7 @@ export function registerCajaHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('caja:historial', async (_event, filters?: any) => {
+  handleIpc('caja:historial', async (_event, filters?: any) => {
     const fail = checkPermissionOrFail(filters, 'caja:historial', 'caja_access')
     if (fail) return fail
     const db = getDatabase()

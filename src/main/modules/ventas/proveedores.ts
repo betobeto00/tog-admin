@@ -1,17 +1,17 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { proveedorCreateSchema } from '../../../shared/validations'
 
 export function registerProveedoresHandlers(): void {
-  ipcMain.handle('proveedores:list', async (_event, data?: any) => {
+  handleIpc('proveedores:list', async (_event, data?: any) => {
     const fail = checkPermissionOrFail(data, 'proveedores:list', 'compras_access')
     if (fail) return fail
     const db = getDatabase()
     return db.prepare('SELECT * FROM proveedores WHERE activo = 1 ORDER BY nombre').all()
   })
 
-  ipcMain.handle('proveedores:create', async (_event, data: any) => {
+  handleIpc('proveedores:create', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'proveedores:create', 'compras_suppliers')
     if (fail) return fail
     const parsed = proveedorCreateSchema.safeParse(data)
@@ -25,7 +25,7 @@ export function registerProveedoresHandlers(): void {
     return { id: result.lastInsertRowid }
   })
 
-  ipcMain.handle('proveedores:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
+  handleIpc('proveedores:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'proveedores:update', 'compras_suppliers')
     if (fail) return fail
     const db = getDatabase()
@@ -40,7 +40,7 @@ export function registerProveedoresHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('proveedores:delete', async (_event, data: { id: number; usuario_id: number }) => {
+  handleIpc('proveedores:delete', async (_event, data: { id: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'proveedores:delete', 'compras_suppliers')
     if (fail) return fail
     const db = getDatabase()

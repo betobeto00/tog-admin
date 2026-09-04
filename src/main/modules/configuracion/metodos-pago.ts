@@ -1,9 +1,9 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 
 export function registerMetodosPagoHandlers(): void {
-  ipcMain.handle('metodos-pago:list', async (_event, data: { activoOnly?: boolean; usuario_id?: number } | undefined) => {
+  handleIpc('metodos-pago:list', async (_event, data: { activoOnly?: boolean; usuario_id?: number } | undefined) => {
     const fail = checkPermissionOrFail(data, 'metodos-pago:list', 'config_access')
     if (fail) return fail
     const db = getDatabase()
@@ -13,7 +13,7 @@ export function registerMetodosPagoHandlers(): void {
     return rows
   })
 
-  ipcMain.handle('metodos-pago:create', async (_event, data: any) => {
+  handleIpc('metodos-pago:create', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'metodos-pago:create', 'config_edit')
     if (fail) return fail
     const db = getDatabase()
@@ -29,7 +29,7 @@ export function registerMetodosPagoHandlers(): void {
     }
   })
 
-  ipcMain.handle('metodos-pago:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
+  handleIpc('metodos-pago:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'metodos-pago:update', 'config_edit')
     if (fail) return fail
     const db = getDatabase()
@@ -49,7 +49,7 @@ export function registerMetodosPagoHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('metodos-pago:delete', async (_event, data: { id: number; usuario_id: number }) => {
+  handleIpc('metodos-pago:delete', async (_event, data: { id: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'metodos-pago:delete', 'config_edit')
     if (fail) return fail
     const db = getDatabase()
@@ -57,7 +57,7 @@ export function registerMetodosPagoHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('metodos-pago:procesar-tarjeta', async (_event, data: { monto: number; usuario_id: number }) => {
+  handleIpc('metodos-pago:procesar-tarjeta', async (_event, data: { monto: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'metodos-pago:procesar-tarjeta', 'pos_access')
     if (fail) return fail
     const { getTerminalService } = await import('../../services/valorTerminal')

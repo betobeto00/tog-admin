@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { getActiveModules } from '../../services/license'
@@ -11,7 +11,7 @@ function checkModuleOrFail(): { success: false; error: string } | null {
 }
 
 export function registerListasPrecioHandlers(): void {
-  ipcMain.handle('listas-precio:list', async (_event, data?: any) => {
+  handleIpc('listas-precio:list', async (_event, data?: any) => {
     const fail = checkPermissionOrFail(data, 'listas-precio:list', 'distribuidor_listas_precio_view')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
@@ -20,7 +20,7 @@ export function registerListasPrecioHandlers(): void {
     return db.prepare('SELECT * FROM listas_precio ORDER BY nombre').all()
   })
 
-  ipcMain.handle('listas-precio:create', async (_event, data: { nombre: string; factor: number; usuario_id: number }) => {
+  handleIpc('listas-precio:create', async (_event, data: { nombre: string; factor: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'listas-precio:create', 'distribuidor_listas_precio_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
@@ -32,7 +32,7 @@ export function registerListasPrecioHandlers(): void {
     return { success: true, id: result.lastInsertRowid }
   })
 
-  ipcMain.handle('listas-precio:update', async (_event, data: { id: number; data: { nombre?: string; factor?: number; activo?: number }; usuario_id: number }) => {
+  handleIpc('listas-precio:update', async (_event, data: { id: number; data: { nombre?: string; factor?: number; activo?: number }; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'listas-precio:update', 'distribuidor_listas_precio_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
@@ -61,7 +61,7 @@ export function registerListasPrecioHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('listas-precio:delete', async (_event, data: { id: number; usuario_id: number }) => {
+  handleIpc('listas-precio:delete', async (_event, data: { id: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'listas-precio:delete', 'distribuidor_listas_precio_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()

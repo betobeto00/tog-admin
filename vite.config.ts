@@ -13,8 +13,25 @@ function electronHtmlFix(): any {
   }
 }
 
+// CSP: estricta en producción, relajada en dev (Vite necesita inline + ws para HMR)
+const DEV_CSP = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http://localhost:5173 ws://localhost:5173 https:; object-src 'none'; base-uri 'self'; form-action 'self'"
+const PROD_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'"
+
+function injectCsp(): any {
+  return {
+    name: 'inject-csp',
+    transformIndexHtml(html, ctx) {
+      const csp = ctx.server ? DEV_CSP : PROD_CSP
+      return html.replace(
+        /<meta http-equiv="Content-Security-Policy"[^>]*>/,
+        `<meta http-equiv="Content-Security-Policy" content="${csp}" />`
+      )
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), electronHtmlFix()],
+  plugins: [react(), electronHtmlFix(), injectCsp()],
   base: './',
   resolve: {
     alias: {

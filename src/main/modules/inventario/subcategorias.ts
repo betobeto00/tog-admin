@@ -1,10 +1,10 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { subcategoriaCreateSchema, subcategoriaUpdateSchema } from '../../../shared/validations'
 
 export function registerSubcategoriasHandlers(): void {
-  ipcMain.handle('subcategorias:list', async (_event, data?: any) => {
+  handleIpc('subcategorias:list', async (_event, data?: any) => {
     const fail = checkPermissionOrFail(data, 'subcategorias:list', 'inventario_access')
     if (fail) return fail
     const db = getDatabase()
@@ -23,7 +23,7 @@ export function registerSubcategoriasHandlers(): void {
     return db.prepare(sql).all(...params)
   })
 
-  ipcMain.handle('subcategorias:create', async (_event, data: any) => {
+  handleIpc('subcategorias:create', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'subcategorias:create', 'inventario_categories')
     if (fail) return fail
     const parsed = subcategoriaCreateSchema.safeParse(data)
@@ -38,7 +38,7 @@ export function registerSubcategoriasHandlers(): void {
     return { id: result.lastInsertRowid }
   })
 
-  ipcMain.handle('subcategorias:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
+  handleIpc('subcategorias:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'subcategorias:update', 'inventario_categories')
     if (fail) return fail
     const parsed = subcategoriaUpdateSchema.safeParse(data.data)
@@ -54,7 +54,7 @@ export function registerSubcategoriasHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('subcategorias:delete', async (_event, data: { id: number; usuario_id: number }) => {
+  handleIpc('subcategorias:delete', async (_event, data: { id: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'subcategorias:delete', 'inventario_categories')
     if (fail) return fail
     const db = getDatabase()

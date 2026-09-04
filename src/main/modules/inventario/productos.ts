@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { t } from '../../i18n'
 import { checkPermissionOrFail } from '../../core/auth'
@@ -23,7 +23,7 @@ function enriquecerProducto(db: any, row: any): any {
 }
 
 export function registerProductosHandlers(): void {
-  ipcMain.handle('productos:list', async (_event, filters?: any) => {
+  handleIpc('productos:list', async (_event, filters?: any) => {
     const fail = checkPermissionOrFail(filters, 'productos:list', 'inventario_access')
     if (fail) return fail
     const db = getDatabase()
@@ -58,7 +58,7 @@ export function registerProductosHandlers(): void {
     return rows.map((r) => (r.es_combo ? enriquecerProducto(db, r) : { ...r, es_combo: 0, costo_real: Number(r.precio_compra) || 0 }))
   })
 
-  ipcMain.handle('productos:getById', async (_event, data: { id: number; usuario_id: number }) => {
+  handleIpc('productos:getById', async (_event, data: { id: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'productos:getById', 'inventario_access')
     if (fail) return fail
     const db = getDatabase()
@@ -69,7 +69,7 @@ export function registerProductosHandlers(): void {
       LEFT JOIN categorias c ON p.categoria_id = c.id
       LEFT JOIN subcategorias s ON p.subcategoria_id = s.id
       WHERE p.id = ?
-    `).get(data.id)
+    `).get(data.id) as any
     if (!row) return row
     const combo = esCombo(db, row.id)
     if (combo) {
@@ -79,7 +79,7 @@ export function registerProductosHandlers(): void {
     return { ...row, es_combo: 0, costo_real: Number(row.precio_compra) || 0, componentes: [] }
   })
 
-  ipcMain.handle('productos:create', async (_event, data: any) => {
+  handleIpc('productos:create', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'productos:create', 'inventario_create')
     if (fail) return fail
     const parsed = productoCreateSchema.safeParse(data)
@@ -112,7 +112,7 @@ export function registerProductosHandlers(): void {
     return { id: result.lastInsertRowid }
   })
 
-  ipcMain.handle('productos:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
+  handleIpc('productos:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'productos:update', 'inventario_edit')
     if (fail) return fail
     const parsed = productoUpdateSchema.safeParse(data.data)
@@ -167,7 +167,7 @@ export function registerProductosHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('productos:delete', async (_event, data: { id: number; usuario_id: number }) => {
+  handleIpc('productos:delete', async (_event, data: { id: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'productos:delete', 'inventario_delete')
     if (fail) return fail
     const db = getDatabase()
@@ -175,7 +175,7 @@ export function registerProductosHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('productos:low-stock', async (_event, data?: any) => {
+  handleIpc('productos:low-stock', async (_event, data?: any) => {
     const fail = checkPermissionOrFail(data, 'productos:low-stock', 'inventario_access')
     if (fail) return fail
     const db = getDatabase()
@@ -191,7 +191,7 @@ export function registerProductosHandlers(): void {
     return rows
   })
 
-  ipcMain.handle('productos:ajustar', async (_event, data: { producto_id: number; stock_nuevo: number; justificacion: string; usuario_id: number }) => {
+  handleIpc('productos:ajustar', async (_event, data: { producto_id: number; stock_nuevo: number; justificacion: string; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'productos:ajustar', 'inventario_adjust')
     if (fail) return fail
     const db = getDatabase()
@@ -215,7 +215,7 @@ export function registerProductosHandlers(): void {
     return ajustar()
   })
 
-  ipcMain.handle('productos:ajustes-historial', async (_event, data?: { producto_id?: number; limite?: number; usuario_id?: number }) => {
+  handleIpc('productos:ajustes-historial', async (_event, data?: { producto_id?: number; limite?: number; usuario_id?: number }) => {
     const fail = checkPermissionOrFail(data, 'productos:ajustes-historial', 'inventario_access')
     if (fail) return fail
     const db = getDatabase()
@@ -233,7 +233,7 @@ export function registerProductosHandlers(): void {
     return db.prepare(sql).all(...params)
   })
 
-  ipcMain.handle('productos:buscar-por-codigo', async (_event, data: { codigo: string; usuario_id: number }) => {
+  handleIpc('productos:buscar-por-codigo', async (_event, data: { codigo: string; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'productos:buscar-por-codigo', 'inventario_access')
     if (fail) return fail
     const db = getDatabase()

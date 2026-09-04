@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getTerminalService } from '../../services/valorTerminal'
 import { checkPermissionOrFail } from '../../core/auth'
 import { t } from '../../i18n'
@@ -6,7 +6,7 @@ import { t } from '../../i18n'
 export function registerTerminalHandlers(): void {
   const terminal = getTerminalService()
 
-  ipcMain.handle('terminal:conectar', async (_event, data: { puerto: string; baudRate?: number; usuario_id: number }) => {
+  handleIpc('terminal:conectar', async (_event, data: { puerto: string; baudRate?: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'terminal:conectar', 'config_terminal')
     if (fail) return fail
     try {
@@ -17,20 +17,20 @@ export function registerTerminalHandlers(): void {
     }
   })
 
-  ipcMain.handle('terminal:desconectar', async (_event, data?: any) => {
+  handleIpc('terminal:desconectar', async (_event, data?: any) => {
     const fail = checkPermissionOrFail(data, 'terminal:desconectar', 'config_terminal')
     if (fail) return fail
     terminal.disconnect()
     return { success: true }
   })
 
-  ipcMain.handle('terminal:estado', async (_event, data?: any) => {
+  handleIpc('terminal:estado', async (_event, data?: any) => {
     const fail = checkPermissionOrFail(data, 'terminal:estado', 'config_terminal')
     if (fail) return fail
     return terminal.consultarEstado()
   })
 
-  ipcMain.handle('terminal:procesar-pago', async (_event, data: { monto: number; timeoutMs?: number; usuario_id: number }) => {
+  handleIpc('terminal:procesar-pago', async (_event, data: { monto: number; timeoutMs?: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'terminal:procesar-pago', 'pos_access')
     if (fail) return fail
     try {

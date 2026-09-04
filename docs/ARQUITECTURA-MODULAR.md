@@ -2,7 +2,7 @@
 
 > Documento técnico. Define cómo el Core carga módulos activados por licencia, cómo se comunican los módulos entre sí, cómo el Sidebar/Route/IPC reaccionan, y qué cambios concretos requiere el código actual de TOG Admin.
 >
-> 📌 **Estado real (4-Sep-2026):** este documento es la **visión de diseño** de un cargador genérico (loader/registry/manifiesto). La implementación real es más liviana: handlers por módulo en `src/main/modules/<módulo>/`, catálogo compartido en `src/shared/modules.ts`, gating en el renderer con `useActiveModules` (licencia) + `usePermissions` (permisos) y en el main con `checkPermissionOrFail`. Ver la realidad en `ARCHITECTURE.md`. Hoy el único módulo activable por licencia es **Distribuidor** (clientes + pedidos); Comercializador es el Core (incluye catálogo con producto/servicio, subcategorías/marca/imagen y venta a crédito con abonos). Este mismo archivo existe en `tog-platform/docs/ARQUITECTURA-MODULAR.md`.
+> 📌 **Estado real (4-Sep-2026):** este documento es la **visión de diseño** de un cargador genérico (loader/registry/manifiesto). La implementación real es más liviana: handlers por módulo en `src/main/modules/<módulo>/`, catálogo compartido en `src/shared/modules.ts`, gating en el renderer con `useActiveModules` (licencia) + `usePermissions` (permisos) y en el main con `checkPermissionOrFail`. Ver la realidad en `ARCHITECTURE.md`. Hoy los módulos activables por licencia son **Distribuidor** (clientes, pedidos, remitos, listas de precio) y **Restaurant** (mesas, comandas, cocina, cobro de mesa — ver `DISENO-MODULO-RESTAURANTE.md`); Comercializador es el Core (incluye catálogo con producto/servicio, subcategorías/marca/imagen y venta a crédito con abonos). Este mismo archivo existe en `tog-platform/docs/ARQUITECTURA-MODULAR.md`.
 
 ---
 
@@ -289,7 +289,7 @@ Eventos típicos:
    - `core/ipc-handlers/license.ts`
 2. Crear `src/main/core/modules/` con `loader.ts`, `module-api.ts`, `registry.ts`.
 3. Definir `ModuleManifest`, `ModuleContext`, `EventBus` en `src/shared/modules.ts`.
-4. **Conectar `requirePermission` a TODOS los handlers actuales** (bug crítico de seguridad).
+4. ✅ ~~Conectar `requirePermission` a TODOS los handlers actuales~~ **Resuelto**: los handlers por módulo validan con `checkPermissionOrFail` (`src/main/core/auth/permissions.ts`) y la lista `PREAUTH_CHANNELS` marca los públicos (espejo en `api-client.ts`).
 5. Exponer `window.api.modules = { comercializador: true, ... }` desde el preload.
 6. Hacer que `App.tsx` y `Sidebar` lean de `window.api.modules`.
 
@@ -352,7 +352,7 @@ Para el caso nube:
 | Tablas comunes siempre creadas | 🟡 Decidido (v1) | Migrar a "tablas del módulo" si crece |
 | Comunicación entre módulos vía eventos | 🟡 Diseñado | Event bus en `ModuleContext` |
 | Modo nube = mismo código, `IDataSource` distinto | 🟡 Diseñado | Sin reescritura cuando se active |
-| **Bug crítico a corregir YA** | 🔴 Pendiente | `requirePermission` debe envolver TODOS los IPC handlers |
+| ~~Bug crítico a corregir YA~~ | ✅ **Resuelto** (2025-09-04) | Todos los handlers por módulo validan con `checkPermissionOrFail`; solo los canales de `PREAUTH_CHANNELS` son públicos |
 
 ---
 

@@ -186,10 +186,10 @@ Catálogo de módulos para la cadena maíz→hojuelas→distribución→postvent
 | # | Acción | Estado |
 |---|--------|--------|
 | 1 | Rotar/eliminar `GH_TOKEN` | ✅ Resuelto (esta sesión) |
-| 2 | Conectar `requirePermission` a TODOS los IPC handlers | 🔴 Pendiente (próximo paso) |
+| 2 | Conectar `requirePermission` a TODOS los IPC handlers | ✅ Resuelto (modularización + `checkPermissionOrFail` por handler; solo pre-auth = `PREAUTH_CHANNELS`) |
 | 3 | Crear repo `tog-platform` con los 3 docs de visión | 🔴 Pendiente (próximo paso) |
 
-**Acción #2 es crítica**: hoy cualquier cliente IPC bypasea los permisos del backend. La auditoría mapeó **73 handlers sin protección** de 81 totales. Solo 8 son públicos (`app:version`, `i18n:*`, `crash-report:save`, `auth:login`, `license:status`, `license:validate`).
+**Acción #2 era crítica**: hoy cualquier cliente IPC bypaseaba los permisos del backend. La auditoría mapeó **73 handlers sin protección** de 81 totales. **Resuelta en la modularización**: cada handler por módulo (`src/main/modules/<módulo>/`) valida con `checkPermissionOrFail` y los canales públicos viven en `PREAUTH_CHANNELS` (`src/shared/ipc-channels.ts` + espejo en `api-client.ts`).
 
 **Permisos nuevos propuestos** (4):
 - `usuarios_change_own_password` — para que un cajero pueda cambiar su clave sin tener `usuarios_access` completo.
@@ -212,7 +212,7 @@ Catálogo de módulos para la cadena maíz→hojuelas→distribución→postvent
 
 1. **Esta sesión (en curso)**:
    - [x] Acción 1: Documentar conversación (este archivo).
-   - [ ] Acción 2: Conectar permisos a todos los IPC handlers.
+   - [x] Acción 2: Conectar permisos a todos los IPC handlers.
    - [ ] Acción 3: Crear repo `tog-platform` con los 3 docs y push a GitHub.
 
 2. **Próximas sesiones**:

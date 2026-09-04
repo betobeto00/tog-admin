@@ -1,10 +1,10 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { getConfigMap, invalidateConfigCache } from '../../services/configCache'
 
 export function registerConfigHandlers(): void {
-  ipcMain.handle('config:get', async (_event, data?: any) => {
+  handleIpc('config:get', async (_event, data?: any) => {
     const fail = checkPermissionOrFail(data, 'config:get', 'config_access')
     if (fail) return fail
     const map = getConfigMap()
@@ -13,7 +13,7 @@ export function registerConfigHandlers(): void {
     )
   })
 
-  ipcMain.handle('config:set', async (_event, data: { clave: string; valor: string; usuario_id: number }) => {
+  handleIpc('config:set', async (_event, data: { clave: string; valor: string; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'config:set', 'config_edit')
     if (fail) return fail
     const db = getDatabase()

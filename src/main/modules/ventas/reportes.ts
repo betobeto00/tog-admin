@@ -1,9 +1,9 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 
 export function registerReportesHandlers(): void {
-  ipcMain.handle('reportes:ventas-periodo', async (_event, data: any) => {
+  handleIpc('reportes:ventas-periodo', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'reportes:ventas-periodo', 'reportes_access')
     if (fail) return fail
     const db = getDatabase()
@@ -19,7 +19,7 @@ export function registerReportesHandlers(): void {
     `).all(data.fecha_inicio, data.fecha_fin)
   })
 
-  ipcMain.handle('reportes:productos-mas-vendidos', async (_event, data: any) => {
+  handleIpc('reportes:productos-mas-vendidos', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'reportes:productos-mas-vendidos', 'reportes_access')
     if (fail) return fail
     const db = getDatabase()
@@ -40,7 +40,7 @@ export function registerReportesHandlers(): void {
     `).all(data.fecha_inicio, data.fecha_fin, limite)
   })
 
-  ipcMain.handle('reportes:ultimas-ventas', async (_event, data?: { limite?: number; usuario_id?: number }) => {
+  handleIpc('reportes:ultimas-ventas', async (_event, data?: { limite?: number; usuario_id?: number }) => {
     const fail = checkPermissionOrFail(data, 'reportes:ultimas-ventas', 'reportes_access')
     if (fail) return fail
     const db = getDatabase()
@@ -55,7 +55,7 @@ export function registerReportesHandlers(): void {
     `).all(limite)
   })
 
-  ipcMain.handle('reportes:ventas-por-categoria', async (_event, data: any) => {
+  handleIpc('reportes:ventas-por-categoria', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'reportes:ventas-por-categoria', 'reportes_access')
     if (fail) return fail
     const db = getDatabase()

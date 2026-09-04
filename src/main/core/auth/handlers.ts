@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from './ipc-guard'
 import bcrypt from 'bcryptjs'
 import { getDatabase } from '../../db/database'
 import { t } from '../../i18n'
@@ -7,7 +7,7 @@ import { checkPermissionOrFail } from './permissions'
 import { login } from './auth-service'
 
 export function registerAuthHandlers(): void {
-  ipcMain.handle('auth:login', async (_event, data: { usuario: string; contrasena: string }) => {
+  handleIpc('auth:login', async (_event, data: { usuario: string; contrasena: string }) => {
     try {
       return await login(data)
     } catch (err: any) {
@@ -17,7 +17,7 @@ export function registerAuthHandlers(): void {
 }
 
 export function registerUsuariosHandlers(): void {
-  ipcMain.handle('usuarios:change-password', async (_event, data: { usuario_id: number; contrasena_actual: string; contrasena_nueva: string }) => {
+  handleIpc('usuarios:change-password', async (_event, data: { usuario_id: number; contrasena_actual: string; contrasena_nueva: string }) => {
     const fail = checkPermissionOrFail(data, 'usuarios:change-password', 'usuarios_change_own_password')
     if (fail) return fail
     const db = getDatabase()
@@ -31,14 +31,14 @@ export function registerUsuariosHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('usuarios:list', async (_event, data: any) => {
+  handleIpc('usuarios:list', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'usuarios:list', 'usuarios_access')
     if (fail) return fail
     const db = getDatabase()
     return db.prepare('SELECT id, usuario, nombre, rol, activo, creado_en FROM usuarios ORDER BY nombre').all()
   })
 
-  ipcMain.handle('usuarios:create', async (_event, data: any) => {
+  handleIpc('usuarios:create', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'usuarios:create', 'usuarios_access')
     if (fail) return fail
     const db = getDatabase()
@@ -49,7 +49,7 @@ export function registerUsuariosHandlers(): void {
     return { id: result.lastInsertRowid }
   })
 
-  ipcMain.handle('usuarios:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
+  handleIpc('usuarios:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'usuarios:update', 'usuarios_access')
     if (fail) return fail
     const db = getDatabase()
@@ -71,7 +71,7 @@ export function registerUsuariosHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('usuarios:delete', async (_event, data: { id: number; usuario_id: number }) => {
+  handleIpc('usuarios:delete', async (_event, data: { id: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'usuarios:delete', 'usuarios_access')
     if (fail) return fail
     const db = getDatabase()
@@ -79,7 +79,7 @@ export function registerUsuariosHandlers(): void {
     return { success: true }
   })
 
-  ipcMain.handle('usuarios:getPermissions', async (_event, data: { id: number; usuario_id: number }) => {
+  handleIpc('usuarios:getPermissions', async (_event, data: { id: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'usuarios:getPermissions', 'usuarios_access')
     if (fail) return fail
     const db = getDatabase()
@@ -98,7 +98,7 @@ export function registerUsuariosHandlers(): void {
     return { success: true, permisos, rol: user.rol }
   })
 
-  ipcMain.handle('usuarios:setPermissions', async (_event, data: { id: number; permisos: PermissionKey[]; usuario_id: number }) => {
+  handleIpc('usuarios:setPermissions', async (_event, data: { id: number; permisos: PermissionKey[]; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'usuarios:setPermissions', 'usuarios_manage_roles')
     if (fail) return fail
     const db = getDatabase()

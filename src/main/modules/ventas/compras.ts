@@ -1,10 +1,10 @@
-import { ipcMain } from 'electron'
+import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { compraCreateSchema } from '../../../shared/validations'
 
 export function registerComprasHandlers(): void {
-  ipcMain.handle('compras:list', async (_event, filters?: any) => {
+  handleIpc('compras:list', async (_event, filters?: any) => {
     const fail = checkPermissionOrFail(filters, 'compras:list', 'compras_access')
     if (fail) return fail
     const db = getDatabase()
@@ -30,7 +30,7 @@ export function registerComprasHandlers(): void {
     return db.prepare(sql).all(...params)
   })
 
-  ipcMain.handle('compras:create', async (_event, data: any) => {
+  handleIpc('compras:create', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'compras:create', 'compras_create')
     if (fail) return fail
     const parsed = compraCreateSchema.safeParse(data)

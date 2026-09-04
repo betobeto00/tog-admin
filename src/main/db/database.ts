@@ -575,6 +575,50 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
         CREATE INDEX IF NOT EXISTS idx_vdc_detalle ON venta_detalle_componentes(venta_detalle_id);
       `,
     },
+    {
+      nombre: '024_restaurant',
+      sql: `
+        CREATE TABLE IF NOT EXISTS mesas (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nombre TEXT NOT NULL,
+          capacidad INTEGER NOT NULL DEFAULT 4,
+          estado TEXT NOT NULL DEFAULT 'libre',
+          activo INTEGER NOT NULL DEFAULT 1,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS comandas (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          mesa_id INTEGER NOT NULL REFERENCES mesas(id),
+          usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+          estado TEXT NOT NULL DEFAULT 'abierta',
+          notas TEXT,
+          venta_id INTEGER REFERENCES ventas(id),
+          creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+          cerrado_en TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_comandas_mesa ON comandas(mesa_id);
+        CREATE INDEX IF NOT EXISTS idx_comandas_estado ON comandas(estado);
+
+        CREATE TABLE IF NOT EXISTS comanda_detalles (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          comanda_id INTEGER NOT NULL REFERENCES comandas(id),
+          producto_id INTEGER REFERENCES productos(id),
+          descripcion TEXT NOT NULL,
+          cantidad REAL NOT NULL DEFAULT 1,
+          precio_unitario REAL NOT NULL DEFAULT 0,
+          subtotal REAL NOT NULL DEFAULT 0,
+          estado TEXT NOT NULL DEFAULT 'pendiente',
+          notas TEXT,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_comanda_detalles_comanda ON comanda_detalles(comanda_id);
+
+        INSERT OR IGNORE INTO mesas (nombre, capacidad, estado) VALUES
+          ('Mesa 1', 4, 'libre'), ('Mesa 2', 4, 'libre'), ('Mesa 3', 4, 'libre'),
+          ('Mesa 4', 2, 'libre'), ('Mesa 5', 6, 'libre'), ('Mesa 6', 2, 'libre');
+      `,
+    },
   ]
 }
 

@@ -40,8 +40,8 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 | `index.ts` | Entry point, ventana principal, DevTools |
 | `preload.ts` | API segura IPC (contextBridge) |
 | `ipc-handlers.ts` | Registro central: delega en los `register*Handlers()` de cada módulo |
-| `core/auth/` | Login (`auth-service.ts`) + permisos (`permissions.ts` → `checkPermissionOrFail`) |
-| `modules/<modulo>/` | Handlers IPC por módulo: inventario, ventas, configuracion, caja-extra, license, distribuidor, terminal, crash-report, shared |
+| `core/auth/` | Login (`auth-service.ts`) + permisos (`permissions.ts` → `checkPermissionOrFail`) + guard de origen IPC (`ipc-guard.ts` → `handleIpc`) |
+| `modules/<modulo>/` | Handlers IPC por módulo: inventario, ventas, configuracion, caja-extra, license, distribuidor, restaurant, terminal, crash-report, shared |
 | `db/database.ts` | SQLite + migraciones + seeds |
 | `services/valorTerminal.ts` | Comunicación serial VP800 (USB/COM) |
 | `services/license.ts` | Validación de licencias (consume `license-crypto`) |
@@ -70,6 +70,8 @@ Router (HashRouter)
 ├── /proveedores        → ProveedoresPage
 ├── /clientes           → ClientesPage (módulo Distribuidor — gating por licencia + permisos)
 ├── /pedidos            → PedidosPage (módulo Distribuidor — gating por licencia + permisos)
+├── /restaurant-mesas   → MesasPage (módulo Restaurant — salón, comanda, cobro)
+├── /restaurant-cocina  → CocinaPage (módulo Restaurant — pantalla de cocina)
 ├── /reportes           → ReportesPage (exportar CSV + PDF)
 ├── /cotizaciones       → QuotesPage
 ├── /configuracion      → ConfigPage (Terminal + Licencia + Impresora + Tutorial + Métodos de Pago)
@@ -119,6 +121,7 @@ Renderer (React)                    Main (Node.js)
 | Caja | `caja:status`, `abrir`, `cerrar`, `movimiento`, `historial`, `reporte-x`, `backup-auto` |
 | Quotes | `quotes:list`, `getById`, `create`, `update`, `delete` |
 | Distribuidor | `clientes:list`, `create`, `update`, `delete` · `pedidos:list`, `catalogo`, `create`, `update` (cambio de estado / notas) |
+| Restaurant | `mesas:list`, `create`, `update`, `delete` · `comandas:open`, `add-item`, `update-item`, `remove-item`, `send-kitchen`, `mark-item`, `move`, `list`, `checkout` (reusa `createVenta`) |
 | Reportes | `reportes:ventas-periodo`, `productos-mas-vendidos`, `ultimas-ventas`, `ventas-por-categoria` |
 | Config | `config:get`, `config:set` |
 | Métodos de Pago | `metodos-pago:list`, `create`, `update`, `delete`, `procesar-tarjeta` |
@@ -130,6 +133,7 @@ Renderer (React)                    Main (Node.js)
 | Updater | `update:check`, `download`, `install` |
 
 > **Autorización:** salvo los canales de `PREAUTH_CHANNELS` (ver `src/shared/ipc-channels.ts`), cada handler exige sesión y permiso vía `checkPermissionOrFail`. El renderer inyecta `usuario_id` automáticamente por `callApi` (`src/renderer/lib/api-client.ts`) y lanza un error si el main devuelve `{ success: false }`.
+> **Origen (SEC8):** todo handler se registra con `handleIpc` (`src/main/core/auth/ipc-guard.ts`), que valida que el sender sea el main-frame y venga de `file://` (empaquetado) o del dev-server (localhost:5173); un origen ajeno lanza error y no ejecuta la lógica. **CSP (SEC7):** meta tag en `index.html`, estricta en producción (sin inline scripts) y relajada en dev por el plugin `inject-csp` de Vite. **Ventas compartidas:** `createVenta` (`modules/ventas/ventas.ts`) es la lógica única de alta de venta (stock, combos, fiado, caja) usada por `ventas:create` y por el cobro de mesas `comandas:checkout`.
 
 ---
 

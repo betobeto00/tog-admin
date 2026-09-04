@@ -3,10 +3,11 @@ import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@core/auth/store'
 import {
   Plus, Search, Eye, Edit2, Trash2, FileText, Send, Clock, CheckCircle,
-  XCircle, Printer, Mail, DollarSign
+  XCircle, Printer, Mail, DollarSign, Download
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import { useToast } from '../components/ui/Toast'
 import { formatCurrency, formatDateTime } from '../lib/utils'
 import { callApi } from '../lib/api-client'
 
@@ -19,6 +20,7 @@ const STATUS_ICONS: Record<string, any> = { pendiente: Clock, aprobada: CheckCir
 
 export default function QuotesPage() {
   const { t } = useTranslation()
+  const toast = useToast()
   const usuario = useAuthStore((s) => s.usuario)
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [productos, setProductos] = useState<Producto[]>([])
@@ -40,6 +42,12 @@ export default function QuotesPage() {
   const [fechaVenc, setFechaVenc] = useState('')
   const [saving, setSaving] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null)
+
+  // Convertir cotización a venta
+  const [convertOpen, setConvertOpen] = useState(false)
+  const [convertTarget, setConvertTarget] = useState<(Quote & { detalles: QuoteDetalle[] }) | null>(null)
+  const [convertForm, setConvertForm] = useState({ metodo_pago: 'efectivo', monto_pagado: 0 })
+  const [converting, setConverting] = useState(false)
 
   useEffect(() => { loadData() }, [filterStatus])
 
@@ -142,6 +150,133 @@ export default function QuotesPage() {
 
   const removeQuote = async (id: number) => {
     await callApi('quotes:delete', { id }); await loadData()
+  }
+
+  const openConvert = (q: Quote & { detalles: QuoteDetalle[] }) => {
+    setConvertTarget(q)
+    setConvertForm({ metodo_pago: 'efectivo', monto_pagado: q.total || 0 })
+    setConvertOpen(true)
+  }
+
+  const doConvert = async () => {
+    if (!convertTarget || converting) return
+    setConverting(true)
+    try {
+      const q = convertTarget
+      const total = q.total || 0
+      const monto = Number(convertForm.monto_pagado) || 0
+      await callApi('ventas:create', {
+        usuario_id: usuario!.id,
+        subtotal: q.subtotal || 0,
+        impuesto: q.impuesto || 0,
+        descuento: q.descuento || 0,
+        total,
+        metodo_pago: convertForm.metodo_pago,
+        monto_pagado: monto,
+        cambio: Math.max(0, monto - total),
+        notas: q.notas || undefined,
+        deudor_nombre: convertForm.metodo_pago === 'fiado' ? q.cliente_nombre : undefined,
+        detalles: (q.detalles || []).map((d) => ({
+          producto_id: d.producto_id,
+          descripcion: d.descripcion,
+          cantidad: d.cantidad,
+          precio_unitario: d.precio_unitario,
+          descuento: d.descuento || 0,
+          subtotal: d.subtotal,
+        })),
+      })
+      await callApi('quotes:update', { id: q.id, data: { estado: 'convertida' } })
+      toast.success(t('quotes.saleCreated'))
+      setConvertOpen(false)
+      await loadData()
+    } catch (err: any) {
+      toast.error(err?.message || t('quotes.convertError'))
+    } finally {
+      setConverting(false)
+    }
+  }
+
+  const loadAndExportPdf = async (id: number) => {
+    try {
+      const full = await callApi<Quote & { detalles: QuoteDetalle[] }>('quotes:getById', { id })
+      await exportQuotePdf(full)
+    } catch (e) {
+      console.error('Failed to load quote for PDF export', e)
+    }
+  }
+
+  const exportQuotePdf = async (q: Quote & { detalles: QuoteDetalle[] }) => {
+    let logo = '', bizName = '', bizAddr = '', bizPhone = '', bizEin = ''
+    try {
+      const cfg = await callApi<any[]>('config:get')
+      const get = (k: string) => cfg.find((c: any) => c.clave === k)?.valor || ''
+      logo = get('logo_path')
+      bizName = get('nombre_negocio')
+      bizAddr = get('direccion')
+      bizPhone = get('telefono')
+      bizEin = get('ein')
+    } catch {}
+    const rows = (q.detalles || []).map((d: any) =>
+      `<tr><td>${d.descripcion || '—'}</td><td style="text-align:center">${d.cantidad}</td><td style="text-align:right">${formatCurrency(d.precio_unitario)}</td><td style="text-align:right">${formatCurrency(d.subtotal)}</td></tr>`
+    ).join('')
+    const win = window.open('', '_blank', 'width=840,height=640')
+    if (!win) return
+    win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>${t('quotes.pdfHeader')} #${String(q.numero_cotizacion).padStart(6, '0')}</title><style>
+      *{box-sizing:border-box}
+      body{font-family:Arial,Helvetica,sans-serif;color:#1f2937;margin:0;padding:32px;background:#f3f4f6}
+      .page{max-width:720px;margin:0 auto;background:#fff;padding:40px;border:1px solid #e5e7eb;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+      h1{font-size:22px;margin:0 0 4px;color:#111827}
+      .muted{color:#6b7280;font-size:12px}
+      .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #3b82f6;padding-bottom:16px;margin-bottom:24px}
+      .brand{font-size:14px;font-weight:bold;color:#1e40af}
+      .quote-no{font-size:26px;font-weight:bold;color:#111827}
+      table{width:100%;border-collapse:collapse;margin:20px 0}
+      th{background:#f3f4f6;text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;border-bottom:2px solid #e5e7eb}
+      td{padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:13px}
+      .totals{width:320px;margin-left:auto;font-size:13px}
+      .totals>div{display:flex;justify-content:space-between;padding:6px 0}
+      .grand{font-size:16px;font-weight:bold;border-top:2px solid #111827;margin-top:4px;padding-top:10px}
+      .notes{background:#f9fafb;border-left:3px solid #3b82f6;padding:12px 16px;margin-top:24px;font-size:12px}
+      .footer{margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;text-align:center;color:#9ca3af;font-size:11px}
+      @media print{body{background:#fff;padding:0}.page{box-shadow:none;border:none}}
+    </style></head><body><div class="page">
+      <div class="head">
+        <div>
+          ${logo ? `<img src="${logo}" style="max-width:150px;max-height:70px;margin-bottom:8px">` : ''}
+          <div class="brand">${bizName || 'TOG Admin'}</div>
+          ${bizAddr ? `<div class="muted">${bizAddr}</div>` : ''}
+          ${bizPhone ? `<div class="muted">${bizPhone}</div>` : ''}
+          ${bizEin ? `<div class="muted">${bizEin}</div>` : ''}
+        </div>
+        <div style="text-align:right">
+          <h1>${t('quotes.pdfHeader')}</h1>
+          <div class="quote-no">#${String(q.numero_cotizacion).padStart(6, '0')}</div>
+          <div class="muted">${formatDateTime(q.fecha)}</div>
+          ${q.fecha_vencimiento ? `<div class="muted">${t('quotes.validUntil')}: ${q.fecha_vencimiento}</div>` : ''}
+        </div>
+      </div>
+      <div>
+        <div class="muted" style="text-transform:uppercase;letter-spacing:.05em">${t('quotes.billTo')}</div>
+        <div style="font-size:15px;font-weight:600;margin-top:4px">${q.cliente_nombre}</div>
+        ${q.cliente_email ? `<div class="muted">${q.cliente_email}</div>` : ''}
+        ${q.cliente_telefono ? `<div class="muted">${q.cliente_telefono}</div>` : ''}
+        ${q.cliente_direccion ? `<div class="muted">${q.cliente_direccion}</div>` : ''}
+      </div>
+      <table>
+        <thead><tr><th>${t('quotes.description')}</th><th style="text-align:center">${t('quotes.qty')}</th><th style="text-align:right">${t('quotes.price')}</th><th style="text-align:right">${t('quotes.subtotal')}</th></tr></thead>
+        <tbody>${rows || `<tr><td colspan="4" style="text-align:center;color:#9ca3af">${t('quotes.noQuotesFound')}</td></tr>`}</tbody>
+      </table>
+      <div class="totals">
+        <div><span class="muted">${t('quotes.subtotal')}</span><span>${formatCurrency(q.subtotal || 0)}</span></div>
+        ${(q.impuesto || 0) > 0 ? `<div><span class="muted">${t('quotes.tax')}</span><span>${formatCurrency(q.impuesto)}</span></div>` : ''}
+        <div class="grand"><span>${t('quotes.total')}</span><span>${formatCurrency(q.total || 0)}</span></div>
+      </div>
+      ${q.notas ? `<div class="notes"><strong>${t('quotes.notes')}:</strong> ${q.notas}</div>` : ''}
+      <div class="footer">${t('quotes.receiptThankYou')}</div>
+    </div></body></html>`)
+    win.document.close()
+    win.focus()
+    win.print()
   }
 
   const loadAndPrint = async (id: number) => {
@@ -279,6 +414,7 @@ export default function QuotesPage() {
                     <div className="flex justify-end gap-1">
                       <button onClick={() => openView(q)} className="p-1.5 hover:bg-gray-100 rounded-lg" title={t('quotes.view')}><Eye className="w-4 h-4 text-gray-500" /></button>
                       <button onClick={() => loadAndPrint(q.id)} className="p-1.5 hover:bg-gray-100 rounded-lg" title={t('quotes.print')}><Printer className="w-4 h-4 text-gray-500" /></button>
+                      <button onClick={() => loadAndExportPdf(q.id)} className="p-1.5 hover:bg-gray-100 rounded-lg" title={t('quotes.exportPdf')}><Download className="w-4 h-4 text-gray-500" /></button>
                       {q.estado === 'pendiente' && <button onClick={() => openEdit(q)} className="p-1.5 hover:bg-gray-100 rounded-lg" title={t('quotes.edit')}><Edit2 className="w-4 h-4 text-gray-500" /></button>}
                       {q.estado === 'pendiente' && <button onClick={() => setDeleteTarget(q.id)} className="p-1.5 hover:bg-red-50 rounded-lg" title={t('quotes.delete')}><Trash2 className="w-4 h-4 text-red-400" /></button>}
                     </div>
@@ -422,11 +558,49 @@ export default function QuotesPage() {
               <div className="flex gap-2 pt-2 border-t border-gray-100">
                 <button onClick={() => changeStatus(viewQuote.id, 'aprobada')} className="flex-1 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 flex items-center justify-center gap-1"><CheckCircle className="w-4 h-4" /> {t('quotes.approve')}</button>
                 <button onClick={() => changeStatus(viewQuote.id, 'rechazada')} className="flex-1 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 flex items-center justify-center gap-1"><XCircle className="w-4 h-4" /> {t('quotes.reject')}</button>
-                <button onClick={() => changeStatus(viewQuote.id, 'convertida')} className="flex-1 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-1"><FileText className="w-4 h-4" /> {t('quotes.convertToSale')}</button>
+                <button onClick={() => openConvert(viewQuote)} className="flex-1 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-1"><FileText className="w-4 h-4" /> {t('quotes.convertToSale')}</button>
               </div>
             )}
             <div className="flex gap-2">
               <button onClick={() => printQuote(viewQuote)} className="flex-1 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 flex items-center justify-center gap-1"><Printer className="w-4 h-4" /> {t('quotes.print')}</button>
+              <button onClick={() => exportQuotePdf(viewQuote)} className="flex-1 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 flex items-center justify-center gap-1"><Download className="w-4 h-4" /> {t('quotes.exportPdf')}</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Modal Convertir a Venta */}
+      <Modal open={convertOpen} onClose={() => setConvertOpen(false)} title={t('quotes.convertTitle')}>
+        {convertTarget && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500">{t('quotes.convertMsg')}</p>
+            <div className="bg-gray-50 rounded-xl p-4 text-sm flex justify-between font-semibold">
+              <span>{t('quotes.total')}</span><span>{formatCurrency(convertTarget.total || 0)}</span>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('pos.paymentMethod')} *</label>
+              <select value={convertForm.metodo_pago} onChange={(e) => setConvertForm({ ...convertForm, metodo_pago: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                <option value="efectivo">{t('pos.cash')}</option>
+                <option value="transferencia">{t('pos.transfer')}</option>
+                <option value="pago_movil">{t('pos.mobile')}</option>
+                <option value="mixto">{t('pos.mixed')}</option>
+                <option value="fiado">{t('caja.fiadoMethod')}</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('pos.amountReceived')}</label>
+              <input type="number" step="0.01" min="0" value={convertForm.monto_pagado}
+                onChange={(e) => setConvertForm({ ...convertForm, monto_pagado: Number(e.target.value) })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+              <p className="text-xs text-gray-400 mt-1">{t('pos.change')}: {formatCurrency(Math.max(0, (Number(convertForm.monto_pagado) || 0) - (convertTarget.total || 0)))}</p>
+            </div>
+            <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+              <button onClick={() => setConvertOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{t('quotes.cancel')}</button>
+              <button onClick={doConvert} disabled={converting}
+                className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 flex items-center gap-2">
+                <FileText className="w-4 h-4" /> {converting ? t('quotes.saving') : t('quotes.convertConfirm')}
+              </button>
             </div>
           </div>
         )}
