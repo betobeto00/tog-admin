@@ -1,10 +1,13 @@
 import { app, BrowserWindow, Tray, Menu, nativeImage } from 'electron'
 import path from 'path'
+import { loadEnv } from './core/env'
 import { initializeDatabase } from './db/database'
 import { registerIpcHandlers } from './ipc-handlers'
 import { initI18n, t as i18nT } from './i18n'
 import { saveCrashReport, captureLog } from './services/crash-reporter'
 import { setupAutoUpdater } from './services/updater'
+
+loadEnv()
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
