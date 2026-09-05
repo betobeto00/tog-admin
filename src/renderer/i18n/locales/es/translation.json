@@ -83,7 +83,12 @@
     "priceLists": "Listas de Precio",
     "restaurantTables": "Mesas",
     "restaurantKitchen": "Cocina",
-    "visualReports": "Reportes Visuales"
+    "visualReports": "Reportes Visuales",
+    "group": {
+      "comercializador": "Comercializador",
+      "distribuidor": "Distribuidor",
+      "restaurant": "Restaurant"
+    }
   },
   "restaurant": {
     "title": "Restaurant",
@@ -116,6 +121,8 @@
     "itemCancelled": "Cancelado",
     "chargeTable": "Cobrar mesa",
     "moveTable": "Mover mesa",
+    "mergeAction": "Fusionar mesas",
+    "moveOrMerge": "Mover / Fusionar",
     "chooseDestiny": "Mesa destino",
     "checkoutTitle": "Cobrar mesa",
     "checkoutMsg": "Se facturarán los ítems servidos o listos de la comanda.",
@@ -130,6 +137,7 @@
     "deudorName": "Nombre del deudor",
     "deudorPlaceholder": "Nombre del cliente que se lleva a crédito",
     "tableMoved": "Mesa movida",
+    "tablesMerged": "Mesas fusionadas",
     "deleteTable": "Eliminar mesa",
     "deleteTableMsg": "La mesa se ocultará. Solo puedes eliminar mesas libres.",
     "noItems": "Aún no hay ítems en la comanda",
@@ -717,7 +725,16 @@
     "fUser": "Usuario",
     "fMethod": "Método de pago",
     "fTotal": "Total",
-    "generated": "Generado"
+    "generated": "Generado",
+    "savedReports": "Reportes guardados",
+    "savedPlaceholder": "Selecciona un reporte guardado…",
+    "saveReport": "Guardar reporte",
+    "deleteReport": "Eliminar reporte",
+    "savedName": "Nombre del reporte",
+    "savedNamePlaceholder": "Ej: Ventas semanales",
+    "saveHint": "Se guardará la configuración actual (fuente, columnas y período) para tu usuario",
+    "saved": "Reporte guardado",
+    "error": "Error"
   },
   "quotes": {
     "title": "Cotizaciones",
@@ -812,6 +829,7 @@
     "role": "Rol",
     "admin": "Administrador",
     "cashier": "Cajero",
+    "manager": "Gerente",
     "newPassword": "Nueva Contraseña",
     "confirmPassword": "Confirmar Contraseña",
     "active": "Activo",
@@ -866,9 +884,11 @@
     "passwordMinPlaceholder": "Mínimo 6 caracteres",
     "roleLabel": "Rol",
     "cashierRole": "Cajero",
+    "managerRole": "Gerente",
     "adminRole": "Administrador",
     "adminAccess": "Acceso total a todos los módulos incluyendo configuración",
     "cashierAccess": "Acceso a POS, inventario y operaciones diarias",
+    "managerAccess": "Reportes e inventario: agregar productos y modificar precios, sin operar la caja",
     "cancel": "Cancelar",
     "saveChanges": "Guardar Cambios",
     "createUser": "Crear Usuario",
@@ -1419,6 +1439,7 @@
     "securityRolesF2": "Cajero: POS, caja, inventario básico, ventas",
     "securityRolesF3": "Solo admin puede: configuración, gestión de usuarios, anular ventas",
     "securityRolesF4": "Rutas protegidas en el frontend",
+    "securityRolesF5": "Gerente: reportes, agregar productos y modificar precios (sin operar la caja)",
     "securityBackup": "Backup de Datos",
     "securityBackupDesc": "Protección contra pérdida de información.",
     "securityBackupF1": "Backup manual desde Config → Sistema",

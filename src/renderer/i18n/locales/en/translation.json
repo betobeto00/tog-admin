@@ -83,7 +83,12 @@
     "priceLists": "Price Lists",
     "restaurantTables": "Tables",
     "restaurantKitchen": "Kitchen",
-    "visualReports": "Visual Reports"
+    "visualReports": "Visual Reports",
+    "group": {
+      "comercializador": "Retailer",
+      "distribuidor": "Distributor",
+      "restaurant": "Restaurant"
+    }
   },
   "restaurant": {
     "title": "Restaurant",
@@ -116,6 +121,8 @@
     "itemCancelled": "Cancelled",
     "chargeTable": "Charge table",
     "moveTable": "Move table",
+    "mergeAction": "Merge tables",
+    "moveOrMerge": "Move / Merge",
     "chooseDestiny": "Destination table",
     "checkoutTitle": "Charge table",
     "checkoutMsg": "Served or ready items on the order will be billed.",
@@ -130,6 +137,7 @@
     "deudorName": "Debtor name",
     "deudorPlaceholder": "Name of the customer taking credit",
     "tableMoved": "Table moved",
+    "tablesMerged": "Tables merged",
     "deleteTable": "Delete table",
     "deleteTableMsg": "The table will be hidden. You can only delete free tables.",
     "noItems": "No items on this order yet",
@@ -717,7 +725,16 @@
     "fUser": "User",
     "fMethod": "Payment method",
     "fTotal": "Total",
-    "generated": "Generated"
+    "generated": "Generated",
+    "savedReports": "Saved reports",
+    "savedPlaceholder": "Select a saved report…",
+    "saveReport": "Save report",
+    "deleteReport": "Delete report",
+    "savedName": "Report name",
+    "savedNamePlaceholder": "e.g. Weekly sales",
+    "saveHint": "The current setup (source, columns and period) will be saved for your user",
+    "saved": "Report saved",
+    "error": "Error"
   },
   "quotes": {
     "title": "Quotes",
@@ -812,6 +829,7 @@
     "role": "Role",
     "admin": "Administrator",
     "cashier": "Cashier",
+    "manager": "Manager",
     "newPassword": "New Password",
     "confirmPassword": "Confirm Password",
     "active": "Active",
@@ -866,9 +884,11 @@
     "passwordMinPlaceholder": "Min 6 characters",
     "roleLabel": "Role",
     "cashierRole": "Cashier",
+    "managerRole": "Manager",
     "adminRole": "Admin",
     "adminAccess": "Full access to all modules including configuration",
     "cashierAccess": "Access to POS, inventory, and daily operations",
+    "managerAccess": "Reports and inventory: add products and change prices, without operating the register",
     "cancel": "Cancel",
     "saveChanges": "Save Changes",
     "createUser": "Create User",
@@ -1419,6 +1439,7 @@
     "securityRolesF2": "Cashier: POS, register, basic inventory, sales",
     "securityRolesF3": "Only admin can: settings, user management, void sales",
     "securityRolesF4": "Protected routes on the frontend",
+    "securityRolesF5": "Manager: reports, add products and change prices (no register access)",
     "securityBackup": "Data Backup",
     "securityBackupDesc": "Protection against data loss.",
     "securityBackupF1": "Manual backup from Settings, System",
