@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs'
 import { getDatabase } from '../../db/database'
 import { t } from '../../i18n'
+import { registrarSesion } from '../../services/red-session'
 
 const MAX_LOGIN_ATTEMPTS = 5
 const LOGIN_LOCKOUT_MS = 15 * 60 * 1000
@@ -27,7 +28,12 @@ export interface LoginResult {
   error?: string
 }
 
-export async function login(input: LoginInput): Promise<LoginResult> {
+/**
+ * Login con sesión única: al autenticar se registra la sesión del usuario en
+ * el par (PC) que hizo login. Si el usuario ya tiene sesión activa en OTRO
+ * par, el login se rechaza. El par 'base' es la propia PC Base.
+ */
+export async function login(input: LoginInput, parId = 'base'): Promise<LoginResult> {
   const { usuario, contrasena } = input
   const attempts = loginAttempts.get(usuario)
   if (attempts && attempts.count >= MAX_LOGIN_ATTEMPTS && Date.now() - attempts.lastAttempt < LOGIN_LOCKOUT_MS) {
@@ -50,5 +56,11 @@ export async function login(input: LoginInput): Promise<LoginResult> {
 
   clearLoginAttempts(usuario)
   const { contrasena: _, ...usuarioSinPass } = user
+
+  const sesion = registrarSesion(getDatabase(), user.id, parId)
+  if (!sesion.ok) {
+    return { success: false, error: sesion.error }
+  }
+
   return { success: true, usuario: usuarioSinPass }
 }

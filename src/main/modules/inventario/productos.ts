@@ -4,6 +4,7 @@ import { t } from '../../i18n'
 import { checkPermissionOrFail } from '../../core/auth'
 import { productoCreateSchema, productoUpdateSchema } from '../../../shared/validations'
 import { esCombo, disponibilidad, costoReal, detalleCombo } from './combos'
+import { saveImagen, deleteImagen, getImagenDataUrl } from '../../services/imagenes'
 
 // Enriquecer un producto con datos de producto compuesto: un combo no tiene
 // stock propio; su stock real es la disponibilidad de sus componentes.
@@ -172,6 +173,40 @@ export function registerProductosHandlers(): void {
     if (fail) return fail
     const db = getDatabase()
     db.prepare(`UPDATE productos SET activo = 0, actualizado_en = datetime('now') WHERE id = ?`).run(data.id)
+    await deleteImagen(data.id)
+    return { success: true }
+  })
+
+  handleIpc('productos:set-imagen', async (_event, data: { id: number; base64: string; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'productos:set-imagen', 'inventario_edit')
+    if (fail) return fail
+    if (typeof data.base64 !== 'string' || data.base64.length === 0) {
+      return { success: false, error: 'Imagen vacía' }
+    }
+    const db = getDatabase()
+    const existe = db.prepare('SELECT id FROM productos WHERE id = ?').get(data.id)
+    if (!existe) return { success: false, error: 'Producto no encontrado' }
+    try {
+      const buffer = Buffer.from(data.base64, 'base64')
+      const file = await saveImagen(data.id, buffer)
+      db.prepare(`UPDATE productos SET imagen_path = ?, actualizado_en = datetime('now') WHERE id = ?`).run(file, data.id)
+      return { success: true, imagen_path: file }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  handleIpc('productos:get-imagen', async (_event, data: { id: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'productos:get-imagen', 'inventario_access')
+    if (fail) return fail
+    return { success: true, dataUrl: getImagenDataUrl(data.id) }
+  })
+
+  handleIpc('productos:delete-imagen', async (_event, data: { id: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'productos:delete-imagen', 'inventario_edit')
+    if (fail) return fail
+    await deleteImagen(data.id)
+    getDatabase().prepare(`UPDATE productos SET imagen_path = NULL, actualizado_en = datetime('now') WHERE id = ?`).run(data.id)
     return { success: true }
   })
 

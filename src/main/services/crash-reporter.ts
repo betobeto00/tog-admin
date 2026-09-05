@@ -2,6 +2,7 @@ import { app, dialog } from 'electron'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
+import { logger } from './logger'
 
 // ============================================
 // CRASH REPORTER - Informes de Error
@@ -191,7 +192,7 @@ export function saveCrashReport(data: {
   const content = formatReportText(report)
   fs.writeFileSync(filePath, content, 'utf8')
 
-  console.log(`[CrashReporter] Reporte guardado: ${filePath}`)
+  logger.info('crash', `Reporte guardado: ${filePath}`)
   return filePath
 }
 

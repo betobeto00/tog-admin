@@ -28,6 +28,7 @@ export function registerReportesHandlers(): void {
       SELECT
         p.nombre,
         p.codigo_barras,
+        p.tipo,
         SUM(vd.cantidad) as total_vendido,
         SUM(vd.subtotal) as total_ingreso
       FROM venta_detalles vd

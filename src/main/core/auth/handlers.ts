@@ -7,9 +7,9 @@ import { checkPermissionOrFail } from './permissions'
 import { login } from './auth-service'
 
 export function registerAuthHandlers(): void {
-  handleIpc('auth:login', async (_event, data: { usuario: string; contrasena: string }) => {
+  handleIpc('auth:login', async (_event, data: { usuario: string; contrasena: string; __par_id?: string }) => {
     try {
-      return await login(data)
+      return await login(data, data.__par_id || 'base')
     } catch (err: any) {
       return { success: false, error: err.message }
     }

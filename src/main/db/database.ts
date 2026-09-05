@@ -2,6 +2,7 @@ import Database from 'better-sqlite3'
 import path from 'path'
 import { app } from 'electron'
 import bcrypt from 'bcryptjs'
+import { logger } from '../services/logger'
 
 let db: Database.Database | null = null
 
@@ -53,7 +54,7 @@ export function initializeDatabase(): Database.Database {
   // Insertar datos iniciales si la DB está vacía
   seedDatabase(db)
 
-  console.log(`[TOG Admin] Base de datos inicializada: ${dbPath}`)
+  logger.info('db', `Base de datos inicializada: ${dbPath}`)
   return db
 }
 
@@ -91,7 +92,7 @@ function runMigrations(db: Database.Database): void {
   const runInTransaction = db.transaction(() => {
     for (const migration of migrations) {
       if (!executedMigrations.includes(migration.nombre)) {
-        console.log(`[Migración] Ejecutando: ${migration.nombre}`)
+        logger.info('db', `Ejecutando migración: ${migration.nombre}`)
         db.exec(migration.sql)
         db.prepare('INSERT INTO _migrations (nombre) VALUES (?)').run(migration.nombre)
       }
@@ -705,6 +706,53 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
         );
       `,
     },
+    {
+      nombre: '030_currency_name',
+      sql: `
+        INSERT OR IGNORE INTO configuracion (clave, valor, descripcion) VALUES
+          ('currency_name', 'USD', 'Nombre de la moneda (USD, Bs, EUR, etc.)');
+      `,
+    },
+    {
+      nombre: '031_producto_imagen_path',
+      sql: `
+        ALTER TABLE productos ADD COLUMN imagen_path TEXT;
+      `,
+    },
+    {
+      nombre: '032_red_local',
+      sql: `
+        CREATE TABLE IF NOT EXISTS pcs_enlazadas (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          par_id TEXT NOT NULL UNIQUE,
+          nombre TEXT NOT NULL,
+          ip TEXT,
+          cert_hash TEXT NOT NULL,
+          last_seen TEXT,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_pcs_enlazadas_par ON pcs_enlazadas(par_id);
+
+        CREATE TABLE IF NOT EXISTS sesiones_activas (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          usuario_id INTEGER NOT NULL UNIQUE REFERENCES usuarios(id),
+          par_id TEXT NOT NULL,
+          sesion_token TEXT NOT NULL UNIQUE,
+          opened_at TEXT NOT NULL DEFAULT (datetime('now')),
+          last_heartbeat TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_sesiones_activas_par ON sesiones_activas(par_id);
+
+        CREATE TABLE IF NOT EXISTS codigos_enlace (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          codigo TEXT NOT NULL UNIQUE,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+          expira_en TEXT NOT NULL,
+          usado INTEGER NOT NULL DEFAULT 0,
+          usado_en TEXT
+        );
+      `,
+    },
   ]
 }
 
@@ -787,6 +835,6 @@ function seedDatabase(db: Database.Database): void {
     })
 
     seedInTransaction()
-    console.log('[TOG Admin] Seeds iniciales insertados (admin, categorías, configuración)')
+    logger.info('db', 'Seeds iniciales insertados (admin, categorías, configuración)')
   }
 }

@@ -6,6 +6,22 @@ import { app } from 'electron'
 import { getDatabase, closeDatabase, initializeDatabase, getDbPath } from '../../db/database'
 import { t } from '../../i18n'
 import { checkPermissionOrFail } from '../../core/auth'
+import { hasImagenesDir, getImagenesDir } from '../../services/imagenes'
+import { logger } from '../../services/logger'
+
+function copyDirRecursive(src: string, dest: string): void {
+  if (!fs.existsSync(src)) return
+  fs.mkdirSync(dest, { recursive: true })
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const from = path.join(src, entry.name)
+    const to = path.join(dest, entry.name)
+    if (entry.isDirectory()) {
+      copyDirRecursive(from, to)
+    } else {
+      fs.copyFileSync(from, to)
+    }
+  }
+}
 
 export function registerBackupHandlers(): void {
   handleIpc('backup:create', async (_event, data?: { ruta?: string; usuario_id?: number }) => {
@@ -36,6 +52,11 @@ export function registerBackupHandlers(): void {
       }
 
       fs.copyFileSync(dbPath, targetPath)
+
+      if (hasImagenesDir()) {
+        copyDirRecursive(getImagenesDir(), `${targetPath}.imagenes`)
+      }
+
       return { success: true, path: targetPath }
     } catch (err: any) {
       return { success: false, error: err.message }
@@ -82,6 +103,11 @@ export function registerBackupHandlers(): void {
 
       fs.copyFileSync(sourcePath, dbPath)
 
+      const imagenesSrc = `${sourcePath}.imagenes`
+      if (fs.existsSync(imagenesSrc)) {
+        copyDirRecursive(imagenesSrc, getImagenesDir())
+      }
+
       initializeDatabase()
 
       return { success: true }
@@ -117,7 +143,7 @@ export function registerBackupHandlers(): void {
 
       initializeDatabase()
 
-      console.log('[TOG Admin] Base de datos reseteada por admin')
+      logger.info('backup', 'Base de datos reseteada por admin')
       return { success: true }
     } catch (err: any) {
       return { success: false, error: err.message }

@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { app } from 'electron'
+import { logger } from '../services/logger'
 
 export type SupportedLang = 'es' | 'en'
 
@@ -19,7 +20,7 @@ function loadTranslations(lang: SupportedLang): Record<string, any> {
     const content = fs.readFileSync(filePath, 'utf-8')
     return JSON.parse(content)
   } catch (err) {
-    console.error(`[i18n] Failed to load ${filePath}, falling back to ${DEFAULT_LANG}`)
+    logger.error('i18n', `Failed to load ${filePath}, falling back to ${DEFAULT_LANG}`)
     if (lang !== DEFAULT_LANG) {
       return loadTranslations(DEFAULT_LANG)
     }
@@ -34,7 +35,7 @@ function getNested(obj: any, key: string): any {
 export function t(key: string, vars?: Record<string, string | number>): string {
   const raw = getNested(translations, key)
   if (typeof raw !== 'string') {
-    console.warn(`[i18n] Missing key: ${key} (lang=${currentLang})`)
+    logger.warn('i18n', `Missing key: ${key} (lang=${currentLang})`)
     return key
   }
   if (!vars) return raw
@@ -60,7 +61,7 @@ export function detectInitialLang(): SupportedLang {
         }
       }
     } catch (err) {
-      console.warn('[i18n] Could not read install marker:', err)
+      logger.warn('i18n', 'Could not read install marker:', err)
     }
   }
 
@@ -79,7 +80,7 @@ export function detectInitialLang(): SupportedLang {
 
 export function setLang(lang: SupportedLang): void {
   if (lang !== 'es' && lang !== 'en') {
-    console.warn(`[i18n] Unsupported language: ${lang}, keeping ${currentLang}`)
+    logger.warn('i18n', `Unsupported language: ${lang}, keeping ${currentLang}`)
     return
   }
   currentLang = lang
@@ -88,7 +89,7 @@ export function setLang(lang: SupportedLang): void {
     const userLangPath = path.join(app.getPath('userData'), 'language.txt')
     fs.writeFileSync(userLangPath, lang, 'utf-8')
   } catch (err) {
-    console.warn('[i18n] Could not persist language:', err)
+    logger.warn('i18n', 'Could not persist language:', err)
   }
 }
 
