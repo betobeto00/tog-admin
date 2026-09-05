@@ -58,12 +58,16 @@ export interface Producto {
   stock_minimo: number
   unidad: string
   imagen: string | null
+  imagen_path: string | null
   activo: number
   creado_en: string
   actualizado_en: string
   // Joined fields
   categoria_nombre?: string
   subcategoria_nombre?: string
+  // Computed fields (combos / main process enrichment)
+  es_combo?: number
+  costo_real?: number
 }
 
 export interface ProductoCreate {
@@ -406,6 +410,9 @@ export interface IpcChannels {
   'productos:create': ProductoCreate
   'productos:update': { id: number; data: ProductoUpdate }
   'productos:delete': { id: number }
+  'productos:set-imagen': { id: number; base64: string }
+  'productos:get-imagen': { id: number }
+  'productos:delete-imagen': { id: number }
   'productos:low-stock': void
 
   // Proveedores

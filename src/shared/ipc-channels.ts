@@ -1,147 +1,159 @@
-export type IpcChannel =
-  | 'app:version'
-  | 'auth:login'
-  | 'backup:create'
-  | 'backup:restore'
-  | 'caja:abrir'
-  | 'caja:backup-auto'
-  | 'caja:cerrar'
-  | 'caja:historial'
-  | 'caja:movimiento'
-  | 'caja:reporte-x'
-  | 'caja:status'
-  | 'categorias:create'
-  | 'categorias:delete'
-  | 'categorias:list'
-  | 'categorias:update'
-  |  'clientes:create'
-  | 'clientes:delete'
-  | 'clientes:list'
-  | 'clientes:update'
-  | 'combos:get'
-  | 'combos:guardar'
-  | 'borradores:delete'
-  | 'borradores:list'
-  | 'borradores:load'
-  | 'borradores:save'
-  | 'almacenes:create'
-  | 'almacenes:delete'
-  | 'almacenes:list'
-  | 'almacenes:set-stock'
-  | 'almacenes:stock'
-  | 'almacenes:update'
-  | 'compras:create'
-  | 'compras:list'
-  | 'config:get'
-  | 'config:set'
-  | 'creditos:abono'
-  | 'creditos:getById'
-  | 'creditos:list'
-  | 'crash-report:delete'
-  | 'crash-report:list'
-  | 'crash-report:open-folder'
-  | 'crash-report:path'
-  | 'crash-report:read'
-  | 'crash-report:save'
-  | 'db:reset'
-  | 'feedback:send'
-  | 'i18n:get-lang'
-  | 'i18n:set-lang'
-  | 'license:import'
-  | 'license:reset-state'
-  | 'license:status'
-  | 'license:sync'
-  | 'license:validate'
-  | 'listas-precio:create'
-  | 'listas-precio:delete'
-  | 'listas-precio:list'
-  | 'listas-precio:set-cliente'
-  | 'listas-precio:set-producto'
-  | 'listas-precio:unset-cliente'
-  | 'listas-precio:clientes'
-  | 'listas-precio:productos'
-  | 'listas-precio:update'
-  | 'remitos:create'
-  | 'remitos:getById'
-  | 'remitos:list'
-  | 'remitos:update'
-  | 'reportes-visuales:delete'
-  | 'reportes-visuales:list'
-  | 'reportes-visuales:save'
-  | 'mesas:create'
-  | 'mesas:delete'
-  | 'mesas:list'
-  | 'mesas:update'
-  | 'metodos-pago:create'
-  | 'metodos-pago:delete'
-  | 'metodos-pago:list'
-  | 'metodos-pago:procesar-tarjeta'
-  | 'metodos-pago:update'
-  | 'comandas:add-item'
-  | 'comandas:checkout'
-  | 'comandas:list'
-  | 'comandas:mark-item'
-  | 'comandas:merge'
-  | 'comandas:move'
-  | 'comandas:open'
-  | 'comandas:remove-item'
-  | 'comandas:send-kitchen'
-  | 'comandas:update-item'
-  | 'pedidos:catalogo'
-  | 'pedidos:create'
-  | 'pedidos:list'
-  | 'pedidos:update'
-  | 'productos:ajustar'
-  | 'productos:ajustes-historial'
-  | 'productos:buscar-por-codigo'
-  | 'productos:create'
-  | 'productos:delete'
-  | 'productos:export-csv'
-  | 'productos:getById'
-  | 'productos:import-csv'
-  | 'productos:list'
-  | 'productos:low-stock'
-  | 'productos:update'
-  | 'proveedores:create'
-  | 'subcategorias:create'
-  | 'subcategorias:delete'
-  | 'subcategorias:list'
-  | 'subcategorias:update'
-  | 'proveedores:delete'
-  | 'proveedores:list'
-  | 'proveedores:update'
-  | 'quotes:create'
-  | 'quotes:delete'
-  | 'quotes:getById'
-  | 'quotes:list'
-  | 'quotes:update'
-  | 'reportes:productos-mas-vendidos'
-  | 'reportes:ultimas-ventas'
-  | 'reportes:ventas-periodo'
-  | 'reportes:ventas-por-categoria'
-  | 'terminal:conectar'
-  | 'terminal:desconectar'
-  | 'terminal:estado'
-  | 'terminal:procesar-pago'
-  | 'unidades:create'
-  | 'unidades:delete'
-  | 'unidades:list'
-  | 'unidades:update'
-  | 'update:check'
-  | 'update:download'
-  | 'update:install'
-  | 'usuarios:change-password'
-  | 'usuarios:create'
-  | 'usuarios:delete'
-  | 'usuarios:getPermissions'
-  | 'usuarios:list'
-  | 'usuarios:setPermissions'
-  | 'usuarios:update'
-  | 'ventas:anular'
-  | 'ventas:create'
-  | 'ventas:getById'
-  | 'ventas:list'
-  | 'ventas:resumen-dia'
+export const IPC_CHANNELS = [
+  'app:version',
+  'auth:login',
+  'backup:create',
+  'backup:restore',
+  'caja:abrir',
+  'caja:backup-auto',
+  'caja:cerrar',
+  'caja:historial',
+  'caja:movimiento',
+  'caja:reporte-x',
+  'caja:status',
+  'categorias:create',
+  'categorias:delete',
+  'categorias:list',
+  'categorias:update',
+  'clientes:create',
+  'clientes:delete',
+  'clientes:list',
+  'clientes:update',
+  'combos:get',
+  'combos:guardar',
+  'borradores:delete',
+  'borradores:list',
+  'borradores:load',
+  'borradores:save',
+  'almacenes:create',
+  'almacenes:delete',
+  'almacenes:list',
+  'almacenes:set-stock',
+  'almacenes:stock',
+  'almacenes:update',
+  'compras:create',
+  'compras:list',
+  'config:get',
+  'config:set',
+  'creditos:abono',
+  'creditos:getById',
+  'creditos:list',
+  'crash-report:delete',
+  'crash-report:list',
+  'crash-report:open-folder',
+  'crash-report:path',
+  'crash-report:read',
+  'crash-report:save',
+  'db:reset',
+  'feedback:send',
+  'i18n:get-lang',
+  'i18n:set-lang',
+  'license:import',
+  'license:reset-state',
+  'license:status',
+  'license:sync',
+  'license:validate',
+  'listas-precio:create',
+  'listas-precio:delete',
+  'listas-precio:list',
+  'listas-precio:set-cliente',
+  'listas-precio:set-producto',
+  'listas-precio:unset-cliente',
+  'listas-precio:clientes',
+  'listas-precio:productos',
+  'listas-precio:update',
+  'remitos:create',
+  'remitos:getById',
+  'remitos:list',
+  'remitos:update',
+  'reportes-visuales:delete',
+  'reportes-visuales:list',
+  'reportes-visuales:save',
+  'mesas:create',
+  'mesas:delete',
+  'mesas:list',
+  'mesas:update',
+  'metodos-pago:create',
+  'metodos-pago:delete',
+  'metodos-pago:list',
+  'metodos-pago:procesar-tarjeta',
+  'metodos-pago:update',
+  'comandas:add-item',
+  'comandas:checkout',
+  'comandas:list',
+  'comandas:mark-item',
+  'comandas:merge',
+  'comandas:move',
+  'comandas:open',
+  'comandas:remove-item',
+  'comandas:send-kitchen',
+  'comandas:update-item',
+  'pedidos:catalogo',
+  'pedidos:create',
+  'pedidos:list',
+  'pedidos:update',
+  'productos:ajustar',
+  'productos:ajustes-historial',
+  'productos:buscar-por-codigo',
+  'productos:create',
+  'productos:delete',
+  'productos:delete-imagen',
+  'productos:export-csv',
+  'productos:get-imagen',
+  'productos:getById',
+  'productos:import-csv',
+  'productos:list',
+  'productos:low-stock',
+  'productos:set-imagen',
+  'productos:update',
+  'proveedores:create',
+  'subcategorias:create',
+  'subcategorias:delete',
+  'subcategorias:list',
+  'subcategorias:update',
+  'proveedores:delete',
+  'proveedores:list',
+  'proveedores:update',
+  'quotes:create',
+  'quotes:delete',
+  'quotes:getById',
+  'quotes:list',
+  'quotes:update',
+  'reportes:productos-mas-vendidos',
+  'reportes:ultimas-ventas',
+  'reportes:ventas-periodo',
+  'reportes:ventas-por-categoria',
+  'red:status',
+  'red:vincular',
+  'red:desvincular',
+  'red:generar-codigo',
+  'red:listar-pcs',
+  'red:logout',
+  'terminal:conectar',
+  'terminal:desconectar',
+  'terminal:estado',
+  'terminal:procesar-pago',
+  'unidades:create',
+  'unidades:delete',
+  'unidades:list',
+  'unidades:update',
+  'update:check',
+  'update:download',
+  'update:install',
+  'usuarios:change-password',
+  'usuarios:create',
+  'usuarios:delete',
+  'usuarios:getPermissions',
+  'usuarios:list',
+  'usuarios:setPermissions',
+  'usuarios:update',
+  'ventas:anular',
+  'ventas:create',
+  'ventas:getById',
+  'ventas:list',
+  'ventas:resumen-dia',
+] as const
+
+export type IpcChannel = (typeof IPC_CHANNELS)[number]
 
 export type IpcPushChannel = 'update:progress'
 
@@ -158,4 +170,7 @@ export const PREAUTH_CHANNELS: readonly IpcChannel[] = [
   'license:sync',
   'license:validate',
   'license:import',
+  'red:status',
+  'red:vincular',
+  'red:desvincular',
 ] as const

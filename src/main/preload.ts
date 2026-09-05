@@ -93,6 +93,12 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.invoke('productos:buscar-por-codigo', payload),
     exportCsv: () => ipcRenderer.invoke('productos:export-csv'),
     importCsv: (filePath: string) => ipcRenderer.invoke('productos:import-csv', filePath),
+    setImagen: (data: { id: number; base64: string; usuario_id?: number }) =>
+      ipcRenderer.invoke('productos:set-imagen', data),
+    getImagen: (payload: { id: number; usuario_id?: number }) =>
+      ipcRenderer.invoke('productos:get-imagen', payload),
+    deleteImagen: (payload: { id: number; usuario_id?: number }) =>
+      ipcRenderer.invoke('productos:delete-imagen', payload),
   },
 
   // Proveedores
@@ -215,6 +221,16 @@ contextBridge.exposeInMainWorld('api', {
   i18n: {
     getLang: () => ipcRenderer.invoke('i18n:get-lang'),
     setLang: (lang: 'es' | 'en') => ipcRenderer.invoke('i18n:set-lang', { lang }),
+  },
+
+  // Red local (PC Base + hijas)
+  red: {
+    status: () => ipcRenderer.invoke('red:status'),
+    vincular: (data: { baseUrl: string; codigo: string; nombre: string }) =>
+      ipcRenderer.invoke('red:vincular', data),
+    desvincular: () => ipcRenderer.invoke('red:desvincular'),
+    generarCodigo: () => ipcRenderer.invoke('red:generar-codigo'),
+    listarPcs: () => ipcRenderer.invoke('red:listar-pcs'),
   },
 
   // Versión de la app

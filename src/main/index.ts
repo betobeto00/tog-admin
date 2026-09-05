@@ -6,6 +6,10 @@ import { registerIpcHandlers } from './ipc-handlers'
 import { initI18n, t as i18nT } from './i18n'
 import { saveCrashReport, captureLog } from './services/crash-reporter'
 import { setupAutoUpdater } from './services/updater'
+import { logger } from './services/logger'
+import { startRedServerIfBase } from './services/red-server'
+import { isHija, getHijaConfig } from './services/red-config'
+import { logoutEnBase } from './services/red-client'
 
 loadEnv()
 
@@ -38,15 +42,15 @@ function createWindow() {
     mainWindow.webContents.openDevTools({ mode: 'detach' })
   } else {
     const htmlPath = path.join(__dirname, '../../dist/index.html')
-    console.log('[TOG Admin] Loading from:', htmlPath)
+    logger.info('app', 'Loading from:', htmlPath)
     mainWindow.loadFile(htmlPath)
     
     // Diagnóstico: verificar que el archivo HTML existe
     const fs = require('fs')
     if (!fs.existsSync(htmlPath)) {
-      console.error('[TOG Admin] HTML file not found:', htmlPath)
+      logger.error('app', 'HTML file not found:', htmlPath)
     } else {
-      console.log('[TOG Admin] HTML file exists, size:', fs.statSync(htmlPath).size)
+      logger.info('app', 'HTML file exists, size:', fs.statSync(htmlPath).size)
     }
   }
 
@@ -55,21 +59,21 @@ function createWindow() {
 
   // Logging para diagnóstico de carga
   mainWindow.webContents.on('did-finish-load', () => {
-    console.log('[TOG Admin] Renderer finished loading')
+    logger.info('app', 'Renderer finished loading')
   })
 
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    console.error('[TOG Admin] Renderer failed to load:', errorCode, errorDescription)
+    logger.error('app', 'Renderer failed to load:', errorCode, errorDescription)
   })
 
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
-    console.log(`[Renderer Console] [${level}] ${message}`)
+    logger.debug('renderer', `[${level}] ${message}`)
     captureLog(`[Renderer] [${level}] ${message}`)
   })
 
   // Capturar crashes del renderer/GPU
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
-    console.error('[CrashReporter] Renderer process gone:', details.reason, details.exitCode)
+    logger.error('crash', 'Renderer process gone:', details.reason, details.exitCode)
     captureLog(`RENDERER CRASH: ${details.reason} (exit code: ${details.exitCode})`)
     try {
       saveCrashReport({
@@ -80,7 +84,7 @@ function createWindow() {
   })
 
   mainWindow.webContents.on('unresponsive', () => {
-    console.error('[CrashReporter] Renderer became unresponsive')
+    logger.error('crash', 'Renderer became unresponsive')
     captureLog('RENDERER UNRESPONSIVE')
     try {
       saveCrashReport({
@@ -91,12 +95,12 @@ function createWindow() {
   })
 
   mainWindow.once('ready-to-show', () => {
-    console.log('[TOG Admin] Window ready to show')
+    logger.info('app', 'Window ready to show')
     mainWindow?.show()
   })
 
   mainWindow.on('closed', () => {
-    console.log('[TOG Admin] Window closed')
+    logger.info('app', 'Window closed')
     mainWindow = null
   })
 }
@@ -136,7 +140,7 @@ function createTray() {
 
 // Capturar excepciones no atrapadas
 process.on('uncaughtException', (error) => {
-  console.error('[CrashReporter] Uncaught Exception:', error)
+  logger.error('crash', 'Uncaught Exception:', error)
   captureLog(`UNCAUGHT EXCEPTION: ${error.message}`)
   try {
     saveCrashReport({
@@ -152,7 +156,7 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason) => {
   const message = reason instanceof Error ? reason.message : String(reason)
   const stack = reason instanceof Error ? reason.stack : undefined
-  console.error('[CrashReporter] Unhandled Rejection:', reason)
+  logger.error('crash', 'Unhandled Rejection:', reason)
   captureLog(`UNHANDLED REJECTION: ${message}`)
   try {
     saveCrashReport({
@@ -165,25 +169,30 @@ process.on('unhandledRejection', (reason) => {
 
 // App lifecycle
 app.whenReady().then(() => {
-  console.log('[TOG Admin] app ready')
+  logger.info('app', 'app ready')
   try {
     // Inicializar i18n (lee .lang del NSIS installer o de userData)
     const lang = initI18n()
-    console.log(`[TOG Admin] i18n: ${i18nT('logs.appStarting')} (${lang})`)
+    logger.info('app', `i18n: ${i18nT('logs.appStarting')} (${lang})`)
 
     // Inicializar base de datos
     initializeDatabase()
-    console.log(`[TOG Admin] ${i18nT('logs.dbInitialized')}`)
+    logger.info('app', `${i18nT('logs.dbInitialized')}`)
 
     // Registrar handlers IPC
     registerIpcHandlers()
-    console.log(`[TOG Admin] ${i18nT('logs.ipcRegistered')}`)
+    logger.info('app', `${i18nT('logs.ipcRegistered')}`)
+
+    // Modo PC Base: arrancar el servidor de red local para las PCs hijas
+    startRedServerIfBase().then((ok) => {
+      logger.info('red', ok ? 'Servidor red local iniciado' : 'Servidor red local no iniciado (modo hija/local)')
+    })
 
     // Crear ventana
     createWindow()
-    console.log(`[TOG Admin] ${i18nT('logs.windowCreated')}`)
+    logger.info('app', `${i18nT('logs.windowCreated')}`)
   } catch (err) {
-    console.error('[TOG Admin] FATAL during init:', err)
+    logger.error('app', 'FATAL during init:', err)
     saveCrashReport({
       type: 'uncaught-exception',
       message: 'FATAL during init: ' + (err instanceof Error ? err.message : String(err)),
@@ -208,12 +217,19 @@ app.whenReady().then(() => {
     }
   })
 }).catch((err) => {
-  console.error('[TOG Admin] FATAL whenReady rejected:', err)
+  logger.error('app', 'FATAL whenReady rejected:', err)
 })
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
+  }
+})
+
+// Al cerrar una PC Hija, liberar sus sesiones en la Base (best-effort)
+app.on('before-quit', () => {
+  if (isHija() && getHijaConfig()) {
+    logoutEnBase()
   }
 })
 

@@ -218,6 +218,13 @@ export const PERMISSIONS = {
     description: { es: 'Importar, resetear o manipular la licencia del producto', en: 'Import, reset or manipulate the product license' },
   },
 
+  // === RED LOCAL (interconexión PC Base + hijas) ===
+  red_manage: {
+    label: { es: 'Gestionar Red Local', en: 'Manage Local Network' },
+    category: { es: 'Administración', en: 'Administration' },
+    description: { es: 'Generar códigos de enlace y ver las PCs conectadas a esta Base', en: 'Generate pairing codes and view PCs linked to this Base' },
+  },
+
   // === DISTRIBUIDOR ===
   distribuidor_clientes_view: {
     label: { es: 'Ver Clientes', en: 'View Clients' },

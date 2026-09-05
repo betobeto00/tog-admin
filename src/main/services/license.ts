@@ -270,11 +270,26 @@ export function getLicenseStatus() {
     error: validation.error,
     machineId: getMachineId(),
     totalDaysUsed: state.totalDaysUsed || 0,
-    /** Módulos activos declarados por la licencia (vacío = solo el módulo base) */
-    modulos: normalizeModules(license?.modules) as ModuleId[],
+  /** Módulos activos declarados por la licencia (vacío = solo el módulo base) */
+  modulos: normalizeModules(license?.modules) as ModuleId[],
+  /** Máximo de PCs en red local (Base + hijas). Default 1 = solo la Base. */
+  maxPcs: readMaxPcs(license),
     /** true si la licencia declara el campo modules (v2) */
     declaraModulos: Array.isArray(license?.modules),
   }
+}
+
+function readMaxPcs(license: LicenseData | null): number {
+  const maxPcs = (license as any)?.max_pcs
+  if (typeof maxPcs === 'number' && Number.isInteger(maxPcs) && maxPcs >= 1 && maxPcs <= 20) return maxPcs
+  return 1
+}
+
+/**
+ * Máximo de PCs que puede servir esta licencia en red local (Base + hijas).
+ */
+export function getLicenseMaxPcs(): number {
+  return readMaxPcs(validateLicense().license)
 }
 
 /**
