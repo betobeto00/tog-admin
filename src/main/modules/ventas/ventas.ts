@@ -76,8 +76,8 @@ export function createVenta(data: any): any {
 
     const result = db!.prepare(`
       INSERT INTO ventas (numero_venta, usuario_id, subtotal, impuesto, descuento, total,
-        metodo_pago, monto_pagado, cambio, notas)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        metodo_pago, monto_pagado, cambio, notas, cliente_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       numeroVenta,
       data.usuario_id,
@@ -89,6 +89,7 @@ export function createVenta(data: any): any {
       data.monto_pagado,
       data.cambio,
       data.notas || null,
+      data.cliente_id || null,
     )
 
     const ventaId = result.lastInsertRowid
@@ -181,9 +182,11 @@ export function registerVentasHandlers(): void {
     if (fail) return fail
     const db = getDatabase()
     let sql = `
-      SELECT v.*, u.nombre as usuario_nombre
+      SELECT v.*, u.nombre as usuario_nombre,
+        c.nombre as cliente_nombre, c.documento as cliente_documento
       FROM ventas v
       LEFT JOIN usuarios u ON v.usuario_id = u.id
+      LEFT JOIN clientes c ON c.id = v.cliente_id
       WHERE 1=1
     `
     const params: any[] = []
@@ -214,9 +217,11 @@ export function registerVentasHandlers(): void {
     if (fail) return fail
     const db = getDatabase()
     const venta = db.prepare(`
-      SELECT v.*, u.nombre as usuario_nombre
+      SELECT v.*, u.nombre as usuario_nombre,
+        c.nombre as cliente_nombre, c.documento as cliente_documento, c.telefono as cliente_telefono, c.direccion as cliente_direccion
       FROM ventas v
       LEFT JOIN usuarios u ON v.usuario_id = u.id
+      LEFT JOIN clientes c ON c.id = v.cliente_id
       WHERE v.id = ?
     `).get(data.id) as any
 

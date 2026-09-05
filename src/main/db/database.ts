@@ -641,6 +641,25 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
         DELETE FROM configuracion WHERE clave IN ('telegram_bot_token', 'telegram_chat_id');
       `,
     },
+    {
+      nombre: '027_ventas_cliente_y_borradores',
+      sql: `
+        ALTER TABLE ventas ADD COLUMN cliente_id INTEGER REFERENCES clientes(id);
+        CREATE INDEX IF NOT EXISTS idx_ventas_cliente ON ventas(cliente_id);
+
+        CREATE TABLE IF NOT EXISTS ventas_borrador (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+          cliente_id INTEGER REFERENCES clientes(id),
+          items_json TEXT NOT NULL,
+          descuento_global REAL NOT NULL DEFAULT 0,
+          notas TEXT,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+          actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_ventas_borrador_usuario ON ventas_borrador(usuario_id);
+      `,
+    },
   ]
 }
 

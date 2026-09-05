@@ -417,6 +417,12 @@ export interface IpcChannels {
   'creditos:getById': { id: number }
   'creditos:abono': { credito_id: number; monto: number; notas?: string }
 
+  // Borradores de venta (POS)
+  'borradores:list': { usuario_id: number }
+  'borradores:load': { id: number; usuario_id: number }
+  'borradores:save': { id?: number; usuario_id: number; items: any[]; descuento_global: number; cliente_id: number | null; notas: string | null }
+  'borradores:delete': { id: number; usuario_id: number }
+
   // Compras
   'compras:list': { fecha_inicio?: string; fecha_fin?: string }
   'compras:create': CompraCreate

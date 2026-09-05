@@ -101,6 +101,14 @@ contextBridge.exposeInMainWorld('api', {
     resumenDia: (fecha?: string) => ipcRenderer.invoke('ventas:resumen-dia', { fecha }),
   },
 
+  borradores: {
+    list: (usuario_id: number) => ipcRenderer.invoke('borradores:list', { usuario_id }),
+    load: (id: number, usuario_id: number) => ipcRenderer.invoke('borradores:load', { id, usuario_id }),
+    save: (payload: { id?: number; usuario_id: number; items: any[]; descuento_global: number; cliente_id: number | null; notas: string | null }) =>
+      ipcRenderer.invoke('borradores:save', payload),
+    delete: (id: number, usuario_id: number) => ipcRenderer.invoke('borradores:delete', { id, usuario_id }),
+  },
+
   // Compras
   compras: {
     list: (filters?: unknown) => ipcRenderer.invoke('compras:list', filters),

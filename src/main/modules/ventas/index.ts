@@ -6,10 +6,12 @@ import { registerReportesHandlers } from './reportes'
 import { registerReportesVisualesHandlers } from './reportes-visuales'
 import { registerQuotesHandlers } from './quotes'
 import { registerProveedoresHandlers } from './proveedores'
+import { registerBorradoresHandlers } from './borradores'
 
 export function registerVentasModuleHandlers(): void {
   registerProveedoresHandlers()
   registerVentasHandlers()
+  registerBorradoresHandlers()
   registerCreditosHandlers()
   registerComprasHandlers()
   registerCajaHandlers()
@@ -27,4 +29,5 @@ export {
   registerReportesVisualesHandlers,
   registerQuotesHandlers,
   registerProveedoresHandlers,
+  registerBorradoresHandlers,
 }

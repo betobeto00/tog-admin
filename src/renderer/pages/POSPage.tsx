@@ -81,6 +81,15 @@ export default function POSPage() {
   const [deudorTelefono, setDeudorTelefono] = useState('')
   const [abonoInicial, setAbonoInicial] = useState('')
 
+  // Cliente para factura (opcional, no solo fiado)
+  const [clienteFacturaId, setClienteFacturaId] = useState<string>('')
+  const [clienteFacturaQuery, setClienteFacturaQuery] = useState('')
+
+  // Borradores de venta (hold sale)
+  const [borradorId, setBorradorId] = useState<number | null>(null)
+  const [borradores, setBorradores] = useState<Array<{ id: number; cliente_nombre: string | null; item_count: number; total: number; actualizado_en: string; notas: string | null }>>([])
+  const [borradoresOpen, setBorradoresOpen] = useState(false)
+
   // Ticket
   const [ticketOpen, setTicketOpen] = useState(false)
   const [ultimoTicket, setUltimoTicket] = useState<any>(null)
@@ -251,7 +260,92 @@ export default function POSPage() {
     setCart((prev) => prev.filter((i) => i.producto_id !== productoId))
   }
 
-  const clearCart = () => setCart([])
+  const clearCart = () => {
+    setCart([])
+    setBorradorId(null)
+    setClienteFacturaId('')
+    setClienteFacturaQuery('')
+  }
+
+  // ======== BORRADORES (HOLD SALE) ========
+  const loadBorradores = async () => {
+    if (!usuario) return
+    try {
+      const list = await callApi<typeof borradores>('borradores:list', { usuario_id: usuario.id })
+      setBorradores(Array.isArray(list) ? list : [])
+    } catch {
+      setBorradores([])
+    }
+  }
+
+  const saveBorrador = async () => {
+    if (!usuario) return
+    if (cart.length === 0) {
+      toast.warning(t('pos.draftEmpty') || 'El carrito está vacío')
+      return
+    }
+    try {
+      const clienteIdParaBorrador = clienteFacturaId ? Number(clienteFacturaId) : null
+      const res = await callApi<{ success: boolean; id?: number; error?: string }>('borradores:save', {
+        id: borradorId ?? undefined,
+        usuario_id: usuario.id,
+        items: cart,
+        descuento_global: descuentoGlobal,
+        cliente_id: clienteIdParaBorrador,
+        notas: null,
+      })
+      if (res?.success && res.id) {
+        setBorradorId(res.id)
+        toast.success(borradorId ? (t('pos.draftUpdated') || 'Borrador actualizado') : (t('pos.draftSaved') || 'Venta guardada como borrador'))
+        await loadBorradores()
+      } else {
+        toast.error(res?.error || t('errors.saveDraftError'))
+      }
+    } catch (err: any) {
+      toast.error(err?.message || t('errors.saveDraftError'))
+    }
+  }
+
+  const resumeBorrador = async (id: number) => {
+    if (!usuario) return
+    try {
+      const res = await callApi<{ success: boolean; borrador?: any; error?: string }>('borradores:load', { id, usuario_id: usuario.id })
+      if (!res?.success || !res.borrador) {
+        toast.error(res?.error || t('errors.loadDraftError'))
+        return
+      }
+      setCart(res.borrador.items || [])
+      setDescuentoGlobal(res.borrador.descuento_global || 0)
+      setClienteFacturaId(res.borrador.cliente_id ? String(res.borrador.cliente_id) : '')
+      setBorradorId(id)
+      setBorradoresOpen(false)
+      toast.success(t('pos.draftResumed') || 'Borrador retomado')
+    } catch (err: any) {
+      toast.error(err?.message || t('errors.loadDraftError'))
+    }
+  }
+
+  const deleteBorrador = async (id: number) => {
+    if (!usuario) return
+    try {
+      await callApi('borradores:delete', { id, usuario_id: usuario.id })
+      if (borradorId === id) setBorradorId(null)
+      await loadBorradores()
+    } catch (err: any) {
+      toast.error(err?.message || t('errors.deleteDraftError'))
+    }
+  }
+
+  useEffect(() => {
+    if (usuario) loadBorradores()
+  }, [usuario?.id])
+
+  const clientesFiltradosFactura = useMemo(() => {
+    const q = clienteFacturaQuery.trim().toLowerCase()
+    if (!q) return clientesFiado.slice(0, 8)
+    return clientesFiado.filter((c) => c.nombre.toLowerCase().includes(q) || (c.documento && c.documento.toLowerCase().includes(q))).slice(0, 8)
+  }, [clienteFacturaQuery, clientesFiado])
+  const clienteFacturaSel = clienteFacturaId ? clientesFiado.find((c) => String(c.id) === clienteFacturaId) : null
 
 
 
@@ -329,7 +423,9 @@ export default function POSPage() {
         metodo_pago: metodoPago,
         monto_pagado: esFiado ? abonoFiado : (metodoPago === 'efectivo' ? parseFloat(montoPagado) : total),
         cambio: metodoPago === 'efectivo' ? cambio : 0,
-        cliente_id: esFiado && clienteSel ? clienteSel.id : undefined,
+        cliente_id: esFiado && clienteSel
+          ? clienteSel.id
+          : (clienteFacturaId ? Number(clienteFacturaId) : undefined),
         deudor_nombre: esFiado && !clienteSel ? deudorNombre.trim() : undefined,
         deudor_telefono: esFiado && !clienteSel && deudorTelefono.trim() ? deudorTelefono.trim() : undefined,
         detalles: cart.map((item) => {
@@ -349,6 +445,13 @@ export default function POSPage() {
         toast.error(result.error)
         setProcesando(false)
         return
+      }
+
+      // Si era un borrador retomado, eliminarlo al cobrar exitosamente
+      if (borradorId) {
+        try { await callApi('borradores:delete', { id: borradorId, usuario_id: usuario!.id }) } catch {}
+        setBorradorId(null)
+        await loadBorradores()
       }
 
       // Releer la venta guardada: devuelve totales reales + desglose de combos
@@ -376,6 +479,9 @@ export default function POSPage() {
       setTicketOpen(true)
       setCart([])
       setMontoPagado('')
+      setClienteFacturaId('')
+      setClienteFacturaQuery('')
+      setBorradorId(null)
       await loadProducts()
     } catch (err) {
       console.error('Error procesando venta:', err)
@@ -515,6 +621,46 @@ export default function POSPage() {
 
       {/* Columna derecha: Carrito */}
       <div className="w-96 bg-white rounded-xl border border-gray-200 flex flex-col">
+        {/* Selector de cliente para factura (opcional) */}
+        <div className="px-4 py-3 border-b border-gray-200">
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+            {t('pos.invoiceClient') || 'Cliente (factura)'}
+          </label>
+          {clienteFacturaSel ? (
+            <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{clienteFacturaSel.nombre}</p>
+                {clienteFacturaSel.documento && <p className="text-xs text-gray-500">{clienteFacturaSel.documento}</p>}
+              </div>
+              <button onClick={() => { setClienteFacturaId(''); setClienteFacturaQuery('') }}
+                className="text-xs text-red-500 hover:text-red-700 flex-shrink-0 ml-2">
+                {t('common.remove') || 'Quitar'}
+              </button>
+            </div>
+          ) : (
+            <div className="relative">
+              <input
+                type="text"
+                value={clienteFacturaQuery}
+                onChange={(e) => setClienteFacturaQuery(e.target.value)}
+                placeholder={t('pos.invoiceClientPlaceholder') || 'Buscar cliente...'}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+              />
+              {clientesFiltradosFactura.length > 0 && clienteFacturaQuery && (
+                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {clientesFiltradosFactura.map((c) => (
+                    <button key={c.id} onClick={() => { setClienteFacturaId(String(c.id)); setClienteFacturaQuery('') }}
+                      className="w-full flex items-center justify-between px-3 py-2 hover:bg-blue-50 text-left text-sm">
+                      <span className="truncate">{c.nombre}</span>
+                      {c.documento && <span className="text-xs text-gray-400 ml-2">{c.documento}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Header carrito */}
         <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -523,12 +669,25 @@ export default function POSPage() {
             <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
               {t('pos.itemCount', { count: cart.length, plural: cart.length === 1 ? 'item' : 'items' })}
             </span>
+            {borradorId && (
+              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium" title={t('pos.draftActive') || 'Borrador activo'}>
+                {t('pos.draftBadge') || 'borrador'}
+              </span>
+            )}
           </div>
-          {cart.length > 0 && (
-            <button onClick={clearCart} className="text-xs text-red-500 hover:text-red-700">
-              {t('pos.clearCart')}
+          <div className="flex items-center gap-2">
+            <button onClick={() => { setBorradoresOpen(true); loadBorradores() }}
+              className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+              title={t('pos.openDrafts') || 'Borradores'}>
+              📋 <span className="hidden md:inline">{t('pos.openDrafts') || 'Borradores'}</span>
+              {borradores.length > 0 && <span className="bg-gray-200 text-gray-700 rounded-full px-1.5 text-[10px]">{borradores.length}</span>}
             </button>
-          )}
+            {cart.length > 0 && (
+              <button onClick={clearCart} className="text-xs text-red-500 hover:text-red-700">
+                {t('pos.clearCart')}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Items del carrito */}
@@ -610,6 +769,13 @@ export default function POSPage() {
           >
             <DollarSign className="w-5 h-5" />
             {t('pos.checkoutShortcut')}
+          </button>
+          <button
+            onClick={saveBorrador}
+            disabled={cart.length === 0}
+            className="w-full py-2 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl transition-colors flex items-center justify-center gap-2 border border-amber-200 disabled:opacity-50"
+          >
+            💾 {borradorId ? (t('pos.updateDraft') || 'Actualizar borrador') : (t('pos.saveDraft') || 'Guardar venta (borrador)')}
           </button>
         </div>
       </div>
@@ -875,6 +1041,43 @@ export default function POSPage() {
               disabled={!quickSaleDesc.trim() || !quickSaleMonto || parseFloat(quickSaleMonto) <= 0}
               className="flex-1 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 disabled:bg-blue-300">
               {t('pos.addToCartButton')}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ======== MODAL BORRADORES ======== */}
+      <Modal open={borradoresOpen} onClose={() => setBorradoresOpen(false)} title={t('pos.draftsTitle') || 'Ventas guardadas (borradores)'}>
+        <div className="space-y-3">
+          <p className="text-sm text-gray-500">{t('pos.draftsHelp') || 'Borradores del usuario actual. Hacé click en uno para retomarlo en el carrito.'}</p>
+          {borradores.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              <ShoppingCart className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">{t('pos.noDrafts') || 'Sin borradores guardados'}</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
+              {borradores.map((b) => (
+                <div key={b.id} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50">
+                  <button onClick={() => resumeBorrador(b.id)} className="flex-1 text-left">
+                    <p className="text-sm font-medium text-gray-900">
+                      {b.cliente_nombre || (t('pos.noClient') || 'Sin cliente')}
+                      <span className="ml-2 text-xs text-gray-500">{b.item_count} {(b.item_count === 1 ? 'ítem' : 'ítems')}</span>
+                    </p>
+                    <p className="text-xs text-gray-500">{formatCurrency(b.total || 0)} · {new Date(b.actualizado_en + 'Z').toLocaleString()}</p>
+                  </button>
+                  <button onClick={() => deleteBorrador(b.id)}
+                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                    title={t('common.delete')}>
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex justify-end pt-2 border-t border-gray-100">
+            <button onClick={() => setBorradoresOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+              {t('common.close')}
             </button>
           </div>
         </div>
