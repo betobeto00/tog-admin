@@ -73,6 +73,7 @@ export default function MesasPage() {
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [checkoutForm, setCheckoutForm] = useState({ metodo_pago: 'efectivo', monto_pagado: 0, deudor_nombre: '' })
   const [checkingOut, setCheckingOut] = useState(false)
+  const [metodosPagoActivos, setMetodosPagoActivos] = useState<Array<{ clave: string; nombre: string; icono?: string | null }>>([])
 
   const [deleteTable, setDeleteTable] = useState<Mesa | null>(null)
 
@@ -94,7 +95,19 @@ export default function MesasPage() {
   useEffect(() => {
     loadMesas()
     callApi<Producto[]>('productos:list').then((p) => setProductos(Array.isArray(p) ? p : [])).catch(() => {})
+    callApi<Array<{ clave: string; nombre: string }>>('metodos-pago:list', { activoOnly: true })
+      .then((m) => setMetodosPagoActivos(Array.isArray(m) ? m : []))
+      .catch(() => setMetodosPagoActivos([]))
   }, [])
+
+  // Polling automático del estado de mesas cada 5s cuando NO hay comanda abierta.
+  // Cuando hay comanda abierta, refreshComanda() ya mantiene el detalle fresco
+  // y el usuario está enfocado en ese modal.
+  useEffect(() => {
+    if (comanda) return
+    const interval = setInterval(() => { loadMesas() }, 5000)
+    return () => clearInterval(interval)
+  }, [comanda])
 
   const openComanda = async (mesa: Mesa) => {
     setComandaLoading(true)
@@ -597,11 +610,19 @@ export default function MesasPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('pos.paymentMethod')} *</label>
             <select value={checkoutForm.metodo_pago} onChange={(e) => setCheckoutForm({ ...checkoutForm, metodo_pago: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
-              <option value="efectivo">{t('pos.cash')}</option>
-              <option value="transferencia">{t('pos.transfer')}</option>
-              <option value="pago_movil">{t('pos.mobile')}</option>
-              <option value="mixto">{t('pos.mixed')}</option>
-              <option value="fiado">{t('caja.fiadoMethod')}</option>
+              {metodosPagoActivos.length > 0
+                ? metodosPagoActivos.map((m) => (
+                    <option key={m.clave} value={m.clave}>{m.nombre}</option>
+                  ))
+                : (
+                  <>
+                    <option value="efectivo">{t('pos.cash')}</option>
+                    <option value="transferencia">{t('pos.transfer')}</option>
+                    <option value="pago_movil">{t('pos.mobile')}</option>
+                    <option value="mixto">{t('pos.mixed')}</option>
+                    <option value="fiado">{t('caja.fiadoMethod')}</option>
+                  </>
+                )}
             </select>
           </div>
           {checkoutForm.metodo_pago === 'fiado' && (

@@ -196,8 +196,16 @@ export function registerVentasHandlers(): void {
       sql += ` AND v.fecha <= ?`
       params.push(filters.fecha_fin + ' 23:59:59')
     }
+    if (filters?.search) {
+      sql += ` AND CAST(v.numero_venta AS TEXT) LIKE ?`
+      params.push(`%${filters.search}%`)
+    }
 
     sql += ` ORDER BY v.fecha DESC`
+    if (filters?.limite && Number.isInteger(filters.limite) && filters.limite > 0) {
+      sql += ` LIMIT ?`
+      params.push(filters.limite)
+    }
     return db.prepare(sql).all(...params)
   })
 

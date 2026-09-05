@@ -284,6 +284,9 @@
   "pos": {
     "title": "Punto de Venta",
     "search": "Buscar producto o escanear código",
+    "searchGlobalPlaceholder": "Buscar producto, cliente o venta...",
+    "searchGlobalEmpty": "Sin resultados. Probá con otro término o presioná Enter para buscar en inventario.",
+    "searchGlobalGoToInventory": "Ir a inventario",
     "searchPlaceholder": "Buscar producto por nombre o código de barras... (F2)",
     "cart": "Carrito",
     "emptyCart": "Carrito vacío. Agrega productos para comenzar.",

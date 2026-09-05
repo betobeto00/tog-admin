@@ -4,7 +4,8 @@ import { checkPermissionOrFail } from '../../core/auth'
 
 export function registerMetodosPagoHandlers(): void {
   handleIpc('metodos-pago:list', async (_event, data: { activoOnly?: boolean; usuario_id?: number } | undefined) => {
-    const fail = checkPermissionOrFail(data, 'metodos-pago:list', 'config_access')
+    const perm = data?.activoOnly ? 'pos_access' : 'config_access'
+    const fail = checkPermissionOrFail(data, 'metodos-pago:list', perm)
     if (fail) return fail
     const db = getDatabase()
     const rows = data?.activoOnly

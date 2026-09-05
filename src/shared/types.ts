@@ -406,7 +406,7 @@ export interface IpcChannels {
   'proveedores:delete': { id: number }
 
   // Ventas
-  'ventas:list': { fecha_inicio?: string; fecha_fin?: string }
+  'ventas:list': { fecha_inicio?: string; fecha_fin?: string; limite?: number; search?: string }
   'ventas:getById': { id: number }
   'ventas:create': VentaCreate
   'ventas:anular': { id: number; motivo: string }

@@ -284,6 +284,9 @@
   "pos": {
     "title": "Point of Sale",
     "search": "Search product or scan barcode",
+    "searchGlobalPlaceholder": "Search product, client or sale...",
+    "searchGlobalEmpty": "No results. Try another term or press Enter to search in inventory.",
+    "searchGlobalGoToInventory": "Go to inventory",
     "searchPlaceholder": "Search product by name or barcode... (F2)",
     "cart": "Cart",
     "emptyCart": "Cart is empty. Add products to get started.",
