@@ -85,6 +85,9 @@ export default function POSPage() {
   const [clienteFacturaId, setClienteFacturaId] = useState<string>('')
   const [clienteFacturaQuery, setClienteFacturaQuery] = useState('')
 
+  // Tipo de comprobante: 'factura' (default) o 'nota_entrega' (sin valor fiscal)
+  const [tipoComprobante, setTipoComprobante] = useState<'factura' | 'nota_entrega'>('factura')
+
   // Borradores de venta (hold sale)
   const [borradorId, setBorradorId] = useState<number | null>(null)
   const [borradores, setBorradores] = useState<Array<{ id: number; cliente_nombre: string | null; item_count: number; total: number; actualizado_en: string; notas: string | null }>>([])
@@ -265,6 +268,7 @@ export default function POSPage() {
     setBorradorId(null)
     setClienteFacturaId('')
     setClienteFacturaQuery('')
+    setTipoComprobante('factura')
   }
 
   // ======== BORRADORES (HOLD SALE) ========
@@ -428,6 +432,7 @@ export default function POSPage() {
           : (clienteFacturaId ? Number(clienteFacturaId) : undefined),
         deudor_nombre: esFiado && !clienteSel ? deudorNombre.trim() : undefined,
         deudor_telefono: esFiado && !clienteSel && deudorTelefono.trim() ? deudorTelefono.trim() : undefined,
+        tipo_comprobante: tipoComprobante,
         detalles: cart.map((item) => {
           const itemDiscount = item.precio_unitario * item.cantidad * item.descuento / 100
           return {
@@ -482,6 +487,7 @@ export default function POSPage() {
       setClienteFacturaId('')
       setClienteFacturaQuery('')
       setBorradorId(null)
+      setTipoComprobante('factura')
       await loadProducts()
     } catch (err) {
       console.error('Error procesando venta:', err)
@@ -907,6 +913,20 @@ export default function POSPage() {
             </div>
           )}
 
+          {/* Tipo de comprobante */}
+          <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+            <input
+              id="chkNotaEntrega"
+              type="checkbox"
+              checked={tipoComprobante === 'nota_entrega'}
+              onChange={(e) => setTipoComprobante(e.target.checked ? 'nota_entrega' : 'factura')}
+              className="w-4 h-4 text-amber-600 rounded border-gray-300 focus:ring-amber-500"
+            />
+            <label htmlFor="chkNotaEntrega" className="text-sm text-gray-700 cursor-pointer select-none">
+              {t('pos.deliveryNote') || 'Emitir como nota de entrega (sin valor fiscal)'}
+            </label>
+          </div>
+
           {/* Resumen */}
           <div className="bg-gray-50 rounded-xl p-3 text-sm space-y-1">
             <div className="flex justify-between"><span className="text-gray-500">{t('inventario.items') || 'Items'}</span><span>{cart.length}</span></div>
@@ -958,7 +978,12 @@ export default function POSPage() {
             <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-4 font-mono text-xs space-y-1">
               <div className="text-center mb-3">
                 <p className="font-bold text-sm">TOG Admin</p>
-                <p className="text-gray-400">{t('ventas.ticket')} {formatTicketNumber(ultimoTicket.numero_venta)}</p>
+                <p className="text-gray-400">
+                  {ultimoTicket.ventaGuardada?.tipo_comprobante === 'nota_entrega'
+                    ? (t('pos.deliveryNoteTitle') || 'NOTA DE ENTREGA')
+                    : (t('ventas.ticket') || 'Ticket')}
+                  {' '}{formatTicketNumber(ultimoTicket.numero_venta)}
+                </p>
               </div>
               <div className="border-t border-dashed border-gray-200 pt-2">
                 {(ultimoTicket.ventaGuardada?.detalles || ultimoTicket.items)?.map((item: any, i: number) => (

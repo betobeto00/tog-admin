@@ -86,4 +86,33 @@ export function registerRemitosHandlers(): void {
     db.prepare(`UPDATE remitos SET ${setSql} WHERE id = ?`).run(...cambios.map((c) => c.val), data.id)
     return { success: true }
   })
+
+  handleIpc('remitos:getById', async (_event, data: { id: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'remitos:getById', 'distribuidor_pedidos_view')
+    if (fail) return fail
+    const moduleFail = checkModuleOrFail()
+    if (moduleFail) return moduleFail
+    const db = getDatabase()
+    const remito = db.prepare(`
+      SELECT r.*, c.nombre as cliente_nombre, c.documento as cliente_documento, c.direccion as cliente_direccion, c.telefono as cliente_telefono,
+        CAST(p.numero AS INTEGER) as pedido_numero
+      FROM remitos r
+      JOIN clientes c ON c.id = r.cliente_id
+      LEFT JOIN pedidos p ON p.id = r.pedido_id
+      WHERE r.id = ?
+    `).get(data.id) as any
+    if (!remito) return null
+    if (remito.pedido_id) {
+      remito.detalles = db.prepare(`
+        SELECT pd.*, p.nombre as producto_nombre, p.codigo_barras, p.unidad
+        FROM pedido_detalles pd
+        LEFT JOIN productos p ON p.id = pd.producto_id
+        WHERE pd.pedido_id = ?
+        ORDER BY pd.id
+      `).all(remito.pedido_id)
+    } else {
+      remito.detalles = []
+    }
+    return remito
+  })
 }

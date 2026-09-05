@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Truck, Trash2, CheckCircle2, PackageCheck } from 'lucide-react'
+import { Plus, Truck, Trash2, CheckCircle2, PackageCheck, Printer } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { useToast } from '../components/ui/Toast'
 import { callApi } from '../lib/api-client'
 import { useActiveModules } from '../hooks/useModules'
+import { formatCurrency, formatDateTime } from '../lib/utils'
 
 interface Remito {
   id: number; numero: number; pedido_id: number | null; cliente_id: number; fecha: string; estado: string
@@ -98,6 +99,61 @@ export default function RemitosPage() {
     }
   }
 
+  const printRemito = async (remito: Remito) => {
+    try {
+      const detail = await callApi<any>('remitos:getById', { id: remito.id })
+      if (!detail) {
+        toast.error(t('remitos.printNotFound') || 'No se pudo cargar el remito')
+        return
+      }
+      let bizName = '', bizAddr = '', bizPhone = ''
+      try {
+        const cfg = await callApi<any[]>('config:get')
+        const get = (k: string) => cfg.find((c: any) => c.clave === k)?.valor || ''
+        bizName = get('nombre_negocio')
+        bizAddr = get('direccion')
+        bizPhone = get('telefono')
+      } catch {}
+      const rows = (detail.detalles || []).map((d: any) => {
+        const desc = d.producto_nombre || d.descripcion || 'Ítem'
+        return `<tr><td style="text-align:center">${d.cantidad}</td><td>${desc}${d.unidad ? ` <span style="color:#888">(${d.unidad})</span>` : ''}</td></tr>`
+      }).join('')
+      const win = window.open('', '_blank', 'width=400,height=700')
+      if (!win) return
+      win.document.write(`<!DOCTYPE html><html><head><style>
+        body{font-family:monospace;font-size:11px;width:300px;margin:0 auto;padding:12px}
+        h2{text-align:center;margin:4px 0;font-size:14px}
+        table{width:100%;border-collapse:collapse;margin:6px 0}
+        td{padding:2px 0;font-size:11px}
+        .center{text-align:center}hr{border:none;border-top:1px dashed #000;margin:6px 0}
+        .big{font-size:13px;font-weight:bold}
+        .small{font-size:9px}
+        .muted{color:#666;font-size:10px}
+      </style></head><body>
+        <div class="center big">${bizName || 'TOG Admin'}</div>
+        ${bizAddr ? `<div class="center small">${bizAddr}</div>` : ''}
+        ${bizPhone ? `<div class="center small">${bizPhone}</div>` : ''}
+        <h2>${t('remitos.title').toUpperCase()} #${detail.numero}</h2>
+        <div class="muted">${t('remitos.colFecha')}: ${formatDateTime(detail.fecha)}</div>
+        <hr>
+        <div><strong>${t('remitos.colCliente')}:</strong> ${detail.cliente_nombre || '—'}</div>
+        ${detail.cliente_documento ? `<div class="small">${detail.cliente_documento}</div>` : ''}
+        ${detail.cliente_direccion ? `<div class="small">${detail.cliente_direccion}</div>` : ''}
+        ${detail.pedido_id ? `<div class="small">${t('remitos.colPedido')}: #${detail.pedido_numero ?? detail.pedido_id}</div>` : ''}
+        <hr>
+        <table>${rows || `<tr><td class="center">—</td></tr>`}</table>
+        ${detail.observaciones ? `<hr><div class="small"><strong>Obs:</strong> ${detail.observaciones}</div>` : ''}
+        <hr>
+        <div class="center small">${t('remitos.receivedBy') || 'Recibí conforme'} ____________________</div>
+        <div class="center small">${t('remitos.signature') || 'Firma, aclaración y DNI'}</div>
+      </body></html>`)
+      win.document.close()
+      win.print()
+    } catch (err: any) {
+      toast.error(err?.message || t('remitos.printError') || 'Error al imprimir')
+    }
+  }
+
   if (!isActive('distribuidor')) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
@@ -154,6 +210,14 @@ export default function RemitosPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1.5">
+                      <button
+                        onClick={() => printRemito(r)}
+                        disabled={busyId === r.id}
+                        className="px-2.5 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 flex items-center gap-1"
+                        title={t('remitos.print') || 'Imprimir remito'}
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                      </button>
                       {r.estado === 'pendiente' && (
                         <>
                           <button

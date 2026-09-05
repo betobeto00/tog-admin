@@ -92,6 +92,7 @@ const { db, handles, state } = vi.hoisted(() => {
       estado TEXT NOT NULL DEFAULT 'completada',
       notas TEXT,
       cliente_id INTEGER,
+      tipo_comprobante TEXT NOT NULL DEFAULT 'factura',
       creado_en TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE TABLE venta_detalles (

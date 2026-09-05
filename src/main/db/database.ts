@@ -660,6 +660,13 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
         CREATE INDEX IF NOT EXISTS idx_ventas_borrador_usuario ON ventas_borrador(usuario_id);
       `,
     },
+    {
+      nombre: '028_ventas_tipo_comprobante',
+      sql: `
+        ALTER TABLE ventas ADD COLUMN tipo_comprobante TEXT NOT NULL DEFAULT 'factura';
+        CREATE INDEX IF NOT EXISTS idx_ventas_tipo_comprobante ON ventas(tipo_comprobante);
+      `,
+    },
   ]
 }
 

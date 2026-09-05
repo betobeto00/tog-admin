@@ -76,8 +76,8 @@ export function createVenta(data: any): any {
 
     const result = db!.prepare(`
       INSERT INTO ventas (numero_venta, usuario_id, subtotal, impuesto, descuento, total,
-        metodo_pago, monto_pagado, cambio, notas, cliente_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        metodo_pago, monto_pagado, cambio, notas, cliente_id, tipo_comprobante)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       numeroVenta,
       data.usuario_id,
@@ -90,6 +90,7 @@ export function createVenta(data: any): any {
       data.cambio,
       data.notas || null,
       data.cliente_id || null,
+      data.tipo_comprobante === 'nota_entrega' ? 'nota_entrega' : 'factura',
     )
 
     const ventaId = result.lastInsertRowid
@@ -224,7 +225,6 @@ export function registerVentasHandlers(): void {
       LEFT JOIN clientes c ON c.id = v.cliente_id
       WHERE v.id = ?
     `).get(data.id) as any
-
     if (venta) {
       venta.detalles = db.prepare(`
         SELECT vd.*, p.nombre as producto_nombre

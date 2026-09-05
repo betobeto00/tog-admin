@@ -188,6 +188,7 @@ export interface VentaCreate {
   deudor_nombre?: string
   deudor_telefono?: string
   deudor_documento?: string
+  tipo_comprobante?: 'factura' | 'nota_entrega'
   detalles: VentaDetalleCreate[]
 }
 
@@ -457,6 +458,7 @@ export interface IpcChannels {
   'remitos:list': void
   'remitos:create': { pedido_id: number; observaciones?: string }
   'remitos:update': { id: number; estado: string; observaciones?: string | null }
+  'remitos:getById': { id: number }
 
   // Listas de precio (Distribuidor)
   'listas-precio:list': void

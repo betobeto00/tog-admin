@@ -328,6 +328,8 @@
     "draftUpdated": "Borrador actualizado",
     "draftResumed": "Borrador retomado",
     "draftEmpty": "El carrito está vacío",
+    "deliveryNote": "Emitir como nota de entrega (sin valor fiscal)",
+    "deliveryNoteTitle": "NOTA DE ENTREGA",
     "cancelSale": "Cancelar Venta",
     "confirmCancel": "¿Cancelar la venta actual?",
     "quickSale": "Venta Rápida",
@@ -1612,7 +1614,12 @@
     "selectPedidoHint": "Solo pedidos pendientes o despachados sin remito.",
     "pedidoRequerido": "Elige el pedido a remitar",
     "observaciones": "Observaciones",
-    "fromPedido": "Del pedido"
+    "fromPedido": "Del pedido",
+    "print": "Imprimir",
+    "printNotFound": "No se pudo cargar el remito para imprimir",
+    "printError": "Error al imprimir el remito",
+    "receivedBy": "Recibí conforme",
+    "signature": "Firma, aclaración y DNI"
   },
   "listasPrecio": {
     "title": "Listas de Precio",

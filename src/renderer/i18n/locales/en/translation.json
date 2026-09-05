@@ -328,6 +328,8 @@
     "draftUpdated": "Draft updated",
     "draftResumed": "Draft resumed",
     "draftEmpty": "Cart is empty",
+    "deliveryNote": "Issue as delivery note (no fiscal value)",
+    "deliveryNoteTitle": "DELIVERY NOTE",
     "cancelSale": "Cancel Sale",
     "confirmCancel": "Cancel the current sale?",
     "quickSale": "Quick Sale",
@@ -1612,7 +1614,12 @@
     "selectPedidoHint": "Only pending or dispatched orders without a note.",
     "pedidoRequerido": "Choose the order to dispatch",
     "observaciones": "Notes",
-    "fromPedido": "From order"
+    "fromPedido": "From order",
+    "print": "Print",
+    "printNotFound": "Could not load the delivery note to print",
+    "printError": "Error printing the delivery note",
+    "receivedBy": "Received in conformity",
+    "signature": "Signature, full name and ID"
   },
   "listasPrecio": {
     "title": "Price Lists",

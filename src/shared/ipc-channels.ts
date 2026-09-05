@@ -51,6 +51,7 @@ export type IpcChannel =
   | 'listas-precio:list'
   | 'listas-precio:update'
   | 'remitos:create'
+  | 'remitos:getById'
   | 'remitos:list'
   | 'remitos:update'
   | 'reportes-visuales:delete'
