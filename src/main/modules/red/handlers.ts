@@ -4,7 +4,7 @@ import { checkPermissionOrFail } from '../../core/auth'
 import { getDatabase } from '../../db/database'
 import { getRedModo, getHijaConfig, isBase, isHija } from '../../services/red-config'
 import { generarCodigoEnlace, isRedServerRunning, RED_SERVER_PORT } from '../../services/red-server'
-import { vincularABase, desvincularDeBase, logoutEnBase } from '../../services/red-client'
+import { vincularABase, desvincularDeBase, logoutEnBase, heartbeatABase } from '../../services/red-client'
 import { getLicenseMaxPcs } from '../../services/license'
 import { liberarSesionesDePar } from '../../services/red-session'
 
@@ -22,18 +22,35 @@ export function registerRedHandlers(): void {
   handleIpc('red:status', async () => {
     const modo = getRedModo()
     const hija = getHijaConfig()
+    let lastHeartbeat: string | null = null
+    if (modo === 'base') {
+      const db = getDatabase()
+      const row = db
+        .prepare('SELECT MAX(last_heartbeat) AS hb FROM pcs_enlazadas')
+        .get() as { hb: string | null } | undefined
+      lastHeartbeat = row?.hb ?? null
+    }
     return {
       modo,
       baseUrl: hija?.baseUrl || null,
       parId: hija?.parId || null,
       pcNombre: hija?.pcNombre || null,
+      certFingerprint: hija?.certFingerprint || null,
       servidorActivo: modo === 'base' && isRedServerRunning(),
       puerto: RED_SERVER_PORT,
       ips: modo === 'base' ? localIps() : [],
       maxPcs: modo === 'base' ? getLicenseMaxPcs() : null,
       esHija: isHija(),
       esBase: isBase(),
+      lastHeartbeat,
     }
+  })
+
+  handleIpc('red:heartbeat', async () => {
+    if (!isHija()) {
+      return { success: false, error: 'Solo aplica en PC Hija' }
+    }
+    return heartbeatABase()
   })
 
   handleIpc('red:vincular', async (_event, data: { baseUrl?: string; codigo?: string; nombre?: string }) => {

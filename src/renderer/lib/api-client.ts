@@ -13,6 +13,10 @@ const PREAUTH_CHANNELS: ReadonlySet<string> = new Set([
   'license:sync',
   'license:validate',
   'license:import',
+  'red:status',
+  'red:vincular',
+  'red:desvincular',
+  'red:heartbeat',
 ])
 
 function needsUserId(channel: string): boolean {

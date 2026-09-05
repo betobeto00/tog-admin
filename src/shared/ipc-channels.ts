@@ -126,6 +126,7 @@ export const IPC_CHANNELS = [
   'red:vincular',
   'red:desvincular',
   'red:generar-codigo',
+  'red:heartbeat',
   'red:listar-pcs',
   'red:logout',
   'terminal:conectar',
@@ -173,4 +174,5 @@ export const PREAUTH_CHANNELS: readonly IpcChannel[] = [
   'red:status',
   'red:vincular',
   'red:desvincular',
+  'red:heartbeat',
 ] as const

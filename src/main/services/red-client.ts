@@ -1,17 +1,18 @@
+import https from 'node:https'
+import http from 'node:http'
+import { URL } from 'node:url'
 import { getHijaConfig, saveHijaConfig, clearHijaConfig, type HijaConfig } from './red-config'
 import { logger } from './logger'
 
 const RPC_TIMEOUT_MS = 15_000
+const HEARTBEAT_TIMEOUT_MS = 5_000
 
 export interface VincularResult {
   success: boolean
   error?: string
   parId?: string
   certHash?: string
-}
-
-function timeoutSignal(ms: number): AbortSignal {
-  return AbortSignal.timeout(ms)
+  certFingerprint?: string
 }
 
 function errorMessage(err: unknown): string {
@@ -23,95 +24,177 @@ function normalizeBaseUrl(url: string): string {
   return url.trim().replace(/\/+$/, '')
 }
 
-/**
- * Vincula esta PC a una PC Base usando el código de enlace. Si la Base
- * acepta, persiste la config hija (baseUrl + credenciales de par).
- */
+function agentFor(baseUrl: string, caPem: string | null | undefined): https.Agent | http.Agent {
+  const isHttps = baseUrl.startsWith('https://')
+  if (isHttps) {
+    return new https.Agent({
+      ca: caPem ?? undefined,
+      rejectUnauthorized: caPem ? true : false,
+      keepAlive: false,
+    })
+  }
+  return new http.Agent({ keepAlive: false })
+}
+
+interface RawResponse {
+  status: number
+  json: any
+}
+
+function postJson(
+  baseUrl: string,
+  path: string,
+  body: unknown,
+  caPem: string | null | undefined,
+  timeoutMs: number,
+): Promise<RawResponse> {
+  return new Promise((resolve, reject) => {
+    const isHttps = baseUrl.startsWith('https://')
+    const transport: typeof https | typeof http = isHttps ? https : http
+    const agent = agentFor(baseUrl, caPem)
+    const payload = Buffer.from(JSON.stringify(body))
+    const req = transport.request(
+      {
+        method: 'POST',
+        host: new URL(baseUrl).hostname,
+        port: new URL(baseUrl).port || (isHttps ? 443 : 80),
+        path,
+        agent,
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': payload.length,
+        },
+      },
+      (res) => {
+        let data = ''
+        res.setEncoding('utf8')
+        res.on('data', (chunk) => (data += chunk))
+        res.on('end', () => {
+          let json: any = {}
+          try {
+            json = data ? JSON.parse(data) : {}
+          } catch {
+            json = { success: false, error: 'Respuesta inválida de la PC Base' }
+          }
+          resolve({ status: res.statusCode ?? 0, json })
+        })
+      },
+    )
+    req.on('error', reject)
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`Timeout contacting ${baseUrl}${path}`))
+    })
+    req.write(payload)
+    req.end()
+  })
+}
+
 export async function vincularABase(baseUrl: string, codigo: string, nombre: string): Promise<VincularResult> {
   const url = normalizeBaseUrl(baseUrl)
   try {
-    const res = await fetch(`${url}/api/red/vincular`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ codigo, nombre }),
-      signal: timeoutSignal(RPC_TIMEOUT_MS),
-    })
-    const body: any = await res.json().catch(() => ({ success: false, error: 'Respuesta inválida de la PC Base' }))
-    if (!res.ok || !body?.success) {
-      return { success: false, error: body?.error || `Error al vincular (HTTP ${res.status})` }
+    const r = await postJson(url, '/api/red/vincular', { codigo, nombre }, null, RPC_TIMEOUT_MS)
+    if (r.status !== 201 || !r.json?.success) {
+      return { success: false, error: r.json?.error || `Error al vincular (HTTP ${r.status})` }
+    }
+    if (url.startsWith('https://') && !r.json?.cert_pem) {
+      return {
+        success: false,
+        error: 'La PC Base no expuso su certificado TLS. Verificá que la Base tenga HTTPS habilitado.',
+      }
     }
     saveHijaConfig({
       baseUrl: url,
-      parId: body.par_id,
-      certHash: body.cert_hash,
+      parId: r.json.par_id,
+      certHash: r.json.cert_hash,
       pcNombre: nombre,
+      ca: r.json?.cert_pem ?? null,
+      certFingerprint: r.json?.cert_fingerprint ?? null,
     })
     logger.info('red', `PC enlazada a Base ${url} como "${nombre}"`)
-    return { success: true, parId: body.par_id, certHash: body.cert_hash }
+    return {
+      success: true,
+      parId: r.json.par_id,
+      certHash: r.json.cert_hash,
+      certFingerprint: r.json?.cert_fingerprint,
+    }
   } catch (err) {
     return { success: false, error: `No se pudo contactar la PC Base en ${url}: ${errorMessage(err)}` }
   }
 }
 
-/**
- * Desvincula esta PC de la Base (borra la config hija local).
- */
 export function desvincularDeBase(): void {
   clearHijaConfig()
   logger.info('red', 'PC desvinculada de la Base')
 }
 
-/**
- * Reenvía un canal IPC a la Base vía HTTP. Devuelve exactamente lo que
- * devolvió el handler en la Base (misma forma que una respuesta IPC local).
- */
 export async function rpcABase(canal: string, args: unknown[]): Promise<any> {
   const config = getHijaConfig()
   if (!config) {
     throw new Error('Esta PC no está enlazada a una PC Base')
   }
   try {
-    const res = await fetch(`${config.baseUrl}/api/red/rpc`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ canal, args, par_id: config.parId, cert_hash: config.certHash }),
-      signal: timeoutSignal(RPC_TIMEOUT_MS),
-    })
-    const body: any = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      const err = body?.error || `Error de red (HTTP ${res.status})`
-      if (res.status === 401) {
+    const r = await postJson(
+      config.baseUrl,
+      '/api/red/rpc',
+      { canal, args, par_id: config.parId, cert_hash: config.certHash },
+      config.ca ?? null,
+      RPC_TIMEOUT_MS,
+    )
+    if (r.status >= 400) {
+      const err = r.json?.error || `Error de red (HTTP ${r.status})`
+      if (r.status === 401) {
         throw new Error(`Sin autorización en la PC Base: ${err}`)
-      }
-      if (res.status === 409) {
-        throw new Error(err)
       }
       throw new Error(err)
     }
-    return body?.response
+    return r.json?.response
   } catch (err) {
-    if (err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
+    if (err instanceof Error && err.message.startsWith('Timeout contacting')) {
       throw new Error(`La PC Base no respondió (${config.baseUrl}). Verificá que esté encendida y en la misma red.`)
     }
     throw err
   }
 }
 
-/**
- * Avisa a la Base que esta PC cierra sesión (libera las sesiones del par).
- */
 export async function logoutEnBase(): Promise<void> {
   const config = getHijaConfig()
   if (!config) return
   try {
-    await fetch(`${config.baseUrl}/api/red/logout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ par_id: config.parId, cert_hash: config.certHash }),
-      signal: timeoutSignal(5_000),
-    })
+    await postJson(
+      config.baseUrl,
+      '/api/red/logout',
+      { par_id: config.parId, cert_hash: config.certHash },
+      config.ca ?? null,
+      HEARTBEAT_TIMEOUT_MS,
+    )
   } catch {
-    // best-effort: si la Base no responde, la sesión se libera sola al reingresar
+    // best-effort
+  }
+}
+
+export interface HeartbeatResult {
+  ok: boolean
+  error?: string
+  serverTime?: string
+}
+
+export async function heartbeatABase(): Promise<HeartbeatResult> {
+  const config = getHijaConfig()
+  if (!config) return { ok: false, error: 'Esta PC no está enlazada a una PC Base' }
+  try {
+    const r = await postJson(
+      config.baseUrl,
+      '/api/red/heartbeat',
+      { par_id: config.parId, cert_hash: config.certHash },
+      config.ca ?? null,
+      HEARTBEAT_TIMEOUT_MS,
+    )
+    if (r.status !== 200 || !r.json?.success) {
+      return { ok: false, error: r.json?.error || `HTTP ${r.status}` }
+    }
+    return { ok: true, serverTime: r.json?.server_time }
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) }
   }
 }
 

@@ -17,6 +17,7 @@ function crearDb() {
       ip TEXT,
       cert_hash TEXT NOT NULL,
       last_seen TEXT,
+      last_heartbeat TEXT,
       creado_en TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE TABLE sesiones_activas (

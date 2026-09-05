@@ -30,6 +30,7 @@ import HelpPage from './pages/HelpPage'
 import Tutorial, { hasTutorialCompleted } from './components/Tutorial'
 import LicenseGate from './components/LicenseGate'
 import { loadCurrency } from './services/currency'
+import { useRedHeartbeat } from './hooks/useRedHeartbeat'
 
 // Loading placeholder para Suspense (usado si hay lazy imports futuros)
 function PageLoader() {
@@ -57,6 +58,8 @@ export default function App() {
       loadCurrency()
     }
   }, [isAuthenticated])
+
+  useRedHeartbeat()
 
   useEffect(() => {
     if (isAuthenticated && !mustChangePassword && !hasTutorialCompleted()) {

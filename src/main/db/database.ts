@@ -753,6 +753,13 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
         );
       `,
     },
+    {
+      nombre: '033_heartbeat_pcs',
+      sql: `
+        ALTER TABLE pcs_enlazadas ADD COLUMN last_heartbeat TEXT;
+        CREATE INDEX IF NOT EXISTS idx_pcs_enlazadas_last_heartbeat ON pcs_enlazadas(last_heartbeat);
+      `,
+    },
   ]
 }
 

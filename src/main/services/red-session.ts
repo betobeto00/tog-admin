@@ -65,6 +65,48 @@ export function liberarSesionesDePar(db: DbLike, parId: string): void {
   db.prepare('DELETE FROM sesiones_activas WHERE par_id = ?').run(parId)
 }
 
+/** Actualiza last_heartbeat de pcs_enlazadas para el par. */
+export function actualizarHeartbeatPar(db: DbLike, parId: string, now: Date = new Date()): void {
+  db.prepare("UPDATE pcs_enlazadas SET last_heartbeat = ?, last_seen = ? WHERE par_id = ?").run(
+    now.toISOString(),
+    now.toISOString(),
+    parId,
+  )
+}
+
+/** Actualiza last_heartbeat de TODAS las sesiones de un par. */
+export function actualizarHeartbeatSesiones(db: DbLike, parId: string, now: Date = new Date()): void {
+  db.prepare("UPDATE sesiones_activas SET last_heartbeat = ? WHERE par_id = ?").run(now.toISOString(), parId)
+}
+
+export interface ExpulsarParesInactivosOpts {
+  ttlMs: number
+  now?: Date
+}
+
+/** Devuelve los par_ids que están inactivos (sin heartbeat por más de ttlMs). */
+export function listarParesInactivos(db: DbLike, ttlMs: number, now: Date = new Date()): string[] {
+  const cutoff = new Date(now.getTime() - ttlMs).toISOString()
+  const rows = db
+    .prepare(
+      `SELECT par_id FROM pcs_enlazadas
+       WHERE (last_heartbeat IS NULL OR last_heartbeat < ?)
+         AND creado_en < ?`,
+    )
+    .all(cutoff, cutoff) as Array<{ par_id: string }>
+  return rows.map((r) => r.par_id)
+}
+
+/** Expulsa pares sin heartbeat por más de ttlMs: libera sesiones y devuelve la lista. */
+export function expulsarParesInactivos(db: DbLike, opts: ExpulsarParesInactivosOpts): string[] {
+  const now = opts.now ?? new Date()
+  const inactivos = listarParesInactivos(db, opts.ttlMs, now)
+  for (const parId of inactivos) {
+    liberarSesionesDePar(db, parId)
+  }
+  return inactivos
+}
+
 /** true si el par tiene al menos un usuario con sesión activa. */
 export function parTieneSesionActiva(db: DbLike, parId: string): boolean {
   return !!db.prepare('SELECT 1 FROM sesiones_activas WHERE par_id = ? LIMIT 1').get(parId)

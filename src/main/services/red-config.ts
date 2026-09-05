@@ -27,6 +27,8 @@ export interface HijaConfig {
   parId: string
   certHash: string
   pcNombre: string
+  ca?: string | null
+  certFingerprint?: string | null
 }
 
 function getConfigValue(clave: string): string | null {
@@ -73,8 +75,17 @@ export function getHijaConfig(): HijaConfig | null {
   const parId = getConfigValue('red_par_id')
   const certHash = getConfigValue('red_cert_hash')
   const pcNombre = getConfigValue('red_pc_nombre')
+  const ca = getConfigValue('red_ca_pem')
+  const certFingerprint = getConfigValue('red_cert_fingerprint')
   if (!baseUrl || !parId || !certHash) return null
-  return { baseUrl, parId, certHash, pcNombre: pcNombre || '' }
+  return {
+    baseUrl,
+    parId,
+    certHash,
+    pcNombre: pcNombre || '',
+    ca,
+    certFingerprint,
+  }
 }
 
 export function saveHijaConfig(config: HijaConfig): void {
@@ -83,11 +94,21 @@ export function saveHijaConfig(config: HijaConfig): void {
   setConfigValue('red_par_id', config.parId)
   setConfigValue('red_cert_hash', config.certHash)
   setConfigValue('red_pc_nombre', config.pcNombre)
+  if (config.ca) setConfigValue('red_ca_pem', config.ca)
+  if (config.certFingerprint) setConfigValue('red_cert_fingerprint', config.certFingerprint)
 }
 
 export function clearHijaConfig(): void {
   const db = getDatabase()
-  for (const clave of ['red_modo', 'red_base_url', 'red_par_id', 'red_cert_hash', 'red_pc_nombre']) {
+  for (const clave of [
+    'red_modo',
+    'red_base_url',
+    'red_par_id',
+    'red_cert_hash',
+    'red_pc_nombre',
+    'red_ca_pem',
+    'red_cert_fingerprint',
+  ]) {
     db.prepare('DELETE FROM configuracion WHERE clave = ?').run(clave)
   }
 }
