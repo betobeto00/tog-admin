@@ -53,45 +53,45 @@ describe('core/env loadEnv', () => {
     cwdSpy.mockRestore()
   })
 
-  it('lee .env desde userData en producción (app empaquetada)', async () => {
-    electronMock.app.isPackaged = true
-    fs.writeFileSync(path.join(userData, '.env'), 'TELEGRAM_BOT_TOKEN=userdata-token')
-    ;(process as any).resourcesPath = path.join(tmp, 'resources')
-
-    const { loadEnv } = await loadFresh()
-    loadEnv()
-
-    expect(configMock).toHaveBeenCalledWith(expect.objectContaining({ path: path.join(userData, '.env') }))
-  })
-
-  it('copia .env desde resourcesPath a userData en el primer arranque', async () => {
+  it('siembra .env desde resourcesPath a userData en el primer arranque', async () => {
     electronMock.app.isPackaged = true
     const resourcesPath = path.join(tmp, 'resources')
     fs.mkdirSync(resourcesPath)
-    fs.writeFileSync(path.join(resourcesPath, '.env'), 'TELEGRAM_BOT_TOKEN=seed-token')
+    fs.writeFileSync(path.join(resourcesPath, '.env'), 'TELEGRAM_BOT_TOKEN=installer-token')
     ;(process as any).resourcesPath = resourcesPath
 
     const { loadEnv } = await loadFresh()
     loadEnv()
 
     expect(fs.existsSync(path.join(userData, '.env'))).toBe(true)
-    expect(fs.readFileSync(path.join(userData, '.env'), 'utf8')).toContain('TELEGRAM_BOT_TOKEN=seed-token')
+    expect(fs.readFileSync(path.join(userData, '.env'), 'utf8')).toContain('installer-token')
     expect(configMock).toHaveBeenCalledWith(expect.objectContaining({ path: path.join(userData, '.env') }))
   })
 
-  it('respeta un .env existente en userData (no lo sobrescribe)', async () => {
+  it('sobrescribe userData/.env desde resourcesPath en cada arranque (instalador gana)', async () => {
     electronMock.app.isPackaged = true
     const resourcesPath = path.join(tmp, 'resources')
     fs.mkdirSync(resourcesPath)
-    fs.writeFileSync(path.join(resourcesPath, '.env'), 'TELEGRAM_BOT_TOKEN=installer-token')
-    fs.writeFileSync(path.join(userData, '.env'), 'TELEGRAM_BOT_TOKEN=operator-token')
+    fs.writeFileSync(path.join(resourcesPath, '.env'), 'TELEGRAM_BOT_TOKEN=new-installer-token')
+    fs.writeFileSync(path.join(userData, '.env'), 'TELEGRAM_BOT_TOKEN=old-operator-token')
     ;(process as any).resourcesPath = resourcesPath
 
     const { loadEnv } = await loadFresh()
     loadEnv()
 
-    expect(fs.readFileSync(path.join(userData, '.env'), 'utf8')).toContain('operator-token')
-    expect(fs.readFileSync(path.join(userData, '.env'), 'utf8')).not.toContain('installer-token')
+    expect(fs.readFileSync(path.join(userData, '.env'), 'utf8')).toContain('new-installer-token')
+    expect(fs.readFileSync(path.join(userData, '.env'), 'utf8')).not.toContain('old-operator-token')
+  })
+
+  it('lee .env desde userData cuando no hay resourcesPath (caso edge)', async () => {
+    electronMock.app.isPackaged = true
+    fs.writeFileSync(path.join(userData, '.env'), 'TELEGRAM_BOT_TOKEN=userdata-token')
+    ;(process as any).resourcesPath = path.join(tmp, 'no-resources-here')
+
+    const { loadEnv } = await loadFresh()
+    loadEnv()
+
+    expect(configMock).toHaveBeenCalledWith(expect.objectContaining({ path: path.join(userData, '.env') }))
   })
 
   it('en dev no llama dotenv si el archivo no existe', async () => {
