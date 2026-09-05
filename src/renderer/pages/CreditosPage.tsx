@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Search, Wallet, Eye, User, Calendar, Hash, Plus, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import Modal from '../components/ui/Modal'
-import { formatCurrency, formatDateTime, formatTicketNumber } from '../lib/utils'
+import { formatDateTime, formatTicketNumber } from '../lib/utils'
+import { formatMoney } from '../services/currency'
 import { useToast } from '../components/ui/Toast'
 import { usePermissions } from '../hooks/usePermissions'
 import { callApi } from '../lib/api-client'
@@ -138,7 +139,7 @@ export default function CreditosPage() {
           <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl">
             <Wallet className="w-4 h-4 text-amber-600" />
             <span className="text-sm text-amber-700 font-medium">
-              {t('creditos.remaining')}: {formatCurrency(saldoPendiente)}
+              {t('creditos.remaining')}: {formatMoney(saldoPendiente)}
             </span>
           </div>
         )}
@@ -221,10 +222,10 @@ export default function CreditosPage() {
                     {c.numero_venta ? `#${formatTicketNumber(c.numero_venta)}` : '—'}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500">{formatDateTime(c.fecha)}</td>
-                  <td className="px-4 py-3 text-sm text-right text-gray-700">{formatCurrency(c.monto_total)}</td>
+                  <td className="px-4 py-3 text-sm text-right text-gray-700">{formatMoney(c.monto_total)}</td>
                   <td className="px-4 py-3 text-sm text-right">
                     <span className={`font-semibold ${c.estado === 'pendiente' ? 'text-amber-600' : c.estado === 'pagado' ? 'text-green-600' : 'text-gray-400'}`}>
-                      {formatCurrency(c.estado === 'pendiente' ? c.saldo : 0)}
+                      {formatMoney(c.estado === 'pendiente' ? c.saldo : 0)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -280,15 +281,15 @@ export default function CreditosPage() {
               </div>
               <div className="bg-gray-50 rounded-xl p-3">
                 <p className="text-xs text-gray-500">{t('creditos.total')}</p>
-                <p className="font-bold text-gray-900">{formatCurrency(detalle.monto_total)}</p>
+                <p className="font-bold text-gray-900">{formatMoney(detalle.monto_total)}</p>
               </div>
               <div className="bg-gray-50 rounded-xl p-3">
                 <p className="text-xs text-gray-500">{t('creditos.paidTotal')}</p>
-                <p className="font-bold text-green-600">{formatCurrency(detalle.monto_total - detalle.saldo)}</p>
+                <p className="font-bold text-green-600">{formatMoney(detalle.monto_total - detalle.saldo)}</p>
               </div>
               <div className="bg-amber-50 rounded-xl p-3">
                 <p className="text-xs text-amber-500">{t('creditos.remaining')}</p>
-                <p className="font-bold text-amber-600">{formatCurrency(detalle.saldo)}</p>
+                <p className="font-bold text-amber-600">{formatMoney(detalle.saldo)}</p>
               </div>
             </div>
 
@@ -302,8 +303,8 @@ export default function CreditosPage() {
                         <tr key={d.id}>
                           <td className="px-3 py-2 text-sm">{d.producto_nombre || d.descripcion || '—'}</td>
                           <td className="px-3 py-2 text-sm text-gray-500">{d.cantidad}</td>
-                          <td className="px-3 py-2 text-sm text-right">{formatCurrency(d.precio_unitario)}</td>
-                          <td className="px-3 py-2 text-sm text-right font-medium">{formatCurrency(d.subtotal)}</td>
+                          <td className="px-3 py-2 text-sm text-right">{formatMoney(d.precio_unitario)}</td>
+                          <td className="px-3 py-2 text-sm text-right font-medium">{formatMoney(d.subtotal)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -319,7 +320,7 @@ export default function CreditosPage() {
                   {detalle.abonos.map((a) => (
                     <div key={a.id} className="flex items-center justify-between bg-green-50 rounded-lg px-3 py-2 text-sm">
                       <div>
-                        <p className="font-medium text-green-700">+{formatCurrency(a.monto)}</p>
+                        <p className="font-medium text-green-700">+{formatMoney(a.monto)}</p>
                         <p className="text-xs text-gray-500">
                           {a.usuario_nombre || '—'} • {formatDateTime(a.fecha)}
                         </p>
@@ -353,7 +354,7 @@ export default function CreditosPage() {
               <p className="font-medium text-gray-900">{deudorDe(abonoTarget)}</p>
               <div className="flex justify-between mt-1 text-gray-500">
                 <span>{t('creditos.remaining')}:</span>
-                <span className="font-bold text-amber-600">{formatCurrency(abonoTarget.saldo)}</span>
+                <span className="font-bold text-amber-600">{formatMoney(abonoTarget.saldo)}</span>
               </div>
             </div>
             <div>

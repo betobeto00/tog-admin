@@ -648,7 +648,8 @@
     "optionalNote": "Nota opcional...",
     "saving": "Guardando...",
     "cancel": "Cancelar",
-    "stock": "Stock"
+    "stock": "Stock",
+    "serviceTag": "Servicio"
   },
   "proveedores": {
     "title": "Proveedores",
@@ -709,6 +710,8 @@
     "categoryChart": "📊 Ventas por Categoría",
     "topProductsDetail": "📋 Detalle Top Productos",
     "noDataShort": "No hay datos",
+    "type": "Tipo",
+    "service": "Servicio",
     "product": "Producto",
     "sold": "Vendidos",
     "revenues": "Ingresos ($)",
@@ -1013,8 +1016,12 @@
     "remove": "Quitar",
     "salesTaxRate": "Tasa de Impuesto (%)",
     "currencySymbolLabel": "Símbolo de Moneda",
+    "currencySymbolHelp": "Símbolo que se muestra en toda la app (ej: $, Bs, €)",
+    "currencyNameLabel": "Nombre de la Moneda",
+    "currencyNameHelp": "Ej: USD, Bs, EUR (para tickets)",
     "exchangeRateLabel": "Tasa de Cambio",
-    "exchangeRateHelp": "Tasa de cambio de referencia (ej: Bs/USD). Solo informativa, no altera los precios.",
+    "exchangeRateHelp": "Tasa local: 0 = 1:1 con la moneda base. Los montos se muestran multiplicados por esta tasa.",
+    "currencyPreview": "Los precios se muestran como: {{preview}}",
     "commonTaxRates": "Sin impuesto: 0% • Oregón, Montana, Delaware: 0% • Texas: 6.25%+ • California: 7.25%+ • Nueva York: 4%+ • Florida: 6%",
     "terminalVp800Card": "Terminal VP800 — Pago con Tarjeta",
     "saving": "Guardando...",
@@ -1646,5 +1653,19 @@
     "nameRequired": "El nombre es requerido",
     "factorRequired": "El factor debe ser mayor a 0",
     "factor": "Factor"
+  },
+  "setup": {
+    "title": "Conectar a una PC Base",
+    "subtitle": "Vincula esta PC como terminal/caja de la red local de tu negocio",
+    "pcName": "Nombre de esta PC",
+    "pcNamePlaceholder": "Ej: Caja 1, Terminal 2",
+    "baseIp": "Dirección/IP de la PC Base",
+    "baseIpHelp": "IP local de la PC que tiene la licencia (ej: 192.168.1.10). El puerto se usa automáticamente.",
+    "linkCode": "Código de enlace",
+    "linkCodeHelp": "Generalo en la PC Base: Configuración → Sistema → Red Local",
+    "linkButton": "Conectar a la PC Base",
+    "linking": "Conectando...",
+    "linked": "¡PC enlazada correctamente!",
+    "error": "No se pudo vincular esta PC"
   }
 }

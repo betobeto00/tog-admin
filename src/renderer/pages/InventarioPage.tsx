@@ -7,23 +7,13 @@ import {
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
-import { formatCurrency } from '../lib/utils'
+import ProductImage from '../components/ProductImage'
+import { formatMoney } from '../services/currency'
+import type { Producto } from '@shared/types'
 import { useToast } from '../components/ui/Toast'
 import { usePermissions } from '../hooks/usePermissions'
 import { callApi } from '../lib/api-client'
 
-interface Producto {
-  id: number; codigo_barras: string | null; sku: string | null
-  nombre: string; descripcion: string | null; categoria_id: number | null
-  subcategoria_id: number | null; marca: string | null; tipo: 'producto' | 'servicio'
-  imagen: string | null
-  precio_compra: number; precio_venta: number; stock: number
-  stock_minimo: number;  unidad: string; activo: number
-  categoria_nombre: string | null
-  subcategoria_nombre?: string | null
-  es_combo?: number
-  costo_real?: number
-}
 interface LineaComponente {
   producto_id: number
   cantidad: string
@@ -273,6 +263,13 @@ export default function InventarioPage() {
       imagen: p.imagen || null,
     })
     setBarcodeMode(false)
+    // Cargar imagen desde filesystem (imagen_path), no desde base64 en DB
+    try {
+      const img = await callApi<{ success: boolean; dataUrl: string | null }>('productos:get-imagen', { id: p.id })
+      if (img?.success && img.dataUrl) {
+        setForm((prev) => ({ ...prev, imagen: img.dataUrl }))
+      }
+    } catch {}
     // Si el producto es compuesto, cargar sus componentes para editarlos
     if (p.es_combo) {
       try {
@@ -299,7 +296,6 @@ export default function InventarioPage() {
         subcategoria_id: form.subcategoria_id || null,
         marca: form.marca.trim(),
         tipo: form.tipo,
-        imagen: form.imagen || '',
         // Los combos no tienen stock propio: se calcula desde componentes
         ...(esComboFinal ? { stock: 0, stock_minimo: 0 } : {}),
       }
@@ -309,6 +305,17 @@ export default function InventarioPage() {
       } else {
         const creado = await callApi<{ id: number }>('productos:create', data)
         productoId = creado.id
+      }
+      // Imagen en filesystem: subir o borrar después de guardar el producto
+      if (productoId != null) {
+        if (form.imagen && form.imagen.startsWith('data:')) {
+          const base64 = form.imagen.split(',')[1] || ''
+          if (base64) {
+            await callApi('productos:set-imagen', { id: productoId, base64 })
+          }
+        } else if (editing) {
+          await callApi('productos:delete-imagen', { id: productoId })
+        }
       }
       // Guardar componentes del combo (solo productos, no servicios)
       if (productoId != null && form.tipo === 'producto') {
@@ -323,8 +330,8 @@ export default function InventarioPage() {
         if (esComboFinal && res?.success && typeof res.costo_real === 'number') {
           const margen = form.precio_venta - res.costo_real
           toast.success(
-            `${i18n.language === 'en' ? 'Real cost' : 'Costo real'}: ${formatCurrency(res.costo_real)} · ` +
-            `${i18n.language === 'en' ? 'Margin' : 'Margen'}: ${formatCurrency(margen)}`,
+            `${i18n.language === 'en' ? 'Real cost' : 'Costo real'}: ${formatMoney(res.costo_real)} · ` +
+            `${i18n.language === 'en' ? 'Margin' : 'Margen'}: ${formatMoney(margen)}`,
           )
         }
       }
@@ -691,7 +698,7 @@ export default function InventarioPage() {
                 <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      {p.imagen && <img src={p.imagen} alt={p.nombre} className="w-10 h-10 rounded-lg object-cover border border-gray-100 flex-shrink-0" />}
+                      <ProductImage productoId={p.id} alt={p.nombre} fallbackSrc={p.imagen} className="w-10 h-10" />
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-gray-900 truncate">{p.nombre}</p>
@@ -714,9 +721,9 @@ export default function InventarioPage() {
                     {p.subcategoria_nombre && <div className="text-xs text-gray-400">{p.subcategoria_nombre}</div>}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600 text-right" title={p.es_combo === 1 ? (i18n.language === 'en' ? 'Real cost from components' : 'Costo real desde componentes') : undefined}>
-                    {formatCurrency(p.es_combo === 1 ? (p.costo_real ?? p.precio_compra) : p.precio_compra)}
+                    {formatMoney(p.es_combo === 1 ? (p.costo_real ?? p.precio_compra) : p.precio_compra)}
                   </td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900 text-right">{formatCurrency(p.precio_venta)}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900 text-right">{formatMoney(p.precio_venta)}</td>
                   <td className="px-4 py-3 text-center">
                     <span className={`inline-flex items-center gap-1 text-sm font-medium ${
                       p.stock <= p.stock_minimo ? 'text-red-600' : 'text-gray-900'
@@ -912,8 +919,8 @@ export default function InventarioPage() {
                       e.target.value = ''
                       return
                     }
-                    if (file.size > 1024 * 1024) {
-                      toast.error(i18n.language === 'en' ? 'Image too large. Maximum: 1 MB.' : 'La imagen es demasiado grande. Máximo: 1 MB.')
+                    if (file.size > 2 * 1024 * 1024) {
+                      toast.error(i18n.language === 'en' ? 'Image too large. Maximum: 2 MB.' : 'La imagen es demasiado grande. Máximo: 2 MB.')
                       e.target.value = ''
                       return
                     }
@@ -980,7 +987,7 @@ export default function InventarioPage() {
                             <option value="">{i18n.language === 'en' ? 'Choose a product' : 'Elige un producto'}</option>
                             {candidatosComponente.map((p) => (
                               <option key={p.id} value={p.id}>
-                                {p.nombre} · {formatCurrency(p.es_combo === 1 ? (p.costo_real ?? p.precio_compra) : p.precio_compra)} c/u
+                                {p.nombre} · {formatMoney(p.es_combo === 1 ? (p.costo_real ?? p.precio_compra) : p.precio_compra)} c/u
                               </option>
                             ))}
                           </select>
@@ -998,7 +1005,7 @@ export default function InventarioPage() {
                             className="w-20 px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm text-center"
                           />
                           <span className="w-16 text-right text-xs text-gray-500 whitespace-nowrap">
-                            {formatCurrency(costoLineaComponente(c))}
+                            {formatMoney(costoLineaComponente(c))}
                           </span>
                           <button
                             type="button"
@@ -1020,15 +1027,15 @@ export default function InventarioPage() {
                     </button>
                     <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm pt-2 border-t border-emerald-100">
                       <span className="text-gray-600">
-                        {i18n.language === 'en' ? 'Real cost' : 'Costo real'}: <strong className="text-gray-900">{formatCurrency(costoComboPreview)}</strong>
+                        {i18n.language === 'en' ? 'Real cost' : 'Costo real'}: <strong className="text-gray-900">{formatMoney(costoComboPreview)}</strong>
                       </span>
                       <span className="text-gray-600">
-                        {i18n.language === 'en' ? 'Sale price' : 'Precio venta'}: <strong className="text-gray-900">{formatCurrency(form.precio_venta || 0)}</strong>
+                        {i18n.language === 'en' ? 'Sale price' : 'Precio venta'}: <strong className="text-gray-900">{formatMoney(form.precio_venta || 0)}</strong>
                       </span>
                       <span className="text-gray-600">
                         {i18n.language === 'en' ? 'Margin' : 'Margen'}:{' '}
                         <strong className={(form.precio_venta || 0) - costoComboPreview >= 0 ? 'text-emerald-700' : 'text-red-600'}>
-                          {formatCurrency((form.precio_venta || 0) - costoComboPreview)}
+                          {formatMoney((form.precio_venta || 0) - costoComboPreview)}
                         </strong>
                       </span>
                     </div>

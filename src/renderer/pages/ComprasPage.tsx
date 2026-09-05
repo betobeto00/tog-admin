@@ -5,7 +5,8 @@ import {
   Plus, Search, Trash2, Truck, Package, Calendar, Eye, ScanBarcode
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
-import { formatCurrency, formatDateTime } from '../lib/utils'
+import { formatDateTime } from '../lib/utils'
+import { formatMoney } from '../services/currency'
 import { useToast } from '../components/ui/Toast'
 import { usePermissions } from '../hooks/usePermissions'
 import type { Producto as ProductoFull } from '../../shared/types'
@@ -244,7 +245,7 @@ export default function ComprasPage() {
                 <td className="px-4 py-3 text-sm text-gray-600">{c.proveedor_nombre || '—'}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{c.usuario_nombre}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{metodoLabel[c.metodo_pago] || c.metodo_pago}</td>
-                <td className="px-4 py-3 text-sm font-bold text-right">{formatCurrency(c.total)}</td>
+                <td className="px-4 py-3 text-sm font-bold text-right">{formatMoney(c.total)}</td>
               </tr>
             ))}
           </tbody>
@@ -352,7 +353,7 @@ export default function ComprasPage() {
                           onChange={(e) => updateItem(idx, 'costo_unitario', Number(e.target.value))}
                           className="w-20 text-center border border-gray-200 rounded px-1 py-1 text-sm" />
                       </td>
-                      <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.subtotal)}</td>
+                      <td className="px-3 py-2 text-right font-medium">{formatMoney(item.subtotal)}</td>
                       <td className="px-3 py-2 text-center">
                         <button onClick={() => removeItem(idx)} className="p-1 hover:bg-red-50 rounded"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
                       </td>
@@ -365,9 +366,9 @@ export default function ComprasPage() {
 
           {/* Totales */}
           <div className="bg-gray-50 rounded-xl p-4 space-y-1.5 text-sm">
-            <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">Sales Tax ({(taxRate * 100).toFixed(1)}%)</span><span>{formatCurrency(impuesto)}</span></div>
-            <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200"><span>Total</span><span>{formatCurrency(total)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>{formatMoney(subtotal)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Sales Tax ({(taxRate * 100).toFixed(1)}%)</span><span>{formatMoney(impuesto)}</span></div>
+            <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200"><span>Total</span><span>{formatMoney(total)}</span></div>
           </div>
 
           <div>

@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { BarChart3, Download, FileDown, Play, CalendarRange, Save, FolderOpen, Trash2 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import { useToast } from '../components/ui/Toast'
-import { formatCurrency, formatDate } from '../lib/utils'
+import { formatDate } from '../lib/utils'
+import { formatMoney } from '../services/currency'
 import { callApi } from '../lib/api-client'
 
 type SourceId = 'salesPerDay' | 'topProducts' | 'byCategory' | 'recentSales'
@@ -86,7 +87,7 @@ function allSelected(fields: Field[]): Record<string, boolean> {
 
 function formatCell(value: any, type: FieldType): string {
   if (value === null || value === undefined) return '—'
-  if (type === 'money') return formatCurrency(Number(value))
+  if (type === 'money') return formatMoney(Number(value))
   if (type === 'number') return Number(value).toLocaleString('en-US')
   if (type === 'date') return formatDate(String(value))
   return String(value)

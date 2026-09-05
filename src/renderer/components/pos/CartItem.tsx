@@ -1,9 +1,10 @@
 import { Plus, Minus, Trash2 } from 'lucide-react'
-import { formatCurrency } from '../../lib/utils'
+import { formatMoney, getSymbol } from '../../services/currency'
+import ProductImage from '../ProductImage'
 
 interface CartItemData {
   producto_id: number; nombre: string; precio_unitario: number
-  cantidad: number; stock: number; unidad: string; descuento: number
+  cantidad: number; stock: number; unidad: string; tipo: 'producto' | 'servicio'; descuento: number
 }
 
 interface Props {
@@ -22,19 +23,29 @@ export default function CartItem({ item, onUpdateQuantity, onUpdateDiscount, onU
   return (
     <div className="bg-gray-50 rounded-lg p-3">
       <div className="flex items-start justify-between mb-2">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">{item.nombre}</p>
-          <div className="flex items-center gap-1 mt-0.5">
-            <span className="text-xs text-gray-400">$</span>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={item.precio_unitario}
-              onChange={(e) => onUpdatePrice(item.producto_id, Math.max(0, Number(e.target.value)))}
-              className="w-16 text-xs border border-gray-200 rounded px-1 py-0.5 text-right font-medium focus:ring-1 focus:ring-blue-500"
-            />
-            <span className="text-xs text-gray-400">c/u</span>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <ProductImage productoId={item.producto_id} className="w-10 h-10" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-medium text-gray-900 truncate">{item.nombre}</p>
+              {item.tipo === 'servicio' && (
+                <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 flex-shrink-0">
+                  Servicio
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className="text-xs text-gray-400">{getSymbol()}</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={item.precio_unitario}
+                onChange={(e) => onUpdatePrice(item.producto_id, Math.max(0, Number(e.target.value)))}
+                className="w-16 text-xs border border-gray-200 rounded px-1 py-0.5 text-right font-medium focus:ring-1 focus:ring-blue-500"
+              />
+              <span className="text-xs text-gray-400">c/u</span>
+            </div>
           </div>
         </div>
         <button onClick={() => onRemove(item.producto_id)}
@@ -57,11 +68,11 @@ export default function CartItem({ item, onUpdateQuantity, onUpdateDiscount, onU
         <div className="text-right">
           {item.descuento > 0 ? (
             <div>
-              <span className="text-xs text-red-500 line-through">{formatCurrency(lineTotal)}</span>
-              <span className="text-sm font-bold text-green-600 block">{formatCurrency(lineNet)}</span>
+              <span className="text-xs text-red-500 line-through">{formatMoney(lineTotal)}</span>
+              <span className="text-sm font-bold text-green-600 block">{formatMoney(lineNet)}</span>
             </div>
           ) : (
-            <span className="text-sm font-bold text-gray-900">{formatCurrency(lineTotal)}</span>
+            <span className="text-sm font-bold text-gray-900">{formatMoney(lineTotal)}</span>
           )}
         </div>
       </div>

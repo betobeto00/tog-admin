@@ -8,17 +8,13 @@ import {
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import CartItem from '../components/pos/CartItem'
-import { formatCurrency, formatTicketNumber } from '../lib/utils'
+import ProductImage from '../components/ProductImage'
+import { formatTicketNumber } from '../lib/utils'
+import { formatMoney } from '../services/currency'
 import { useToast } from '../components/ui/Toast'
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner'
 import { callApi } from '../lib/api-client'
-
-interface Producto {
-  id: number; nombre: string; codigo_barras: string | null
-  precio_venta: number; stock: number; unidad: string; tipo: 'producto' | 'servicio'
-  marca: string | null; imagen: string | null
-  categoria_nombre: string | null
-}
+import type { Producto } from '@shared/types'
 
 interface CartItem {
   producto_id: number; nombre: string; precio_unitario: number
@@ -148,7 +144,7 @@ export default function POSPage() {
       const producto = await callApi<Producto | null>('productos:buscar-por-codigo', { codigo: barcode })
       if (producto && (producto.tipo === 'servicio' || producto.stock > 0)) {
         addToCart(producto)
-        toast.success(`${producto.nombre} - ${formatCurrency(producto.precio_venta)}`)
+        toast.success(`${producto.nombre} - ${formatMoney(producto.precio_venta)}`)
       } else if (producto) {
         toast.warning(t('pos.productOutOfStock', { name: producto.nombre }))
       } else {
@@ -599,13 +595,24 @@ export default function POSPage() {
                     onClick={() => addToCart(p)}
                     className="w-full flex items-center justify-between px-4 py-3 hover:bg-blue-50 transition-colors text-left"
                   >
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{p.nombre}</p>
-                      <p className="text-xs text-gray-400">
-                        {p.categoria_nombre || t('pos.noCategory')} • Stock: {p.stock} {p.unidad}
-                      </p>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <ProductImage productoId={p.id} className="w-10 h-10" />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-medium text-gray-900 truncate">{p.nombre}</p>
+                          {p.tipo === 'servicio' && (
+                            <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 flex-shrink-0">
+                              {t('pos.serviceTag') || 'Servicio'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-400">
+                          {p.categoria_nombre || t('pos.noCategory')}
+                          {p.tipo !== 'servicio' ? ` • ${t('pos.stock') || 'Stock'}: ${p.stock} ${p.unidad}` : ''}
+                        </p>
+                      </div>
                     </div>
-                    <span className="text-sm font-bold text-blue-600">{formatCurrency(p.precio_venta)}</span>
+                    <span className="text-sm font-bold text-blue-600">{formatMoney(p.precio_venta)}</span>
                   </button>
                 ))}
               </div>
@@ -721,12 +728,12 @@ export default function POSPage() {
         <div className="border-t border-gray-200 p-4 space-y-3">
           <div className="space-y-1.5 text-sm">
             <div className="flex justify-between text-gray-600">                <span>{t('common.subtotal')}</span>
-              <span>{formatCurrency(subtotalBruto)}</span>
+              <span>{formatMoney(subtotalBruto)}</span>
             </div>
             {descuentoItems > 0 && (
               <div className="flex justify-between text-red-500">
                 <span>{t('pos.itemDiscountShort')}</span>
-                <span>-{formatCurrency(descuentoItems)}</span>
+                <span>-{formatMoney(descuentoItems)}</span>
               </div>
             )}
             {/* Descuento global */}
@@ -744,20 +751,20 @@ export default function POSPage() {
                 <span className="text-xs text-gray-400">%</span>
               </div>
               {descuentoGlobalMonto > 0 && (
-                <span className="text-red-500">-{formatCurrency(descuentoGlobalMonto)}</span>
+                <span className="text-red-500">-{formatMoney(descuentoGlobalMonto)}</span>
               )}
             </div>
             <div className="flex justify-between text-gray-600">
               <span>{t('pos.netSubtotal')}</span>
-              <span>{formatCurrency(subtotalConGlobal)}</span>
+              <span>{formatMoney(subtotalConGlobal)}</span>
             </div>
             <div className="flex justify-between text-gray-600">
               <span>{t('common.tax')} ({(taxRate * 100).toFixed(1)}%)</span>
-              <span>{formatCurrency(impuesto)}</span>
+              <span>{formatMoney(impuesto)}</span>
             </div>
             <div className="flex justify-between text-lg font-bold text-gray-900 pt-1.5 border-t border-gray-200">
               <span>{t('common.total')}</span>
-              <span>{formatCurrency(total)}</span>
+              <span>{formatMoney(total)}</span>
             </div>
           </div>
 
@@ -792,7 +799,7 @@ export default function POSPage() {
           {/* Total a pagar */}
           <div className="text-center py-4 bg-gray-50 rounded-xl">
             <p className="text-sm text-gray-500">{t('pos.totalToPay')}</p>
-            <p className="text-3xl font-bold text-gray-900">{formatCurrency(total)}</p>
+            <p className="text-3xl font-bold text-gray-900">{formatMoney(total)}</p>
           </div>
 
           {/* Métodos de pago */}
@@ -846,7 +853,7 @@ export default function POSPage() {
                     ))}
                   </select>
                   {clienteSelCobro && (clienteSelCobro.limite_credito ?? 0) > 0 && (
-                    <p className="text-xs text-gray-500 mt-1">{t('pos.fiadoCreditLimit')}: {formatCurrency(clienteSelCobro.limite_credito ?? 0)}</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('pos.fiadoCreditLimit')}: {formatMoney(clienteSelCobro.limite_credito ?? 0)}</p>
                   )}
                 </div>
               )}
@@ -880,7 +887,7 @@ export default function POSPage() {
                   placeholder="0.00"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {t('pos.fiadoSaldoHint')}: {formatCurrency(Math.max(0, total - abonoCobro))}
+                  {t('pos.fiadoSaldoHint')}: {formatMoney(Math.max(0, total - abonoCobro))}
                 </p>
               </div>
             </div>
@@ -902,12 +909,12 @@ export default function POSPage() {
               {parseFloat(montoPagado) >= total && (
                 <div className="mt-3 text-center p-3 bg-green-50 rounded-xl">
                   <p className="text-sm text-green-600">{t('pos.change')}</p>
-                  <p className="text-2xl font-bold text-green-700">{formatCurrency(cambio)}</p>
+                  <p className="text-2xl font-bold text-green-700">{formatMoney(cambio)}</p>
                 </div>
               )}
               {parseFloat(montoPagado) > 0 && parseFloat(montoPagado) < total && (
                 <div className="mt-2 text-center text-sm text-red-500">
-                  {t('pos.missing')} {formatCurrency(total - parseFloat(montoPagado))}
+                  {t('pos.missing')} {formatMoney(total - parseFloat(montoPagado))}
                 </div>
               )}
             </div>
@@ -930,12 +937,12 @@ export default function POSPage() {
           {/* Resumen */}
           <div className="bg-gray-50 rounded-xl p-3 text-sm space-y-1">
             <div className="flex justify-between"><span className="text-gray-500">{t('inventario.items') || 'Items'}</span><span>{cart.length}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">{t('common.subtotal')}</span><span>{formatCurrency(subtotalBruto)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">{t('common.subtotal')}</span><span>{formatMoney(subtotalBruto)}</span></div>
             {(descuentoItems + descuentoGlobalMonto) > 0 && (
-              <div className="flex justify-between text-red-500"><span>{t('common.discount')}</span><span>-{formatCurrency(descuentoItems + descuentoGlobalMonto)}</span></div>
+              <div className="flex justify-between text-red-500"><span>{t('common.discount')}</span><span>-{formatMoney(descuentoItems + descuentoGlobalMonto)}</span></div>
             )}
-            <div className="flex justify-between"><span className="text-gray-500">{t('common.tax')}</span><span>{formatCurrency(impuesto)}</span></div>
-            <div className="flex justify-between font-bold pt-1 border-t border-gray-200"><span>{t('common.total')}</span><span>{formatCurrency(total)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">{t('common.tax')}</span><span>{formatMoney(impuesto)}</span></div>
+            <div className="flex justify-between font-bold pt-1 border-t border-gray-200"><span>{t('common.total')}</span><span>{formatMoney(total)}</span></div>
           </div>
 
           {/* Botones */}
@@ -990,7 +997,7 @@ export default function POSPage() {
                   <div key={i}>
                     <div className="flex justify-between">
                       <span>{item.producto_nombre || item.descripcion || item.nombre} x{item.cantidad}</span>
-                      <span>{formatCurrency(item.precio_unitario * item.cantidad)}</span>
+                      <span>{formatMoney(item.precio_unitario * item.cantidad)}</span>
                     </div>
                     {item.componentes?.map((c: any, j: number) => (
                       <div key={j} className="flex justify-between pl-3 text-gray-500">
@@ -1002,19 +1009,19 @@ export default function POSPage() {
                 ))}
               </div>
               <div className="border-t border-dashed border-gray-200 pt-2 space-y-1">
-                <div className="flex justify-between"><span>{t('common.subtotal')}:</span><span>{formatCurrency(ultimoTicket.subtotal ?? subtotalBruto)}</span></div>
+                <div className="flex justify-between"><span>{t('common.subtotal')}:</span><span>{formatMoney(ultimoTicket.subtotal ?? subtotalBruto)}</span></div>
                 {(ultimoTicket.descuento ?? (descuentoItems + descuentoGlobalMonto)) > 0 && (
-                  <div className="flex justify-between text-red-500"><span>{t('common.discount')}:</span><span>-{formatCurrency(ultimoTicket.descuento ?? (descuentoItems + descuentoGlobalMonto))}</span></div>
+                  <div className="flex justify-between text-red-500"><span>{t('common.discount')}:</span><span>-{formatMoney(ultimoTicket.descuento ?? (descuentoItems + descuentoGlobalMonto))}</span></div>
                 )}
-                <div className="flex justify-between"><span>{t('common.tax')}:</span><span>{formatCurrency(ultimoTicket.impuesto ?? impuesto)}</span></div>
-                <div className="flex justify-between font-bold text-sm"><span>TOTAL:</span><span>{formatCurrency(ultimoTicket.total)}</span></div>
+                <div className="flex justify-between"><span>{t('common.tax')}:</span><span>{formatMoney(ultimoTicket.impuesto ?? impuesto)}</span></div>
+                <div className="flex justify-between font-bold text-sm"><span>TOTAL:</span><span>{formatMoney(ultimoTicket.total)}</span></div>
               </div>
               <div className="border-t border-dashed border-gray-200 pt-2">
                 <p>Pago: {nombreMetodo(ultimoTicket.metodo_pago)}</p>
                 {ultimoTicket.esFiado && (
                   <>
                     {ultimoTicket.deudorTicket && <p>{t('pos.fiadoDebtor')}: {ultimoTicket.deudorTicket}</p>}
-                    <p>{t('pos.fiadoSaldo')}: {formatCurrency(ultimoTicket.saldoFiado)}</p>
+                    <p>{t('pos.fiadoSaldo')}: {formatMoney(ultimoTicket.saldoFiado)}</p>
                   </>
                 )}
               </div>
@@ -1089,7 +1096,7 @@ export default function POSPage() {
                       {b.cliente_nombre || (t('pos.noClient') || 'Sin cliente')}
                       <span className="ml-2 text-xs text-gray-500">{b.item_count} {(b.item_count === 1 ? 'ítem' : 'ítems')}</span>
                     </p>
-                    <p className="text-xs text-gray-500">{formatCurrency(b.total || 0)} · {new Date(b.actualizado_en + 'Z').toLocaleString()}</p>
+                    <p className="text-xs text-gray-500">{formatMoney(b.total || 0)} · {new Date(b.actualizado_en + 'Z').toLocaleString()}</p>
                   </button>
                   <button onClick={() => deleteBorrador(b.id)}
                     className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"

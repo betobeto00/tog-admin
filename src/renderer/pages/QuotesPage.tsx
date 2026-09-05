@@ -8,7 +8,8 @@ import {
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { useToast } from '../components/ui/Toast'
-import { formatCurrency, formatDateTime } from '../lib/utils'
+import { formatDateTime } from '../lib/utils'
+import { formatMoney } from '../services/currency'
 import { callApi } from '../lib/api-client'
 
 interface Quote { id: number; numero_cotizacion: number; fecha: string; fecha_vencimiento: string | null; cliente_nombre: string; cliente_email: string | null; cliente_telefono: string | null; cliente_direccion: string | null; subtotal: number; impuesto: number; descuento: number; total: number; notas: string | null; estado: string; usuario_nombre: string; creado_en: string }
@@ -217,7 +218,7 @@ export default function QuotesPage() {
       bizEin = get('ein')
     } catch {}
     const rows = (q.detalles || []).map((d: any) =>
-      `<tr><td>${d.descripcion || '—'}</td><td style="text-align:center">${d.cantidad}</td><td style="text-align:right">${formatCurrency(d.precio_unitario)}</td><td style="text-align:right">${formatCurrency(d.subtotal)}</td></tr>`
+      `<tr><td>${d.descripcion || '—'}</td><td style="text-align:center">${d.cantidad}</td><td style="text-align:right">${formatMoney(d.precio_unitario)}</td><td style="text-align:right">${formatMoney(d.subtotal)}</td></tr>`
     ).join('')
     const win = window.open('', '_blank', 'width=840,height=640')
     if (!win) return
@@ -267,9 +268,9 @@ export default function QuotesPage() {
         <tbody>${rows || `<tr><td colspan="4" style="text-align:center;color:#9ca3af">${t('quotes.noQuotesFound')}</td></tr>`}</tbody>
       </table>
       <div class="totals">
-        <div><span class="muted">${t('quotes.subtotal')}</span><span>${formatCurrency(q.subtotal || 0)}</span></div>
-        ${(q.impuesto || 0) > 0 ? `<div><span class="muted">${t('quotes.tax')}</span><span>${formatCurrency(q.impuesto)}</span></div>` : ''}
-        <div class="grand"><span>${t('quotes.total')}</span><span>${formatCurrency(q.total || 0)}</span></div>
+        <div><span class="muted">${t('quotes.subtotal')}</span><span>${formatMoney(q.subtotal || 0)}</span></div>
+        ${(q.impuesto || 0) > 0 ? `<div><span class="muted">${t('quotes.tax')}</span><span>${formatMoney(q.impuesto)}</span></div>` : ''}
+        <div class="grand"><span>${t('quotes.total')}</span><span>${formatMoney(q.total || 0)}</span></div>
       </div>
       ${q.notas ? `<div class="notes"><strong>${t('quotes.notes')}:</strong> ${q.notas}</div>` : ''}
       <div class="footer">${t('quotes.receiptThankYou')}</div>
@@ -289,7 +290,7 @@ export default function QuotesPage() {
   }
   const printQuote = async (q: any) => {
     const rows = q.detalles?.map((d: any) =>
-      `<tr><td>${d.descripcion}</td><td style="text-align:center">${d.cantidad}</td><td style="text-align:right">${formatCurrency(d.precio_unitario)}</td><td style="text-align:right">${formatCurrency(d.subtotal)}</td></tr>`
+      `<tr><td>${d.descripcion}</td><td style="text-align:center">${d.cantidad}</td><td style="text-align:right">${formatMoney(d.precio_unitario)}</td><td style="text-align:right">${formatMoney(d.subtotal)}</td></tr>`
     ).join('') || ''
     const win = window.open('', '_blank', 'width=400,height=700')
     if (!win) return
@@ -337,9 +338,9 @@ export default function QuotesPage() {
       <table><thead><tr><th style="text-align:left">${t('quotes.descriptionShort')}</th><th style="text-align:center">${t('quotes.qtyShort')}</th><th style="text-align:right">${t('quotes.price')}</th><th style="text-align:right">${t('quotes.subtotal')}</th></tr></thead>
       <tbody>${rows}</tbody></table>
       <hr>
-      <div class="right">${t('quotes.subtotal')}: ${formatCurrency(q.subtotal || 0)}</div>
-      ${(q.impuesto || 0) > 0 ? `<div class="right">${t('quotes.tax')}: ${formatCurrency(q.impuesto)}</div>` : ''}
-      <div class="right total">${t('quotes.total')}: ${formatCurrency(q.total || 0)}</div>
+      <div class="right">${t('quotes.subtotal')}: ${formatMoney(q.subtotal || 0)}</div>
+      ${(q.impuesto || 0) > 0 ? `<div class="right">${t('quotes.tax')}: ${formatMoney(q.impuesto)}</div>` : ''}
+      <div class="right total">${t('quotes.total')}: ${formatMoney(q.total || 0)}</div>
       ${q.notas ? `<hr><div class="label">${t('quotes.notes')}:</div><div style="font-size:10px">${q.notas}</div>` : ''}
       <hr>
       <div class="center" style="margin-top:15px;font-size:10px;color:#666">${t('quotes.receiptThankYou')}</div>
@@ -404,7 +405,7 @@ export default function QuotesPage() {
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">{q.cliente_nombre || '—'}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{q.fecha ? formatDateTime(q.fecha) : '—'}</td>
                   <td className="px-4 py-3 text-sm text-gray-500">{q.fecha_vencimiento || '—'}</td>
-                  <td className="px-4 py-3 text-sm font-bold text-right">{formatCurrency(q.total || 0)}</td>
+                  <td className="px-4 py-3 text-sm font-bold text-right">{formatMoney(q.total || 0)}</td>
                   <td className="px-4 py-3 text-center">
                     <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full capitalize ${STATUS_COLORS[q.estado] || ''}`}>
                       <Icon className="w-3 h-3" /> {q.estado}
@@ -454,7 +455,7 @@ export default function QuotesPage() {
                 <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                   {searchProducts.map((p) => (
                     <button key={p.id} onClick={() => addItem(p)} className="w-full flex items-center justify-between px-3 py-2 hover:bg-blue-50 text-left text-sm">
-                      <span>{p.nombre}</span><span className="text-gray-400">{formatCurrency(p.precio_venta)}</span>
+                      <span>{p.nombre}</span><span className="text-gray-400">{formatMoney(p.precio_venta)}</span>
                     </button>
                   ))}
                 </div>
@@ -481,7 +482,7 @@ export default function QuotesPage() {
                         <td className="px-2 py-1 text-center"><input type="number" min="1" value={item.cantidad} onChange={(e) => updateItem(idx, 'cantidad', Number(e.target.value))} className="w-14 text-center border border-gray-200 rounded px-1 py-1 text-sm" /></td>
                         <td className="px-2 py-1 text-center"><input type="number" step="0.01" min="0" value={item.precio_unitario} onChange={(e) => updateItem(idx, 'precio_unitario', Number(e.target.value))} className="w-20 text-center border border-gray-200 rounded px-1 py-1 text-sm" /></td>
                         <td className="px-2 py-1 text-center"><input type="number" step="1" min="0" max="100" value={item.descuento} onChange={(e) => updateItem(idx, 'descuento', Number(e.target.value))} className="w-14 text-center border border-gray-200 rounded px-1 py-1 text-sm" /></td>
-                        <td className="px-3 py-1 text-right font-medium">{formatCurrency(item.subtotal)}</td>
+                        <td className="px-3 py-1 text-right font-medium">{formatMoney(item.subtotal)}</td>
                         <td className="px-2 py-1 text-center"><button onClick={() => removeItem(idx)} className="p-1 hover:bg-red-50 rounded"><Trash2 className="w-3 h-3 text-red-400" /></button></td>
                       </tr>
                     ))}
@@ -498,9 +499,9 @@ export default function QuotesPage() {
               <textarea rows={3} value={notas} onChange={(e) => setNotas(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder={t('quotes.notesPlaceholder')} />
             </div>
             <div className="w-64 bg-gray-50 rounded-xl p-4 space-y-1.5 text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">{t('quotes.subtotal')}</span><span>{formatCurrency(subtotal)}</span></div>
-              {taxRate > 0 && <div className="flex justify-between"><span className="text-gray-500">{t('quotes.tax')} ({(taxRate * 100).toFixed(1)}%)</span><span>{formatCurrency(impuesto)}</span></div>}
-              <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200"><span>{t('quotes.total')}</span><span>{formatCurrency(total)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{t('quotes.subtotal')}</span><span>{formatMoney(subtotal)}</span></div>
+              {taxRate > 0 && <div className="flex justify-between"><span className="text-gray-500">{t('quotes.tax')} ({(taxRate * 100).toFixed(1)}%)</span><span>{formatMoney(impuesto)}</span></div>}
+              <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200"><span>{t('quotes.total')}</span><span>{formatMoney(total)}</span></div>
             </div>
           </div>
 
@@ -539,16 +540,16 @@ export default function QuotesPage() {
                 </tr></thead>
                 <tbody className="divide-y divide-gray-200">
                   {(viewQuote.detalles || []).map((d: any) => (
-                    <tr key={d.id}><td className="px-3 py-2">{d.descripcion || '—'}</td><td className="px-3 py-2 text-center">{d.cantidad || 0}</td><td className="px-3 py-2 text-right">{formatCurrency(d.precio_unitario || 0)}</td><td className="px-3 py-2 text-right font-medium">{formatCurrency(d.subtotal || 0)}</td></tr>
+                    <tr key={d.id}><td className="px-3 py-2">{d.descripcion || '—'}</td><td className="px-3 py-2 text-center">{d.cantidad || 0}</td><td className="px-3 py-2 text-right">{formatMoney(d.precio_unitario || 0)}</td><td className="px-3 py-2 text-right font-medium">{formatMoney(d.subtotal || 0)}</td></tr>
                   ))}
                 </tbody>
               </table>
             </div>
 
             <div className="bg-gray-50 rounded-xl p-4 space-y-1.5 text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">{t('quotes.subtotal')}</span><span>{formatCurrency(viewQuote.subtotal || 0)}</span></div>
-              {(viewQuote.impuesto || 0) > 0 && <div className="flex justify-between"><span className="text-gray-500">{t('quotes.tax')}</span><span>{formatCurrency(viewQuote.impuesto)}</span></div>}
-              <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200"><span>{t('quotes.total')}</span><span>{formatCurrency(viewQuote.total || 0)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{t('quotes.subtotal')}</span><span>{formatMoney(viewQuote.subtotal || 0)}</span></div>
+              {(viewQuote.impuesto || 0) > 0 && <div className="flex justify-between"><span className="text-gray-500">{t('quotes.tax')}</span><span>{formatMoney(viewQuote.impuesto)}</span></div>}
+              <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200"><span>{t('quotes.total')}</span><span>{formatMoney(viewQuote.total || 0)}</span></div>
             </div>
 
             {viewQuote.notas && <div className="bg-blue-50 rounded-xl p-3 text-sm text-blue-700"><strong>{t('quotes.notes')}:</strong> {viewQuote.notas}</div>}
@@ -575,7 +576,7 @@ export default function QuotesPage() {
           <div className="space-y-4">
             <p className="text-sm text-gray-500">{t('quotes.convertMsg')}</p>
             <div className="bg-gray-50 rounded-xl p-4 text-sm flex justify-between font-semibold">
-              <span>{t('quotes.total')}</span><span>{formatCurrency(convertTarget.total || 0)}</span>
+              <span>{t('quotes.total')}</span><span>{formatMoney(convertTarget.total || 0)}</span>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('pos.paymentMethod')} *</label>
@@ -593,7 +594,7 @@ export default function QuotesPage() {
               <input type="number" step="0.01" min="0" value={convertForm.monto_pagado}
                 onChange={(e) => setConvertForm({ ...convertForm, monto_pagado: Number(e.target.value) })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
-              <p className="text-xs text-gray-400 mt-1">{t('pos.change')}: {formatCurrency(Math.max(0, (Number(convertForm.monto_pagado) || 0) - (convertTarget.total || 0)))}</p>
+              <p className="text-xs text-gray-400 mt-1">{t('pos.change')}: {formatMoney(Math.max(0, (Number(convertForm.monto_pagado) || 0) - (convertTarget.total || 0)))}</p>
             </div>
             <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
               <button onClick={() => setConvertOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">{t('quotes.cancel')}</button>

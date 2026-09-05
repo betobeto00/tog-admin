@@ -6,7 +6,8 @@ import {
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
-import { formatCurrency, formatDateTime, formatTicketNumber } from '../lib/utils'
+import { formatDateTime, formatTicketNumber } from '../lib/utils'
+import { formatMoney } from '../services/currency'
 import { callApi } from '../lib/api-client'
 
 interface Venta {
@@ -107,7 +108,7 @@ export default function VentasPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">{t('ventas.title')}</h1>
         <p className="text-sm text-gray-500">
-          {totales.count} {t('ventas.sales')} • {formatCurrency(totales.total)} {t('ventas.total')}
+          {totales.count} {t('ventas.sales')} • {formatMoney(totales.total)} {t('ventas.total')}
           {totales.anuladas > 0 && ` • ${totales.anuladas} ${t('ventas.voided')}`}
         </p>
       </div>
@@ -180,9 +181,9 @@ export default function VentasPage() {
                   <td className="px-4 py-3 text-sm text-gray-600">
                     {metodoLabel[v.metodo_pago] || v.metodo_pago}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600 text-right">{formatCurrency(v.subtotal)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600 text-right">{formatCurrency(v.impuesto)}</td>
-                  <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right">{formatCurrency(v.total)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600 text-right">{formatMoney(v.subtotal)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600 text-right">{formatMoney(v.impuesto)}</td>
+                  <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right">{formatMoney(v.total)}</td>
                   <td className="px-4 py-3 text-center">
                     <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
                       v.estado === 'completada' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
@@ -280,9 +281,9 @@ export default function VentasPage() {
                               </span>
                             )}
                           </td>
-                          <td className="px-3 py-2 text-right">{formatCurrency(d.precio_unitario)}</td>
+                          <td className="px-3 py-2 text-right">{formatMoney(d.precio_unitario)}</td>
                           <td className="px-3 py-2 text-center">{d.cantidad}</td>
-                          <td className="px-3 py-2 text-right font-medium">{formatCurrency(d.subtotal)}</td>
+                          <td className="px-3 py-2 text-right font-medium">{formatMoney(d.subtotal)}</td>
                         </tr>
                         {d.componentes?.map((c, i) => (
                           <tr key={`${d.id}-c${i}`} className="bg-emerald-50/40">
@@ -301,17 +302,17 @@ export default function VentasPage() {
 
             {/* Totales */}
             <div className="bg-gray-50 rounded-xl p-4 space-y-1.5 text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>{formatCurrency(detalleVenta.subtotal)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Sales Tax</span><span>{formatCurrency(detalleVenta.impuesto)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>{formatMoney(detalleVenta.subtotal)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Sales Tax</span><span>{formatMoney(detalleVenta.impuesto)}</span></div>
               {detalleVenta.descuento > 0 && (
-                <div className="flex justify-between text-red-600"><span>{t('common.discount')}</span><span>-{formatCurrency(detalleVenta.descuento)}</span></div>
+                <div className="flex justify-between text-red-600"><span>{t('common.discount')}</span><span>-{formatMoney(detalleVenta.descuento)}</span></div>
               )}
               <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200">
-                <span>Total</span><span>{formatCurrency(detalleVenta.total)}</span>
+                <span>Total</span><span>{formatMoney(detalleVenta.total)}</span>
               </div>
-              <div className="flex justify-between text-gray-500"><span>Pagado</span><span>{formatCurrency(detalleVenta.monto_pagado)}</span></div>
+              <div className="flex justify-between text-gray-500"><span>Pagado</span><span>{formatMoney(detalleVenta.monto_pagado)}</span></div>
               {detalleVenta.cambio > 0 && (
-                <div className="flex justify-between text-green-600"><span>Cambio</span><span>{formatCurrency(detalleVenta.cambio)}</span></div>
+                <div className="flex justify-between text-green-600"><span>Cambio</span><span>{formatMoney(detalleVenta.cambio)}</span></div>
               )}
             </div>
 
@@ -334,7 +335,7 @@ export default function VentasPage() {
               <p className="font-semibold">¿Estás seguro?</p>
               <p className="mt-1">
                 Se anulará el ticket {anularTarget && formatTicketNumber(anularTarget.numero_venta)} por{' '}
-                <strong>{anularTarget && formatCurrency(anularTarget.total)}</strong>.
+                <strong>{anularTarget && formatMoney(anularTarget.total)}</strong>.
                 El stock de los productos se devolverá automáticamente.
               </p>
             </div>
@@ -366,7 +367,7 @@ export default function VentasPage() {
 // Generador de HTML para ticket de re-impresión
 function generateTicketHTML(venta: any): string {
   const items = venta.detalles?.map((d: any) =>
-    `<tr><td>${d.producto_nombre}</td><td style="text-align:center">${d.cantidad}</td><td style="text-align:right">${formatCurrency(d.subtotal)}</td></tr>`
+    `<tr><td>${d.producto_nombre}</td><td style="text-align:center">${d.cantidad}</td><td style="text-align:right">${formatMoney(d.subtotal)}</td></tr>`
   ).join('') || ''
 
   return `<!DOCTYPE html><html><head><style>
@@ -385,11 +386,11 @@ function generateTicketHTML(venta: any): string {
     <table><thead><tr><th>Producto</th><th style="text-align:center">Cant</th><th style="text-align:right">Subtotal</th></tr></thead>
     <tbody>${items}</tbody></table>
     <hr>
-    <div class="right">Subtotal: ${formatCurrency(venta.subtotal)}</div>
-    <div class="right">Tax: ${formatCurrency(venta.impuesto)}</div>
-    <div class="right total">TOTAL: ${formatCurrency(venta.total)}</div>
-    <div class="right" style="margin-top:5px">Pagado: ${formatCurrency(venta.monto_pagado)}</div>
-    ${venta.cambio > 0 ? `<div class="right">Cambio: ${formatCurrency(venta.cambio)}</div>` : ''}
+    <div class="right">Subtotal: ${formatMoney(venta.subtotal)}</div>
+    <div class="right">Tax: ${formatMoney(venta.impuesto)}</div>
+    <div class="right total">TOTAL: ${formatMoney(venta.total)}</div>
+    <div class="right" style="margin-top:5px">Pagado: ${formatMoney(venta.monto_pagado)}</div>
+    ${venta.cambio > 0 ? `<div class="right">Cambio: ${formatMoney(venta.cambio)}</div>` : ''}
     <hr>
     <div class="center" style="margin-top:10px;color:#666">¡Gracias por su compra!</div>
   </body></html>`

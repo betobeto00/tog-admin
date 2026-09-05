@@ -9,7 +9,8 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Formatea un número como moneda.
+ * Formatea un número como moneda con símbolo explícito.
+ * Deprecated: para v2 usar formatMoney de services/currency (símbolo + tasa de la config).
  */
 export function formatCurrency(amount: number | undefined | null, symbol: string = '$'): string {
   const safe = typeof amount === 'number' && !isNaN(amount) ? amount : 0

@@ -6,7 +6,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { useToast } from '../components/ui/Toast'
 import { callApi } from '../lib/api-client'
 import { useActiveModules } from '../hooks/useModules'
-import { formatCurrency } from '../lib/utils'
+import { formatMoney } from '../services/currency'
 
 interface ListaPrecio {
   id: number; nombre: string; factor: number; activo: number
@@ -323,7 +323,7 @@ export default function ListasPrecioPage() {
                           <button key={p.id} onClick={() => { setProductoPick(p); setPrecioOverride(String(p.precio_venta)) }}
                             className="w-full flex items-center justify-between px-3 py-2 hover:bg-blue-50 text-left text-sm">
                             <span className="truncate">{p.nombre}</span>
-                            <span className="text-xs text-gray-400">{formatCurrency(p.precio_venta)}</span>
+                            <span className="text-xs text-gray-400">{formatMoney(p.precio_venta)}</span>
                           </button>
                         ))}
                       </div>
@@ -339,7 +339,7 @@ export default function ListasPrecioPage() {
                     Asignar
                   </button>
                 </div>
-                {productoPick && <p className="text-xs text-gray-500">Producto seleccionado: {productoPick.nombre} (base {formatCurrency(productoPick.precio_venta)})</p>}
+                {productoPick && <p className="text-xs text-gray-500">Producto seleccionado: {productoPick.nombre} (base {formatMoney(productoPick.precio_venta)})</p>}
               </div>
 
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -358,8 +358,8 @@ export default function ListasPrecioPage() {
                     ) : productos.map((p) => (
                       <tr key={p.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">{p.producto_nombre}</td>
-                        <td className="px-4 py-3 text-right text-gray-500">{formatCurrency(p.precio_venta)}</td>
-                        <td className="px-4 py-3 text-right font-medium text-blue-600">{p.precio_override != null ? formatCurrency(p.precio_override) : '—'}</td>
+                        <td className="px-4 py-3 text-right text-gray-500">{formatMoney(p.precio_venta)}</td>
+                        <td className="px-4 py-3 text-right font-medium text-blue-600">{p.precio_override != null ? formatMoney(p.precio_override) : '—'}</td>
                         <td className="px-4 py-3 text-right">
                           <button onClick={() => quitarProducto(p.producto_id)}
                             className="px-2 py-1 text-xs text-red-600 bg-red-50 rounded hover:bg-red-100">

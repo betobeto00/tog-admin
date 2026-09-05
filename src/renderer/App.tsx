@@ -29,6 +29,7 @@ import QuotesPage from './pages/QuotesPage'
 import HelpPage from './pages/HelpPage'
 import Tutorial, { hasTutorialCompleted } from './components/Tutorial'
 import LicenseGate from './components/LicenseGate'
+import { loadCurrency } from './services/currency'
 
 // Loading placeholder para Suspense (usado si hay lazy imports futuros)
 function PageLoader() {
@@ -50,6 +51,12 @@ export default function App() {
   const usuario = useAuthStore((s) => s.usuario)
   const mustChangePassword = isAuthenticated && usuario?.debe_cambiar_contrasena === 1
   const [showTutorial, setShowTutorial] = useState(false)
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadCurrency()
+    }
+  }, [isAuthenticated])
 
   useEffect(() => {
     if (isAuthenticated && !mustChangePassword && !hasTutorialCompleted()) {

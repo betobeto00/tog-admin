@@ -6,7 +6,8 @@ import {
   Clock, AlertTriangle, CheckCircle, History, Calculator, Printer
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
-import { formatCurrency, formatDateTime } from '../lib/utils'
+import { formatDateTime } from '../lib/utils'
+import { formatMoney } from '../services/currency'
 import { callApi } from '../lib/api-client'
 
 interface CajaState {
@@ -142,14 +143,14 @@ export default function CajaPage() {
       <div>{t('caja.receiptOpening')} ${formatDateTime(caja.fecha_apertura)}</div>
       <hr>
       <table>
-        <tr><td>{t('caja.receiptInitialFund')}</td><td class="right">${formatCurrency(caja.fondo_inicial)}</td></tr>
-        <tr><td>{t('caja.receiptSales')}</td><td class="right">${formatCurrency(caja.total_ventas)}</td></tr>
-        <tr><td>{t('caja.receiptEntries')}</td><td class="right">${formatCurrency(caja.total_entradas)}</td></tr>
-        <tr><td>{t('caja.receiptWithdrawals')}</td><td class="right">${formatCurrency(caja.total_salidas)}</td></tr>
-        <tr><td class="total">{t('caja.receiptExpectedTotal')}</td><td class="right total">${formatCurrency(totalEsperado)}</td></tr>
+        <tr><td>{t('caja.receiptInitialFund')}</td><td class="right">${formatMoney(caja.fondo_inicial)}</td></tr>
+        <tr><td>{t('caja.receiptSales')}</td><td class="right">${formatMoney(caja.total_ventas)}</td></tr>
+        <tr><td>{t('caja.receiptEntries')}</td><td class="right">${formatMoney(caja.total_entradas)}</td></tr>
+        <tr><td>{t('caja.receiptWithdrawals')}</td><td class="right">${formatMoney(caja.total_salidas)}</td></tr>
+        <tr><td class="total">{t('caja.receiptExpectedTotal')}</td><td class="right total">${formatMoney(totalEsperado)}</td></tr>
       </table>
       <hr>
-      <div class="total">{t('caja.receiptPhysicalCount')} ${formatCurrency(totalEsperado)}</div>
+      <div class="total">{t('caja.receiptPhysicalCount')} ${formatMoney(totalEsperado)}</div>
       <div class="total">{t('caja.receiptDifference')} $0.00</div>
       <hr>
       <div class="center" style="margin-top:15px;font-size:10px;color:#666">{t('caja.receiptDoc')}</div>
@@ -216,18 +217,18 @@ export default function CajaPage() {
           <div className="space-y-4">
             {/* Tarjetas de resumen */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-              <SummaryCard label={t('caja.openingBalance')} value={formatCurrency(caja.fondo_inicial)} color="blue" />
-              <SummaryCard label={t('caja.totalSales')} value={formatCurrency(caja.total_ventas)} color="green" />
-              <SummaryCard label={t('caja.entries')} value={formatCurrency(caja.total_entradas)} color="emerald" />
-              <SummaryCard label={t('caja.withdrawals')} value={formatCurrency(caja.total_salidas)} color="red" />
-              <SummaryCard label={t('caja.expected')} value={formatCurrency(totalEsperado)} color="purple" />
+              <SummaryCard label={t('caja.openingBalance')} value={formatMoney(caja.fondo_inicial)} color="blue" />
+              <SummaryCard label={t('caja.totalSales')} value={formatMoney(caja.total_ventas)} color="green" />
+              <SummaryCard label={t('caja.entries')} value={formatMoney(caja.total_entradas)} color="emerald" />
+              <SummaryCard label={t('caja.withdrawals')} value={formatMoney(caja.total_salidas)} color="red" />
+              <SummaryCard label={t('caja.expected')} value={formatMoney(totalEsperado)} color="purple" />
             </div>
 
             {/* Fórmula */}
             <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-600">
               <p className="font-mono">
                 <span className="text-gray-400">{t('caja.formula')}</span>{' '}
-                Fondo ({formatCurrency(caja.fondo_inicial)}) {t('caja.receiptSales')} ({formatCurrency(caja.total_ventas)}) {t('caja.receiptEntries')} ({formatCurrency(caja.total_entradas)}) {t('caja.receiptWithdrawals')} ({formatCurrency(caja.total_salidas)}) = <strong>{formatCurrency(totalEsperado)}</strong>
+                Fondo ({formatMoney(caja.fondo_inicial)}) {t('caja.receiptSales')} ({formatMoney(caja.total_ventas)}) {t('caja.receiptEntries')} ({formatMoney(caja.total_entradas)}) {t('caja.receiptWithdrawals')} ({formatMoney(caja.total_salidas)}) = <strong>{formatMoney(totalEsperado)}</strong>
               </p>
             </div>
 
@@ -291,14 +292,14 @@ export default function CajaPage() {
                     <td className="px-4 py-3 text-sm">{formatDateTime(h.fecha_apertura)}</td>
                     <td className="px-4 py-3 text-sm">{h.fecha_cierre ? formatDateTime(h.fecha_cierre) : '—'}</td>
                     <td className="px-4 py-3 text-sm">{h.usuario_nombre}</td>
-                    <td className="px-4 py-3 text-sm text-right">{formatCurrency(h.fondo_inicial)}</td>
-                    <td className="px-4 py-3 text-sm text-right font-medium">{formatCurrency(h.total_ventas)}</td>
-                    <td className="px-4 py-3 text-sm text-right">{formatCurrency(h.total_esperado)}</td>
-                    <td className="px-4 py-3 text-sm text-right">{formatCurrency(h.total_real)}</td>
+                    <td className="px-4 py-3 text-sm text-right">{formatMoney(h.fondo_inicial)}</td>
+                    <td className="px-4 py-3 text-sm text-right font-medium">{formatMoney(h.total_ventas)}</td>
+                    <td className="px-4 py-3 text-sm text-right">{formatMoney(h.total_esperado)}</td>
+                    <td className="px-4 py-3 text-sm text-right">{formatMoney(h.total_real)}</td>
                     <td className={`px-4 py-3 text-sm text-right font-medium ${
                       h.diferencia === 0 ? 'text-green-600' : h.diferencia > 0 ? 'text-blue-600' : 'text-red-600'
                     }`}>
-                      {h.diferencia === 0 ? '—' : (h.diferencia > 0 ? '+' : '') + formatCurrency(h.diferencia)}
+                      {h.diferencia === 0 ? '—' : (h.diferencia > 0 ? '+' : '') + formatMoney(h.diferencia)}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
@@ -385,13 +386,13 @@ export default function CajaPage() {
           {caja && (
             <>
               <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-gray-500">{t('caja.receiptInitialFund')}</span><span className="font-medium">{formatCurrency(caja.fondo_inicial)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">{t('caja.receiptSales')}</span><span className="font-medium">{formatCurrency(caja.total_ventas)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">{t('caja.receiptEntries')}</span><span className="font-medium">{formatCurrency(caja.total_entradas)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">{t('caja.receiptWithdrawals')}</span><span className="font-medium">{formatCurrency(caja.total_salidas)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">{t('caja.receiptInitialFund')}</span><span className="font-medium">{formatMoney(caja.fondo_inicial)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">{t('caja.receiptSales')}</span><span className="font-medium">{formatMoney(caja.total_ventas)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">{t('caja.receiptEntries')}</span><span className="font-medium">{formatMoney(caja.total_entradas)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">{t('caja.receiptWithdrawals')}</span><span className="font-medium">{formatMoney(caja.total_salidas)}</span></div>
                 <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-200">
                   <span>{t('caja.receiptExpectedTotal')}</span>
-                  <span className="text-blue-600">{formatCurrency(totalEsperado)}</span>
+                  <span className="text-blue-600">{formatMoney(totalEsperado)}</span>
                 </div>
               </div>
 
@@ -420,14 +421,14 @@ export default function CajaPage() {
                     {parseFloat(totalReal) === totalEsperado
                       ? t('caja.balances')
                       : parseFloat(totalReal) > totalEsperado
-                        ? `${t('caja.over')} ${formatCurrency(parseFloat(totalReal) - totalEsperado)}`
-                        : `${t('caja.short')} ${formatCurrency(totalEsperado - parseFloat(totalReal))}`}
+                        ? `${t('caja.over')} ${formatMoney(parseFloat(totalReal) - totalEsperado)}`
+                        : `${t('caja.short')} ${formatMoney(totalEsperado - parseFloat(totalReal))}`}
                   </p>
                   <p className={`text-2xl font-bold mt-1 ${
                     parseFloat(totalReal) === totalEsperado ? 'text-green-700'
                       : parseFloat(totalReal) > totalEsperado ? 'text-blue-700' : 'text-red-700'
                   }`}>
-                    {t('caja.difference')}: {parseFloat(totalReal) >= totalEsperado ? '+' : ''}{formatCurrency(parseFloat(totalReal) - totalEsperado)}
+                    {t('caja.difference')}: {parseFloat(totalReal) >= totalEsperado ? '+' : ''}{formatMoney(parseFloat(totalReal) - totalEsperado)}
                   </p>
                 </div>
               )}
@@ -464,10 +465,10 @@ export default function CajaPage() {
             <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-gray-500">{t('caja.cashier')}</span><span className="font-medium">{reporteX.caja.usuario_nombre}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">{t('caja.opening')}</span><span className="font-medium">{formatDateTime(reporteX.caja.fecha_apertura)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">{t('caja.openAmount')}</span><span className="font-medium">{formatCurrency(reporteX.caja.fondo_inicial)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{t('caja.openAmount')}</span><span className="font-medium">{formatMoney(reporteX.caja.fondo_inicial)}</span></div>
               <div className="flex justify-between font-bold pt-2 border-t border-gray-200">
                 <span>{t('caja.receiptExpectedTotal')}</span>
-                <span className="text-blue-600">{formatCurrency(reporteX.totalEsperado)}</span>
+                <span className="text-blue-600">{formatMoney(reporteX.totalEsperado)}</span>
               </div>
             </div>
             <div>
@@ -476,7 +477,7 @@ export default function CajaPage() {
                 {reporteX.ventasPorMetodo?.map((v: any, i: number) => (
                   <div key={i} className="flex justify-between text-sm bg-white rounded-lg p-2">
                     <span className="text-gray-600 capitalize">{v.metodo_pago} ({v.cantidad})</span>
-                    <span className="font-medium">{formatCurrency(v.total)}</span>
+                    <span className="font-medium">{formatMoney(v.total)}</span>
                   </div>
                 ))}
                 {(!reporteX.ventasPorMetodo || reporteX.ventasPorMetodo.length === 0) && (
@@ -492,7 +493,7 @@ export default function CajaPage() {
                     <div key={i} className="flex justify-between text-sm bg-white rounded-lg p-2">
                       <span className="text-gray-600">{m.tipo === 'entrada' ? '↗' : '↘'} {m.descripcion}</span>
                       <span className={m.tipo === 'entrada' ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                        {m.tipo === 'entrada' ? '+' : '-'}{formatCurrency(m.monto)}
+                        {m.tipo === 'entrada' ? '+' : '-'}{formatMoney(m.monto)}
                       </span>
                     </div>
                   ))}

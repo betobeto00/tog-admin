@@ -5,11 +5,12 @@ import {
   PieChart, Pie, Cell, LineChart, Line, Legend
 } from 'recharts'
 import { BarChart3, TrendingUp, Package, Calendar, Download, FileText } from 'lucide-react'
-import { formatCurrency, formatDateTime } from '../lib/utils'
+import { formatDateTime } from '../lib/utils'
+import { formatMoney } from '../services/currency'
 import { callApi } from '../lib/api-client'
 
 interface VentaDiaria { fecha: string; total_ventas: number; monto_total: number }
-interface TopProducto { nombre: string; total_vendido: number; total_ingreso: number }
+interface TopProducto { nombre: string; tipo: 'producto' | 'servicio'; total_vendido: number; total_ingreso: number }
 interface ResumenDia {
   total_ventas: number; monto_total: number; efectivo: number; transferencia: number; pago_movil: number
   por_metodo?: { clave: string; nombre: string; total: number }[]
@@ -171,7 +172,7 @@ win.document.write(`<html><head><title>${t('reportes.reportTitle')} - TOG Admin<
                 <div className="p-2 bg-blue-50 rounded-lg"><TrendingUp className="w-5 h-5 text-blue-600" /></div>
                 <span className="text-sm text-gray-500">{t('reportes.totalPeriod')}</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalPeriodo)}</p>
+              <p className="text-2xl font-bold text-gray-900">{formatMoney(totalPeriodo)}</p>
               <p className="text-xs text-gray-400 mt-1">{t('reportes.periodSummary', { days: ventasDiarias.length })}</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -179,7 +180,7 @@ win.document.write(`<html><head><title>${t('reportes.reportTitle')} - TOG Admin<
                 <div className="p-2 bg-green-50 rounded-lg"><BarChart3 className="w-5 h-5 text-green-600" /></div>
                 <span className="text-sm text-gray-500">{t('reportes.dailyAvg')}</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(promedioDiario)}</p>
+              <p className="text-2xl font-bold text-gray-900">{formatMoney(promedioDiario)}</p>
               <p className="text-xs text-gray-400 mt-1">{t('reportes.avgPerDay')}</p>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -204,7 +205,7 @@ win.document.write(`<html><head><title>${t('reportes.reportTitle')} - TOG Admin<
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="fecha" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                    <Tooltip formatter={(value) => formatMoney(Number(value))} />
                     <Legend />
                     <Line type="monotone" dataKey="monto" name="Ingresos ($)" stroke="#3B82F6" strokeWidth={2} dot={{ r: 3 }} />
                   </LineChart>
@@ -242,7 +243,7 @@ win.document.write(`<html><head><title>${t('reportes.reportTitle')} - TOG Admin<
                       outerRadius={100} label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}>
                       {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
-                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                    <Tooltip formatter={(value) => formatMoney(Number(value))} />
                   </PieChart>
                 </ResponsiveContainer>
               )}
@@ -259,7 +260,7 @@ win.document.write(`<html><head><title>${t('reportes.reportTitle')} - TOG Admin<
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis type="number" tick={{ fontSize: 11 }} />
                     <YAxis dataKey="categoria" type="category" width={120} tick={{ fontSize: 10 }} />
-<Tooltip formatter={(value) => formatCurrency(Number(value))} />
+<Tooltip formatter={(value) => formatMoney(Number(value))} />
                   <Bar dataKey="total_ingreso" name="Ingreso ($)" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -278,6 +279,7 @@ win.document.write(`<html><head><title>${t('reportes.reportTitle')} - TOG Admin<
                       <tr>
                         <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">#</th>
                         <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500">{t('reportes.product')}</th>
+                        <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500">{t('reportes.type')}</th>
                         <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500">{t('reportes.sold')}</th>
                         <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500">{t('reportes.income')}</th>
                       </tr>
@@ -287,8 +289,15 @@ win.document.write(`<html><head><title>${t('reportes.reportTitle')} - TOG Admin<
                         <tr key={i} className="hover:bg-gray-50">
                           <td className="px-3 py-2 text-gray-400 font-medium">{i + 1}</td>
                           <td className="px-3 py-2 font-medium text-gray-900">{p.nombre}</td>
+                          <td className="px-3 py-2 text-center">
+                            {p.tipo === 'servicio' ? (
+                              <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-sky-100 text-sky-700">{t('reportes.service')}</span>
+                            ) : (
+                              <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{t('reportes.product')}</span>
+                            )}
+                          </td>
                           <td className="px-3 py-2 text-right">{p.total_vendido}</td>
-                          <td className="px-3 py-2 text-right font-medium">{formatCurrency(p.total_ingreso)}</td>
+                          <td className="px-3 py-2 text-right font-medium">{formatMoney(p.total_ingreso)}</td>
                         </tr>
                       ))}
                     </tbody>

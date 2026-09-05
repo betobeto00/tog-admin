@@ -15,6 +15,7 @@ import PermissionsModal from '../components/ui/PermissionsModal'
 import LicenseSyncForm from '../components/LicenseSyncForm'
 import { usePermissions } from '../hooks/usePermissions'
 import { callApi } from '../lib/api-client'
+import { setCurrency } from '../services/currency'
 
 interface Config { clave: string; valor: string; descripcion: string | null }
 interface Usuario { id: number; usuario: string; nombre: string; rol: string; activo: number }
@@ -28,7 +29,7 @@ export default function ConfigPage() {
   // Form datos negocio
   const [form, setForm] = useState({
     nombre_negocio: '', ein: '', telefono: '', direccion: '',
-    sales_tax_rate: '', currency_symbol: '$', tasa_cambio: '',
+    sales_tax_rate: '', currency_symbol: '$', currency_name: 'USD', tasa_cambio: '',
   })
 
   // Logo de la empresa (base64)
@@ -73,7 +74,52 @@ export default function ConfigPage() {
   const [editingMetodo, setEditingMetodo] = useState<any | null>(null)
   const [metodoForm, setMetodoForm] = useState({ clave: '', nombre: '', icono: 'DollarSign', requiere_terminal: false, orden: 99 })
 
+  // Red local (PC Base / hija)
+  const [redStatus, setRedStatus] = useState<any>(null)
+  const [linkCode, setLinkCode] = useState<{ codigo: string; expira_en: string } | null>(null)
+  const [linkedPcs, setLinkedPcs] = useState<any[]>([])
+  const [codeLoading, setCodeLoading] = useState(false)
+
   useEffect(() => { loadData() }, [])
+
+  const loadRed = async () => {
+    try {
+      const rs = await callApi<any>('red:status')
+      setRedStatus(rs)
+      if (rs.modo === 'base') {
+        const pcs = await callApi<{ success: boolean; pcs?: any[] }>('red:listar-pcs').catch(() => ({ success: false }))
+        if (pcs?.success) setLinkedPcs((pcs as { pcs?: any[] }).pcs || [])
+      }
+    } catch {}
+  }
+
+  const generateLinkCode = async () => {
+    setCodeLoading(true)
+    try {
+      const result = await callApi<{ success: boolean; codigo?: string; expira_en?: string; error?: string }>('red:generar-codigo')
+      if (result.success && result.codigo) {
+        setLinkCode({ codigo: result.codigo, expira_en: result.expira_en || '' })
+        toast.success('Código de enlace generado (válido por 5 minutos)')
+      } else {
+        toast.error(result.error || 'Error generando código')
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Error generando código')
+    } finally {
+      setCodeLoading(false)
+    }
+  }
+
+  const unlinkHija = async () => {
+    const confirm = window.confirm('¿Desvincular esta PC de la PC Base? La app volverá al primer inicio.')
+    if (!confirm) return
+    try {
+      await callApi('red:desvincular')
+      window.location.reload()
+    } catch (err: any) {
+      toast.error(err?.message || 'Error desvinculando')
+    }
+  }
 
   const loadUsuarios = async () => {
     const users = await callApi<any[]>('usuarios:list')
@@ -109,11 +155,13 @@ const ts = await callApi<{ conectado: boolean; puerto?: string }>('terminal:esta
       direccion: get('direccion'),
       sales_tax_rate: get('sales_tax_rate'),
       currency_symbol: get('currency_symbol') || '$',
+      currency_name: get('currency_name') || 'USD',
       tasa_cambio: get('tasa_cambio'),
     })
     setPrinterName(get('printer_name'))
     setFondoDefault(get('fondo_inicial_default'))
     setLogoPath(get('logo_path'))
+    loadRed()
   }
 
   const saveConfig = async () => {
@@ -125,6 +173,7 @@ const ts = await callApi<{ conectado: boolean; puerto?: string }>('terminal:esta
       await callApi('config:set', { clave: 'printer_name', valor: printerName })
       await callApi('config:set', { clave: 'fondo_inicial_default', valor: fondoDefault })
       await callApi('config:set', { clave: 'logo_path', valor: logoPath })
+      setCurrency(form.currency_symbol || '$', parseFloat(form.tasa_cambio) || 0, form.currency_name || 'USD')
       toast.success('Configuración guardada exitosamente')
     } catch (err) {
       toast.error('Error al guardar configuración')
@@ -393,7 +442,15 @@ const ts = await callApi('terminal:estado')
                 onChange={(e) => setForm({ ...form, currency_symbol: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                 placeholder="$" />
-              <p className="text-xs text-gray-400 mt-1">{t('config.currencyHelp')}</p>
+              <p className="text-xs text-gray-400 mt-1">{t('config.currencySymbolHelp')}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('config.currencyNameLabel')}</label>
+              <input value={form.currency_name}
+                onChange={(e) => setForm({ ...form, currency_name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                placeholder="USD" />
+              <p className="text-xs text-gray-400 mt-1">{t('config.currencyNameHelp')}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('config.exchangeRateLabel')}</label>
@@ -404,6 +461,9 @@ const ts = await callApi('terminal:estado')
               <p className="text-xs text-gray-400 mt-1">{t('config.exchangeRateHelp')}</p>
             </div>
           </div>
+          <p className="text-sm text-gray-600 mt-3">
+            {t('config.currencyPreview', { preview: `${form.currency_symbol || '$'}${((parseFloat(form.tasa_cambio) || 0) > 0 ? parseFloat(form.tasa_cambio) : 1) * 10}` })}
+          </p>
 
           <h3 className="font-semibold text-gray-900 pt-4 border-t border-gray-100 flex items-center gap-2">
             <Settings className="w-5 h-5 text-gray-600" /> {t('config.operationTab')}
@@ -820,6 +880,106 @@ const ts = await callApi('terminal:estado')
               <li>Se recomienda hacer backup diariamente antes de cerrar caja</li>
               <li>La restauración creará un backup automático (.bak) por seguridad</li>
             </ul>
+          </div>
+
+          {/* Red local (interconexión PC Base + hijas) */}
+          <div className="bg-cyan-50 rounded-xl p-5 border border-cyan-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 bg-cyan-100 rounded-lg">
+                <Wifi className="w-5 h-5 text-cyan-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">Red Local (PC Base + Hijas)</h4>
+                <p className="text-xs text-gray-500">Interconexión entre PCs de la misma red</p>
+              </div>
+            </div>
+
+            {redStatus?.modo === 'hija' ? (
+              <div className="space-y-3">
+                <div className="bg-white rounded-lg border border-cyan-200 p-3 text-sm">
+                  <p className="text-cyan-700 font-medium">
+                    ✔ Conectada a PC Base: <strong>{redStatus.baseUrl}</strong>
+                    {redStatus.pcNombre && ` (${redStatus.pcNombre})`}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Esta PC no necesita licencia propia: los datos y la licencia los sirve la PC Base.
+                  </p>
+                </div>
+                <button
+                  onClick={unlinkHija}
+                  className="px-4 py-2 text-sm font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600"
+                >
+                  Desvincular esta PC
+                </button>
+              </div>
+            ) : redStatus?.modo === 'base' ? (
+              <div className="space-y-3">
+                <div className="bg-white rounded-lg border border-cyan-200 p-3 text-sm space-y-1">
+                  <p className="text-cyan-700 font-medium">
+                    <Wifi className="w-4 h-4 inline mr-1" />
+                    Servidor de enlace {redStatus.servidorActivo ? 'activo' : 'inactivo'} — puerto {redStatus.puerto}
+                  </p>
+                  {redStatus.ips?.length > 0 && (
+                    <p className="text-xs text-gray-500">
+                      IPs locales: <span className="font-mono">{redStatus.ips.join(', ')}</span>
+                    </p>
+                  )}
+                  {redStatus.maxPcs != null && (
+                    <p className="text-xs text-gray-500">
+                      PCs permitidas por licencia: <strong>{redStatus.maxPcs}</strong>
+                    </p>
+                  )}
+                </div>
+
+                {linkCode ? (
+                  <div className="bg-indigo-50 rounded-lg border border-indigo-200 p-3 text-center">
+                    <p className="text-xs text-gray-500 mb-1">Código de enlace (válido 5 min, un solo uso):</p>
+                    <p className="font-mono text-2xl font-bold text-indigo-700 tracking-widest">{linkCode.codigo}</p>
+                    {linkCode.expira_en && (
+                      <p className="text-[11px] text-gray-400 mt-1">Expira: {new Date(linkCode.expira_en).toLocaleTimeString()}</p>
+                    )}
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      Ingresalo en la PC hija junto con esta IP.
+                    </p>
+                  </div>
+                ) : (
+                  <button
+                    onClick={generateLinkCode}
+                    disabled={codeLoading || !has('red_manage')}
+                    className="px-4 py-2 text-sm font-semibold text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 disabled:bg-cyan-300 disabled:cursor-not-allowed flex items-center gap-2"
+                    title={!has('red_manage') ? t('config.noPermission') : ''}
+                  >
+                    <Wifi className="w-4 h-4" /> {codeLoading ? 'Generando...' : 'Generar código de enlace'}
+                  </button>
+                )}
+
+                {linkedPcs.length > 0 && (
+                  <div className="bg-white rounded-lg border border-cyan-200 p-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                      PCs enlazadas ({linkedPcs.length})
+                    </p>
+                    <table className="w-full text-sm">
+                      <tbody className="divide-y divide-gray-100">
+                        {linkedPcs.map((pc) => (
+                          <tr key={pc.par_id}>
+                            <td className="py-2 font-medium text-gray-800">{pc.nombre}</td>
+                            <td className="py-2 text-xs text-gray-500 font-mono">{pc.ip || '—'}</td>
+                            <td className="py-2 text-xs text-gray-400">
+                              {pc.last_seen ? `visto: ${new Date(pc.last_seen + 'Z').toLocaleTimeString()}` : ''}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                Esta instalación no tiene red local activa. Instalá una licencia para convertir esta PC en Base,
+                o vinculá esta PC a una Base existente desde el primer inicio.
+              </p>
+            )}
           </div>
 
           {/* Tutorial */}

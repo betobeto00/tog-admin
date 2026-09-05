@@ -8,7 +8,8 @@ import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { useToast } from '../components/ui/Toast'
 import { usePermissions } from '../hooks/usePermissions'
-import { formatCurrency, formatDateTime } from '../lib/utils'
+import { formatDateTime } from '../lib/utils'
+import { formatMoney } from '../services/currency'
 import { callApi } from '../lib/api-client'
 
 interface Mesa {
@@ -362,7 +363,7 @@ export default function MesasPage() {
         bizPhone = get('telefono')
       } catch {}
       const rows = (venta.detalles || []).map((d: any) => {
-        return `<tr><td style="text-align:center">${d.cantidad}</td><td>${d.producto_nombre || d.descripcion || ''}</td><td style="text-align:right">${formatCurrency(d.subtotal || 0)}</td></tr>`
+        return `<tr><td style="text-align:center">${d.cantidad}</td><td>${d.producto_nombre || d.descripcion || ''}</td><td style="text-align:right">${formatMoney(d.subtotal || 0)}</td></tr>`
       }).join('')
       const win = window.open('', '_blank', 'width=400,height=700')
       if (!win) return
@@ -384,10 +385,10 @@ export default function MesasPage() {
         <hr>
         <table>${rows}</table>
         <hr>
-        <div style="display:flex;justify-content:space-between"><span>${t('common.subtotal')}:</span><span>${formatCurrency(venta.subtotal || 0)}</span></div>
-        ${(venta.descuento || 0) > 0 ? `<div style="display:flex;justify-content:space-between"><span>${t('common.discount')}:</span><span>-${formatCurrency(venta.descuento || 0)}</span></div>` : ''}
-        <div style="display:flex;justify-content:space-between"><span>${t('common.tax')}:</span><span>${formatCurrency(venta.impuesto || 0)}</span></div>
-        <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:13px;padding-top:4px;border-top:1px dashed #000;margin-top:4px"><span>TOTAL:</span><span>${formatCurrency(venta.total || 0)}</span></div>
+        <div style="display:flex;justify-content:space-between"><span>${t('common.subtotal')}:</span><span>${formatMoney(venta.subtotal || 0)}</span></div>
+        ${(venta.descuento || 0) > 0 ? `<div style="display:flex;justify-content:space-between"><span>${t('common.discount')}:</span><span>-${formatMoney(venta.descuento || 0)}</span></div>` : ''}
+        <div style="display:flex;justify-content:space-between"><span>${t('common.tax')}:</span><span>${formatMoney(venta.impuesto || 0)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:13px;padding-top:4px;border-top:1px dashed #000;margin-top:4px"><span>TOTAL:</span><span>${formatMoney(venta.total || 0)}</span></div>
         <hr>
         <div class="center small">${t('quotes.receiptThankYou')}</div>
       </body></html>`)
@@ -448,7 +449,7 @@ export default function MesasPage() {
                 </div>
                 {!libre && (
                   <div className="mt-3 pt-3 border-t border-blue-100 flex items-center justify-between">
-                    <span className={`font-semibold text-gray-900 ${touchMode ? 'text-lg' : 'text-sm'}`}>{formatCurrency(mesa.total_actual || 0)}</span>
+                    <span className={`font-semibold text-gray-900 ${touchMode ? 'text-lg' : 'text-sm'}`}>{formatMoney(mesa.total_actual || 0)}</span>
                     <span className="text-xs text-blue-600 flex items-center gap-1">
                       {t('restaurant.openTable')} <ArrowRight className="w-3 h-3" />
                     </span>
@@ -504,7 +505,7 @@ export default function MesasPage() {
                 <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${ITEM_ESTADO_STYLES[comanda.estado] || 'bg-gray-100 text-gray-600'}`}>
                   {comanda.estado}
                 </span>
-                <span className="font-bold text-gray-900">{formatCurrency(comanda.total || 0)}</span>
+                <span className="font-bold text-gray-900">{formatMoney(comanda.total || 0)}</span>
               </div>
               <div className="flex gap-2">
                 <select value={moveDestino} onChange={(e) => setMoveDestino(e.target.value)}
@@ -554,7 +555,7 @@ export default function MesasPage() {
                   <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                     {searchResults.map((p) => (
                       <button key={p.id} onClick={() => addProductItem(p)} className="w-full flex items-center justify-between px-3 py-2 hover:bg-blue-50 text-left text-sm">
-                        <span>{p.nombre}</span><span className="text-gray-400">{formatCurrency(p.precio_venta)}</span>
+                        <span>{p.nombre}</span><span className="text-gray-400">{formatMoney(p.precio_venta)}</span>
                       </button>
                     ))}
                   </div>
@@ -614,7 +615,7 @@ export default function MesasPage() {
                               className="p-1 hover:bg-gray-100 rounded"><Plus className="w-3 h-3" /></button>
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.subtotal)}</td>
+                        <td className="px-3 py-2 text-right font-medium">{formatMoney(item.subtotal)}</td>
                         <td className="px-3 py-2 text-center">
                           <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full ${ITEM_ESTADO_STYLES[item.estado] || ''}`}>
                             {t(`restaurant.item${item.estado === 'pendiente' ? 'Pending' : item.estado === 'en_preparacion' ? 'Preparing' : item.estado === 'listo' ? 'Ready' : item.estado === 'servido' ? 'Served' : 'Cancelled'}`)}
@@ -644,7 +645,7 @@ export default function MesasPage() {
             <div className="flex justify-end pt-2 border-t border-gray-100">
               <button onClick={openCheckout} disabled={comanda.detalles.length === 0}
                 className={`px-6 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-green-300 flex items-center gap-2 ${touchMode ? 'py-4 text-lg' : 'py-2.5 text-sm'}`}>
-                <Banknote className="w-5 h-5" /> {t('restaurant.chargeTable')} — {formatCurrency(totalCobrar)} <span className="text-xs opacity-70 hidden md:inline">F5</span>
+                <Banknote className="w-5 h-5" /> {t('restaurant.chargeTable')} — {formatMoney(totalCobrar)} <span className="text-xs opacity-70 hidden md:inline">F5</span>
               </button>
             </div>
           </div>
@@ -656,7 +657,7 @@ export default function MesasPage() {
         <div className="space-y-4">
           <p className="text-sm text-gray-500">{t('restaurant.checkoutMsg')}</p>
           <div className="bg-gray-50 rounded-xl p-4 text-sm flex justify-between font-semibold">
-            <span>{t('restaurant.totalToCharge')}</span><span>{formatCurrency(totalCobrar)}</span>
+            <span>{t('restaurant.totalToCharge')}</span><span>{formatMoney(totalCobrar)}</span>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('pos.paymentMethod')} *</label>
@@ -689,7 +690,7 @@ export default function MesasPage() {
             <input type="number" step="0.01" min="0" value={checkoutForm.monto_pagado}
               onChange={(e) => setCheckoutForm({ ...checkoutForm, monto_pagado: Number(e.target.value) })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-            <p className="text-xs text-gray-400 mt-1">{t('pos.change')}: {formatCurrency(Math.max(0, (Number(checkoutForm.monto_pagado) || 0) - totalCobrar))}</p>
+            <p className="text-xs text-gray-400 mt-1">{t('pos.change')}: {formatMoney(Math.max(0, (Number(checkoutForm.monto_pagado) || 0) - totalCobrar))}</p>
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <button onClick={() => setCheckoutOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">{t('quotes.cancel')}</button>

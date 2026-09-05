@@ -59,6 +59,8 @@ const authCreator: StateCreator<AuthState> = (set) => ({
   logout: () => {
     set({ usuario: null, isAuthenticated: false, error: null })
     localStorage.removeItem('tog_user')
+    // Liberar la sesión en la PC Base (red local), best-effort
+    callApi<{ success: boolean }>('red:logout').catch(() => {})
   },
 
   changePassword: async (contrasenaActual: string, contrasenaNueva: string) => {

@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Shield, AlertTriangle, Upload, Key, Clock } from 'lucide-react'
+import { Shield, AlertTriangle, Upload, Key, Clock, Network } from 'lucide-react'
 import { useToast } from './ui/Toast'
 import LicenseSyncForm from './LicenseSyncForm'
+import SetupPage from '../pages/SetupPage'
 import { callApi } from '../lib/api-client'
+
+interface RedStatus {
+  modo: 'base' | 'hija' | 'local'
+  baseUrl: string | null
+  pcNombre: string | null
+}
 
 interface LicenseStatus {
   valid: boolean
@@ -16,8 +23,10 @@ interface LicenseStatus {
 
 export default function LicenseGate({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<LicenseStatus | null>(null)
+  const [red, setRed] = useState<RedStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [importing, setImporting] = useState(false)
+  const [showSetup, setShowSetup] = useState(false)
   const toast = useToast()
 
   useEffect(() => {
@@ -26,6 +35,14 @@ export default function LicenseGate({ children }: { children: React.ReactNode })
 
   const checkLicense = async () => {
     try {
+      // En una PC Hija la licencia la valida la PC Base, no hace falta licencia local
+      const redStatus = await callApi<RedStatus>('red:status').catch(() => null)
+      setRed(redStatus)
+      if (redStatus?.modo === 'hija') {
+        setStatus({ valid: true, cliente: null, expira: null, diasRestantes: null, error: null, machineId: '' })
+        setLoading(false)
+        return
+      }
       const s = await callApi<LicenseStatus>('license:status')
       setStatus(s)
     } catch (err) {
@@ -115,6 +132,11 @@ export default function LicenseGate({ children }: { children: React.ReactNode })
     return <>{children}</>
   }
 
+  // PC Hija: SetupPage para conectarse a la PC Base
+  if (showSetup) {
+    return <SetupPage onLinked={() => { setShowSetup(false); window.location.reload() }} />
+  }
+
   // Licencia inválida / expirada / no encontrada
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50">
@@ -173,6 +195,23 @@ export default function LicenseGate({ children }: { children: React.ReactNode })
             <Upload className="w-5 h-5" />
             {importing ? 'Importando...' : 'Importar Licencia'}
           </button>
+
+          <div className="flex items-center gap-3 my-4">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs text-gray-400">o</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          <button
+            onClick={() => setShowSetup(true)}
+            className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2"
+          >
+            <Network className="w-5 h-5" />
+            Conectar a una PC Base
+          </button>
+          <p className="text-xs text-gray-400 text-center mt-2">
+            ¿Esta PC es una terminal/caja? Vincúlala a la PC Base de tu negocio.
+          </p>
 
           <div className="flex items-center gap-3 my-4">
             <div className="flex-1 h-px bg-gray-200" />

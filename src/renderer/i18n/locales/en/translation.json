@@ -648,7 +648,8 @@
     "optionalNote": "Optional note...",
     "saving": "Saving...",
     "cancel": "Cancel",
-    "stock": "Stock"
+    "stock": "Stock",
+    "serviceTag": "Service"
   },
   "proveedores": {
     "title": "Suppliers",
@@ -709,6 +710,8 @@
     "categoryChart": "📊 Sales by Category",
     "topProductsDetail": "📋 Top Products Detail",
     "noDataShort": "No data",
+    "type": "Type",
+    "service": "Service",
     "product": "Product",
     "sold": "Sold",
     "revenues": "Revenue ($)",
@@ -1013,8 +1016,12 @@
     "remove": "Remove",
     "salesTaxRate": "Sales Tax Rate (%)",
     "currencySymbolLabel": "Currency Symbol",
+    "currencySymbolHelp": "Symbol shown across the whole app (e.g. $, Bs, €)",
+    "currencyNameLabel": "Currency Name",
+    "currencyNameHelp": "e.g. USD, Bs, EUR (for receipts)",
     "exchangeRateLabel": "Exchange Rate",
-    "exchangeRateHelp": "Reference exchange rate (e.g. Bs/USD). Informational only, does not change prices.",
+    "exchangeRateHelp": "Local rate: 0 = 1:1 with base currency. Amounts are displayed multiplied by this rate.",
+    "currencyPreview": "Prices are shown as: {{preview}}",
     "commonTaxRates": "No tax: 0% • Oregon, Montana, Delaware: 0% • Texas: 6.25%+ • California: 7.25%+ • New York: 4%+ • Florida: 6%",
     "terminalVp800Card": "VP800 Terminal — Card Payment",
     "saving": "Saving...",
@@ -1646,5 +1653,19 @@
     "nameRequired": "The name is required",
     "factorRequired": "The factor must be greater than 0",
     "factor": "Factor"
+  },
+  "setup": {
+    "title": "Connect to a Base PC",
+    "subtitle": "Link this PC as a terminal/cash register on your business local network",
+    "pcName": "This PC name",
+    "pcNamePlaceholder": "e.g. Register 1, Terminal 2",
+    "baseIp": "Base PC address/IP",
+    "baseIpHelp": "Local IP of the PC holding the license (e.g. 192.168.1.10). The port is used automatically.",
+    "linkCode": "Pairing code",
+    "linkCodeHelp": "Generate it on the Base PC: Settings → System → Local Network",
+    "linkButton": "Connect to Base PC",
+    "linking": "Connecting...",
+    "linked": "PC linked successfully!",
+    "error": "Could not link this PC"
   }
 }

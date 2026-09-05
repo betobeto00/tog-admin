@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@core/auth/store'
-import { formatCurrency, formatDateTime, formatTicketNumber } from '../lib/utils'
+import { formatDateTime, formatTicketNumber } from '../lib/utils'
+import { formatMoney } from '../services/currency'
 import { callApi } from '../lib/api-client'
 import type { MetodoPago } from '../../shared/types'
 import {
@@ -138,14 +139,14 @@ export default function DashboardPage() {
           icon={<DollarSign className="w-6 h-6 text-green-600" />}
           bg="bg-green-50"
           label={t('dashboard.todaySales')}
-          value={formatCurrency(resumen?.monto_total || 0)}
+          value={formatMoney(resumen?.monto_total || 0)}
           sub={t('common.total')}
         />
         <StatCard
           icon={<TrendingUp className="w-6 h-6 text-purple-600" />}
           bg="bg-purple-50"
           label={t('caja.cashMethod')}
-          value={formatCurrency(resumen?.efectivo || 0)}
+          value={formatMoney(resumen?.efectivo || 0)}
           sub={t('caja.cashMethod')}
         />
         <StatCard
@@ -220,7 +221,7 @@ export default function DashboardPage() {
                     <td className="py-2 text-gray-500">{formatDateTime(v.fecha)}</td>
                     <td className="py-2 text-gray-600">{v.usuario_nombre}</td>
                     <td className="py-2 text-gray-600 capitalize">{methodLabels[v.metodo_pago] || v.metodo_pago.replace('_', ' ')}</td>
-                    <td className="py-2 text-right font-bold">{formatCurrency(v.total)}</td>
+                    <td className="py-2 text-right font-bold">{formatMoney(v.total)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -264,7 +265,7 @@ function PaymentRow({ label, amount, total, color }: {
     <div>
       <div className="flex justify-between text-sm mb-1">
         <span className="text-gray-600">{label}</span>
-        <span className="font-medium">{formatCurrency(amount)}</span>
+        <span className="font-medium">{formatMoney(amount)}</span>
       </div>
       <div className="w-full bg-gray-100 rounded-full h-2">
         <div className={`${color} h-2 rounded-full transition-all`} style={{ width: `${pct}%` }} />

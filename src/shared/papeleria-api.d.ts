@@ -36,6 +36,9 @@ export interface PapeleriaAPI {
     buscarPorCodigo: (payload: { codigo: string; usuario_id?: number }) => Promise<any>
     exportCsv: () => Promise<any>
     importCsv: (filePath: string) => Promise<any>
+    setImagen: (data: { id: number; base64: string; usuario_id?: number }) => Promise<any>
+    getImagen: (payload: { id: number; usuario_id?: number }) => Promise<any>
+    deleteImagen: (payload: { id: number; usuario_id?: number }) => Promise<any>
   }
   proveedores: {
     list: () => Promise<any[]>
@@ -109,6 +112,24 @@ export interface PapeleriaAPI {
   i18n: {
     getLang: () => Promise<'es' | 'en'>
     setLang: (lang: 'es' | 'en') => Promise<{ success: boolean; lang: 'es' | 'en' }>
+  }
+  red: {
+    status: () => Promise<{
+      modo: 'base' | 'hija' | 'local'
+      baseUrl: string | null
+      parId: string | null
+      pcNombre: string | null
+      servidorActivo: boolean
+      puerto: number
+      ips: string[]
+      maxPcs: number | null
+      esHija: boolean
+      esBase: boolean
+    }>
+    vincular: (data: { baseUrl: string; codigo: string; nombre: string }) => Promise<{ success: boolean; error?: string; parId?: string; certHash?: string }>
+    desvincular: () => Promise<{ success: boolean; error?: string }>
+    generarCodigo: () => Promise<{ success: boolean; error?: string; codigo?: string; expira_en?: string }>
+    listarPcs: () => Promise<{ success: boolean; error?: string; pcs?: Array<{ par_id: string; nombre: string; ip: string | null; last_seen: string | null; creado_en: string }> }>
   }
   updater: {
     checkForUpdates: () => Promise<{ available: boolean; version?: string; currentVersion?: string; error?: string }>
