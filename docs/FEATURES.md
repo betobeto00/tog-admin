@@ -147,6 +147,7 @@
 | RST5 | Gating por licencia y permisos | 🔴 | ✅ | Menú/rutas/handlers solo con módulo `restaurant` en la licencia + permisos `restaurant_*` |
 | RST6 | Modo touch + atajos | 🟡 | ✅ | Modo touch (botones grandes, persistido) + atajos F2 buscar / F5 cobrar / F9 cocina |
 | RST7 | Impresión de comanda | 🟡 | ✅ | Ticket térmico de comanda al enviar a cocina + botón imprimir (misma convención de impresión del Core) |
+| RST8 | Fusión de mesas | 🟡 | ✅ | `comandas:merge` junta los ítems de dos mesas ocupadas en la comanda destino y libera la mesa origen |
 
 ---
 
@@ -239,9 +240,9 @@
 | F7 | Venta a crédito/fiado | 🟡 | ✅ | Cuentas por cobrar: deudores, abonos y saldos (Fase 3) |
 | F8 | Imprimir etiquetas | 🟡 | ⏳ | Etiquetas con código de barras (Fase 3) |
 | F9 | WiFi para VP800 | 🟡 | ⏳ | Comunicación WiFi vía Valor Connect (Fase 3) |
-| F10 | Reportes modificables visuales | 🔴 | ✅ | **Reportes Visuales** (`/reportes-visuales`): elegir fuente (ventas por día, top productos, por categoría, últimas ventas), columnas visibles, período → previsualización + exportar CSV/PDF |
+| F10 | Reportes modificables visuales | 🔴 | ✅ | **Reportes Visuales** (`/reportes-visuales`): elegir fuente (ventas por día, top productos, por categoría, últimas ventas), columnas visibles, período → previsualización + exportar CSV/PDF · guardar/cargar/eliminar reportes (migración 025) |
 | F11 | Feedback desde el login | 🟢 | ✅ | Botón en pantalla de login que envía feedback del cliente a un bot de Telegram del dueño (token configurable en Configuración → Sistema) |
-| F12 | Manager remoto | 🟡 | ⏳ | Rol manager: ver reportes remotos, agregar productos y modificar precios sin estar en la caja |
+| F12 | Manager remoto | 🟡 | ✅ | Rol **manager** (Gerente): ve/exporta reportes, agrega productos y modifica precios sin operar la caja; creable en Configuración → Usuarios con permisos por defecto propios (sin POS/caja/configuración) |
 
 ---
 
@@ -250,20 +251,20 @@
 | Categoría | Total | ✅ Completado | ⏳ Pendiente |
 |-----------|-------|--------------|-------------|
 | Autenticación | 6 | 6 | 0 |
-| POS | 19 | 17 | 2 |
-| Inventario | 15 | 15 | 0 |
+| POS | 19 | 18 | 1 |
+| Inventario | 16 | 15 | 1 |
 | Caja | 9 | 9 | 0 |
 | Ventas | 8 | 8 | 0 |
 | Compras | 4 | 4 | 0 |
 | Proveedores | 3 | 3 | 0 |
 | Distribuidor | 6 | 6 | 0 |
-| Restaurant | 7 | 7 | 0 |
+| Restaurant | 8 | 8 | 0 |
 | Cotizaciones | 7 | 7 | 0 |
-| Reportes | 7 | 7 | 0 |
+| Reportes | 7 | 6 | 1 |
 | Configuración | 11 | 11 | 0 |
 | Seguridad | 8 | 8 | 0 |
 | Infraestructura | 8 | 5 | 3 |
-| Futuro/Expansión | 12 | 3 | 9 |
-| **TOTAL** | **130** | **116** | **14** |
+| Futuro/Expansión | 12 | 5 | 7 |
+| **TOTAL** | **132** | **119** | **13** |
 
-**Porcentaje completado: 89.2%**
+**Porcentaje completado: 90.2%**

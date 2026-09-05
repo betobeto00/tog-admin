@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BarChart3, Download, FileDown, Play, CalendarRange } from 'lucide-react'
+import { BarChart3, Download, FileDown, Play, CalendarRange, Save, FolderOpen, Trash2 } from 'lucide-react'
+import Modal from '../components/ui/Modal'
 import { useToast } from '../components/ui/Toast'
 import { formatCurrency, formatDate } from '../lib/utils'
 import { callApi } from '../lib/api-client'
@@ -68,6 +69,21 @@ const SOURCES: Record<SourceId, SourceDef> = {
   },
 }
 
+interface SavedReport {
+  id: number
+  nombre: string
+  fuente: string
+  campos: string
+  fecha_inicio: string | null
+  fecha_fin: string | null
+}
+
+function allSelected(fields: Field[]): Record<string, boolean> {
+  const all: Record<string, boolean> = {}
+  for (const f of fields) all[f.key] = true
+  return all
+}
+
 function formatCell(value: any, type: FieldType): string {
   if (value === null || value === undefined) return '—'
   if (type === 'money') return formatCurrency(Number(value))
@@ -87,21 +103,39 @@ export default function ReportesVisualesPage() {
   const [source, setSource] = useState<SourceId>('salesPerDay')
   const [fechaInicio, setFechaInicio] = useState(inicioMes)
   const [fechaFin, setFechaFin] = useState(hoyStr)
-  const [selected, setSelected] = useState<Record<string, boolean>>({})
+  const [selected, setSelected] = useState<Record<string, boolean>>(() => allSelected(SOURCES.salesPerDay.fields))
   const [rows, setRows] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  // Reportes guardados por usuario
+  const [saved, setSaved] = useState<SavedReport[]>([])
+  const [selectedSaved, setSelectedSaved] = useState('')
+  const [saveOpen, setSaveOpen] = useState(false)
+  const [saveName, setSaveName] = useState('')
 
   const src = SOURCES[source]
 
   useEffect(() => {
-    const all: Record<string, boolean> = {}
-    for (const f of src.fields) all[f.key] = true
-    setSelected(all)
-  }, [source])
+    generate()
+  }, [refreshKey])
 
   useEffect(() => {
-    generate()
-  }, [source])
+    loadSaved()
+  }, [])
+
+  const loadSaved = async () => {
+    try {
+      const list = await callApi<SavedReport[]>('reportes-visuales:list')
+      setSaved(Array.isArray(list) ? list : [])
+    } catch {}
+  }
+
+  const pickSource = (id: SourceId) => {
+    setSource(id)
+    setSelected(allSelected(SOURCES[id].fields))
+    setRefreshKey((k) => k + 1)
+  }
 
   const generate = async () => {
     setLoading(true)
@@ -116,6 +150,54 @@ export default function ReportesVisualesPage() {
       setRows([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const saveCurrent = async () => {
+    if (!saveName.trim()) return
+    try {
+      await callApi('reportes-visuales:save', {
+        nombre: saveName.trim(),
+        fuente: source,
+        campos: src.fields.filter((f) => selected[f.key]).map((f) => f.key),
+        fecha_inicio: src.needsRange ? fechaInicio : undefined,
+        fecha_fin: src.needsRange ? fechaFin : undefined,
+      })
+      toast.success(t('reportesVisuales.saved'))
+      setSaveOpen(false)
+      setSaveName('')
+      await loadSaved()
+    } catch (err: any) {
+      toast.error(err?.message || t('reportesVisuales.error'))
+    }
+  }
+
+  const applySaved = (reportId: number) => {
+    const s = saved.find((x) => x.id === reportId)
+    if (!s) return
+    let campos: Record<string, boolean> = {}
+    try {
+      const parsed = JSON.parse(s.campos)
+      if (Array.isArray(parsed)) campos = Object.fromEntries(parsed.map((k: string) => [k, true]))
+    } catch {}
+    if (s.fuente in SOURCES) {
+      const def = SOURCES[s.fuente as SourceId]
+      campos = Object.keys(campos).length > 0 ? campos : allSelected(def.fields)
+      setSource(s.fuente as SourceId)
+      setSelected(campos)
+    }
+    if (s.fecha_inicio) setFechaInicio(s.fecha_inicio)
+    if (s.fecha_fin) setFechaFin(s.fecha_fin)
+    setRefreshKey((k) => k + 1)
+  }
+
+  const deleteSaved = async (reportId: number) => {
+    try {
+      await callApi('reportes-visuales:delete', { id: reportId })
+      setSelectedSaved('')
+      await loadSaved()
+    } catch (err: any) {
+      toast.error(err?.message || t('reportesVisuales.error'))
     }
   }
 
@@ -182,7 +264,7 @@ export default function ReportesVisualesPage() {
           </label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {(Object.keys(SOURCES) as SourceId[]).map((id) => (
-              <button key={id} onClick={() => setSource(id)}
+              <button key={id} onClick={() => pickSource(id)}
                 className={`px-3 py-2.5 text-sm font-medium rounded-lg border transition-colors text-left ${
                   source === id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
                 }`}>
@@ -190,6 +272,34 @@ export default function ReportesVisualesPage() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Reportes guardados */}
+        <div className="flex flex-wrap items-end gap-2 border-t border-gray-100 pt-4">
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-xs font-medium text-gray-500 mb-1 flex items-center gap-1.5">
+              <FolderOpen className="w-3.5 h-3.5" /> {t('reportesVisuales.savedReports')}
+            </label>
+            <select value={selectedSaved}
+              onChange={(e) => { setSelectedSaved(e.target.value); if (e.target.value) applySaved(Number(e.target.value)) }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+              <option value="">{t('reportesVisuales.savedPlaceholder')}</option>
+              {saved.map((s) => (
+                <option key={s.id} value={s.id}>{s.nombre} — {t(SOURCES[s.fuente as SourceId]?.labelKey || 'reportesVisuales.title')}</option>
+              ))}
+            </select>
+          </div>
+          <button onClick={() => { setSaveName(''); setSaveOpen(true) }}
+            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 flex items-center gap-2">
+            <Save className="w-4 h-4" /> {t('reportesVisuales.saveReport')}
+          </button>
+          {selectedSaved && (
+            <button onClick={() => deleteSaved(Number(selectedSaved))}
+              className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
+              title={t('reportesVisuales.deleteReport')}>
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
@@ -208,7 +318,7 @@ export default function ReportesVisualesPage() {
             </div>
           )}
           <div className="flex gap-2">
-            <button onClick={generate}
+            <button onClick={() => setRefreshKey((k) => k + 1)}
               className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2">
               <Play className="w-4 h-4" /> {t('reportesVisuales.generate')}
             </button>
@@ -292,6 +402,28 @@ export default function ReportesVisualesPage() {
           </div>
         )}
       </div>
+
+      {/* Modal guardar reporte */}
+      <Modal open={saveOpen} onClose={() => setSaveOpen(false)} title={t('reportesVisuales.saveReport')}>
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500">{t('reportesVisuales.saveHint')} — {t(src.labelKey)}</p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reportesVisuales.savedName')} *</label>
+            <input value={saveName} onChange={(e) => setSaveName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && saveName.trim()) saveCurrent() }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              placeholder={t('reportesVisuales.savedNamePlaceholder')} />
+          </div>
+          <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+            <button onClick={() => setSaveOpen(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg">{t('quotes.cancel')}</button>
+            <button onClick={saveCurrent} disabled={!saveName.trim()}
+              className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:bg-indigo-300">
+              <Save className="w-4 h-4 inline mr-1" /> {t('reportesVisuales.saveReport')}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

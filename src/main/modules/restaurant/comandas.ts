@@ -191,6 +191,35 @@ export function registerComandasHandlers(): void {
     return moveComanda()
   })
 
+  handleIpc('comandas:merge', async (_event, data: { comanda_id: number; mesa_destino_id: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'comandas:merge', 'restaurant_comandas_edit')
+    if (fail) return fail
+    const moduleFail = checkModuleOrFail()
+    if (moduleFail) return moduleFail
+    const db = getDatabase()
+    const origen = db.prepare("SELECT * FROM comandas WHERE id = ? AND estado NOT IN ('cobrada','anulada')").get(data.comanda_id) as any
+    if (!origen) return { success: false, error: 'Comanda origen no encontrada o ya cerrada' }
+    if (origen.mesa_id === data.mesa_destino_id) return { success: false, error: 'La mesa destino es la misma' }
+    const destino = db.prepare(`
+      SELECT c.* FROM comandas c
+      JOIN mesas m ON m.id = c.mesa_id
+      WHERE c.mesa_id = ? AND c.estado NOT IN ('cobrada','anulada')
+      ORDER BY c.id DESC LIMIT 1
+    `).get(data.mesa_destino_id) as any
+    if (!destino) return { success: false, error: 'La mesa destino no tiene una comanda abierta para fusionar' }
+
+    const merge = db.transaction(() => {
+      // Los ítems no cancelados de la comanda origen pasan a la comanda destino
+      db!.prepare("UPDATE comanda_detalles SET comanda_id = ? WHERE comanda_id = ? AND estado NOT IN ('cancelado')")
+        .run(destino.id, origen.id)
+      db!.prepare("UPDATE comandas SET estado = 'anulada', cerrado_en = datetime('now') WHERE id = ?").run(origen.id)
+      db!.prepare("UPDATE mesas SET estado = 'libre' WHERE id = ? AND NOT EXISTS (SELECT 1 FROM comandas c WHERE c.mesa_id = mesas.id AND c.estado NOT IN ('cobrada','anulada'))")
+        .run(origen.mesa_id)
+      return { success: true, comanda_id: destino.id }
+    })
+    return merge()
+  })
+
   handleIpc('comandas:checkout', async (_event, data: {
     comanda_id: number
     metodo_pago: string

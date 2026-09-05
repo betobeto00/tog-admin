@@ -278,6 +278,21 @@ export type PermissionKey = keyof typeof PERMISSIONS
 // Permisos por defecto para cada rol
 export const ROLE_DEFAULTS: Record<string, PermissionKey[]> = {
   admin: Object.keys(PERMISSIONS) as PermissionKey[], // Admin tiene TODO
+  manager: [
+    // Gerente remoto: reportes + agregar productos y modificar precios, sin operar la caja
+    'reportes_access',
+    'reportes_export',
+    'inventario_access',
+    'inventario_create',
+    'inventario_edit',
+    'inventario_adjust',
+    'inventario_categories',
+    'inventario_units',
+    'quotes_access',
+    'quotes_create',
+    'quotes_edit',
+    'usuarios_change_own_password',
+  ],
   cajero: [
     'pos_access',
     'pos_discount',

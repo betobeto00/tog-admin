@@ -458,6 +458,11 @@ export interface IpcChannels {
   'listas-precio:update': { id: number; data: { nombre?: string; factor?: number; activo?: number } }
   'listas-precio:delete': { id: number }
 
+  // Reportes visuales guardados
+  'reportes-visuales:list': void
+  'reportes-visuales:save': { nombre: string; fuente: string; campos: string[]; fecha_inicio?: string; fecha_fin?: string }
+  'reportes-visuales:delete': { id: number }
+
   // Restaurant
   'mesas:list': void
   'mesas:create': { nombre: string; capacidad?: number }
@@ -470,6 +475,7 @@ export interface IpcChannels {
   'comandas:remove-item': { comanda_id: number; detalle_id: number }
   'comandas:send-kitchen': { comanda_id: number }
   'comandas:mark-item': { comanda_id: number; detalle_id: number; estado: string }
+  'comandas:merge': { comanda_id: number; mesa_destino_id: number }
   'comandas:move': { comanda_id: number; mesa_destino_id: number }
   'comandas:checkout': { comanda_id: number; metodo_pago: string; monto_pagado?: number; notas?: string; deudor_nombre?: string }
 

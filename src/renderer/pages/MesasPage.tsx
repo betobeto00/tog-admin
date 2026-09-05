@@ -211,11 +211,21 @@ export default function MesasPage() {
     }
   }
 
-  const moveTable = async () => {
+  const moveOrMergeTable = async () => {
     if (!comanda || !moveDestino) return
+    const destino = mesas.find((m) => m.id === Number(moveDestino))
+    if (!destino) return
     try {
-      await callApi('comandas:move', { comanda_id: comanda.id, mesa_destino_id: Number(moveDestino) })
-      toast.success(t('restaurant.tableMoved'))
+      const esFusion = destino.estado === 'ocupada'
+      const res = await callApi<{ success?: boolean; error?: string }>(esFusion ? 'comandas:merge' : 'comandas:move', {
+        comanda_id: comanda.id,
+        mesa_destino_id: destino.id,
+      })
+      if (res?.success === false) {
+        toast.error(res.error || t('restaurant.error'))
+        return
+      }
+      toast.success(esFusion ? t('restaurant.tablesMerged') : t('restaurant.tableMoved'))
       setMoveDestino('')
       setComanda(null)
       await loadMesas()
@@ -323,7 +333,8 @@ export default function MesasPage() {
     }
   }
 
-  const mesasLibres = mesas.filter((m) => m.estado === 'libre' && m.id !== comanda?.mesa_id)
+  const mesasDestino = mesas.filter((m) => m.id !== comanda?.mesa_id)
+  const mesaDestinoSeleccionada = mesasDestino.find((m) => m.id === Number(moveDestino))
   const totalCobrar = comanda?.total || 0
 
   return (
@@ -432,13 +443,20 @@ export default function MesasPage() {
               </div>
               <div className="flex gap-2">
                 <select value={moveDestino} onChange={(e) => setMoveDestino(e.target.value)}
-                  className="px-2 py-1.5 text-xs border border-gray-300 rounded-lg bg-white">
-                  <option value="">{t('restaurant.moveTable')}…</option>
-                  {mesasLibres.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                  className={`px-2 py-1.5 text-xs border border-gray-300 rounded-lg bg-white ${touchMode ? 'py-3 text-base' : ''}`}>
+                  <option value="">{t('restaurant.moveOrMerge')}…</option>
+                  {mesasDestino.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.nombre} ({m.estado === 'libre' ? t('restaurant.free') : t('restaurant.occupied')})
+                    </option>
+                  ))}
                 </select>
                 {moveDestino && (
-                  <button onClick={moveTable} className="px-3 py-1.5 text-xs font-medium text-white bg-amber-500 rounded-lg hover:bg-amber-600 flex items-center gap-1">
-                    <ArrowRight className="w-3 h-3" /> {t('restaurant.moveTable')}
+                  <button onClick={moveOrMergeTable}
+                    className={`px-3 text-xs font-medium text-white rounded-lg flex items-center gap-1 ${touchMode ? 'py-3 text-base' : 'py-1.5'} ${
+                      mesaDestinoSeleccionada?.estado === 'ocupada' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-amber-500 hover:bg-amber-600'
+                    }`}>
+                    <ArrowRight className="w-3 h-3" /> {mesaDestinoSeleccionada?.estado === 'ocupada' ? t('restaurant.mergeAction') : t('restaurant.moveTable')}
                   </button>
                 )}
               </div>

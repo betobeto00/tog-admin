@@ -326,6 +326,34 @@ describe('Restaurant: comandas', () => {
     expect(mesas.find((m) => m.id === 1).estado).toBe('libre')
     expect(mesas.find((m) => m.id === 2).estado).toBe('ocupada')
   })
+
+  it('fusiona dos mesas ocupadas: junta ítems en la comanda destino y libera la origen', async () => {
+    const a = await call('comandas:open', { mesa_id: 1, usuario_id: 1 })
+    await call('comandas:add-item', { comanda_id: a.comanda_id, producto_id: 1, cantidad: 1, usuario_id: 1 }) // 12
+    const b = await call('comandas:open', { mesa_id: 2, usuario_id: 1 })
+    await call('comandas:add-item', { comanda_id: b.comanda_id, producto_id: 2, cantidad: 2, usuario_id: 1 }) // 10
+
+    const res = await call('comandas:merge', { comanda_id: a.comanda_id, mesa_destino_id: 2, usuario_id: 1 })
+    expect(res.success).toBe(true)
+    expect(res.comanda_id).toBe(b.comanda_id)
+
+    const comandas = await call('comandas:list', { activas: true, usuario_id: 1 }) as any[]
+    const destino = comandas.find((c) => c.id === b.comanda_id)
+    expect(destino.detalles.length).toBe(2)
+    expect(destino.total).toBe(22)
+
+    // La mesa origen queda libre; la destino sigue ocupada con la comanda fusionada
+    const mesas = await call('mesas:list') as any[]
+    expect(mesas.find((m) => m.id === 1).estado).toBe('libre')
+    expect(mesas.find((m) => m.id === 2).estado).toBe('ocupada')
+    expect(mesas.find((m) => m.id === 2).comanda_id).toBe(b.comanda_id)
+  })
+
+  it('rechaza fusionar hacia una mesa sin comanda abierta', async () => {
+    const a = await call('comandas:open', { mesa_id: 1, usuario_id: 1 })
+    const res = await call('comandas:merge', { comanda_id: a.comanda_id, mesa_destino_id: 2, usuario_id: 1 })
+    expect(res.success).toBe(false)
+  })
 })
 
 describe('Restaurant: gating y permisos', () => {

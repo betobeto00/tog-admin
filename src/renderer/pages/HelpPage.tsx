@@ -186,7 +186,7 @@ function getSections(t: (key: string) => string): Section[] {
         { title: t('help.securityAuth'), description: t('help.securityAuthDesc'),
           features: [t('help.securityAuthF1'), t('help.securityAuthF2'), t('help.securityAuthF3'), t('help.securityAuthF4'), t('help.securityAuthF5')] },
         { title: t('help.securityRoles'), description: t('help.securityRolesDesc'),
-          features: [t('help.securityRolesF1'), t('help.securityRolesF2'), t('help.securityRolesF3'), t('help.securityRolesF4')] },
+          features: [t('help.securityRolesF1'), t('help.securityRolesF2'), t('help.securityRolesF3'), t('help.securityRolesF4'), t('help.securityRolesF5')] },
         { title: t('help.securityBackup'), description: t('help.securityBackupDesc'),
           features: [t('help.securityBackupF1'), t('help.securityBackupF2'), t('help.securityBackupF3'), t('help.securityBackupF4')] },
       ],

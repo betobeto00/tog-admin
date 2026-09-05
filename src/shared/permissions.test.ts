@@ -85,6 +85,13 @@ describe('ROLE_DEFAULTS', () => {
     expect(ROLE_DEFAULTS.cajero).not.toContain('pos_void_sale')
   })
 
+  it('manager does NOT have dangerous or admin-only permissions', () => {
+    expect(ROLE_DEFAULTS.manager).not.toContain('config_db_reset')
+    expect(ROLE_DEFAULTS.manager).not.toContain('usuarios_manage_roles')
+    expect(ROLE_DEFAULTS.manager).not.toContain('pos_void_sale')
+    expect(ROLE_DEFAULTS.manager).not.toContain('license_manage')
+  })
+
   it('cajero has basic operational permissions', () => {
     expect(ROLE_DEFAULTS.cajero).toContain('caja_access')
     expect(ROLE_DEFAULTS.cajero).toContain('caja_open')
@@ -92,6 +99,29 @@ describe('ROLE_DEFAULTS', () => {
     expect(ROLE_DEFAULTS.cajero).toContain('inventario_access')
     expect(ROLE_DEFAULTS.cajero).toContain('compras_access')
     expect(ROLE_DEFAULTS.cajero).toContain('reportes_access')
+  })
+
+  it('manager has a subset of permissions (less than admin)', () => {
+    expect(ROLE_DEFAULTS.manager.length).toBeGreaterThan(0)
+    expect(ROLE_DEFAULTS.manager.length).toBeLessThan(Object.keys(PERMISSIONS).length)
+  })
+
+  it('every default permission in manager exists in PERMISSIONS', () => {
+    for (const key of ROLE_DEFAULTS.manager) {
+      expect(key in PERMISSIONS).toBe(true)
+    }
+  })
+
+  it('manager views reports and manages inventory/prices but does NOT operate the register', () => {
+    expect(ROLE_DEFAULTS.manager).toContain('reportes_access')
+    expect(ROLE_DEFAULTS.manager).toContain('reportes_export')
+    expect(ROLE_DEFAULTS.manager).toContain('inventario_access')
+    expect(ROLE_DEFAULTS.manager).toContain('inventario_create')
+    expect(ROLE_DEFAULTS.manager).toContain('inventario_edit')
+    expect(ROLE_DEFAULTS.manager).not.toContain('pos_access')
+    expect(ROLE_DEFAULTS.manager).not.toContain('caja_access')
+    expect(ROLE_DEFAULTS.manager).not.toContain('config_edit')
+    expect(ROLE_DEFAULTS.manager).not.toContain('usuarios_access')
   })
 })
 

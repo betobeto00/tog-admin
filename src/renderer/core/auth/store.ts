@@ -5,7 +5,7 @@ interface Usuario {
   id: number
   usuario: string
   nombre: string
-  rol: 'admin' | 'cajero'
+  rol: 'admin' | 'cajero' | 'manager'
   debe_cambiar_contrasena?: number
 }
 
