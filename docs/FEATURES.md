@@ -246,6 +246,30 @@
 
 ---
 
+## MÃ³dulo: Red Local (PC Base + PC hijas) ðŸŸ¡ (adicional por licencia `max_pcs â‰¥ 2`)
+
+| # | Feature | Prioridad | Estado | DescripciÃ³n |
+|---|---------|-----------|--------|-------------|
+| NET1 | Handshake de enlace con cÃ³digo de un solo uso | ðŸ”´ | âœ… | PC Base genera un cÃ³digo de 6 chars hex (TTL 5 min) desde Config â†’ Sistema â†’ Red Local. La hija lo transcribe y se enlaza con su IP y nombre |
+| NET2 | Servidor HTTP local :3002 en la PC Base | ðŸ”´ | âœ… | `src/main/services/red-server.ts` levanta HTTP server en Node puro (cero deps). Endpoints: `POST /api/red/vincular`, `POST /api/red/rpc`, `POST /api/red/logout` |
+| NET3 | ReenvÃ­o de IPC desde la PC Hija | ðŸ”´ | âœ… | `ipc-handlers.ts` en modo hija registra solo los canales locales (app:version, i18n, crash-report, update, red:*) y reenvÃ­a el resto vÃ­a HTTP a la Base (`red-client.ts`) |
+| NET4 | SesiÃ³n Ãºnica por usuario en el grupo | ðŸ”´ | âœ… | `services/red-session.ts`: al hacer login se registra `sesiones_activas(usuario_id, par_id, sesion_token)`; si el mismo usuario ya estÃ¡ activo en otro `par_id`, el login se rechaza |
+| NET5 | Tope de PCs por licencia | ðŸ”´ | âœ… | El campo `max_pcs` (1â€“20) de la licencia firmada define el mÃ¡ximo de `pcs_enlazadas` que la Base acepta. Tog-platform valida el rango y lo firma |
+| NET6 | Setup screen para PC Hija | ðŸ”´ | âœ… | `SetupPage` (pantalla de bloqueo â†’ botÃ³n "Conectar a una PC Base"): pide IP, cÃ³digo y nombre. Se renderiza desde `LicenseGate` cuando la licencia no es vÃ¡lida localmente |
+| NET7 | Permiso `red_manage` | ðŸŸ¡ | âœ… | Solo admin puede generar cÃ³digos y ver PCs enlazadas |
+| NET8 | Logout distribuido | ðŸŸ¡ | âœ… | Al desloguear en la hija se llama `red:logout` (libera sesiones en la Base). Al cerrar la app (`before-quit`) se llama best-effort |
+| NET9 | TLS local | ðŸŸ¢ | â³ | Pendiente: cert autofirmado generado al primer arranque de la Base |
+| NET10 | Heartbeat 60s para expulsar sesiones huÃ©rfanas | ðŸŸ¢ | â³ | Pendiente: hoy la sesiÃ³n se libera al cerrar/desloguear la hija |
+
+### MÃ³dulo: Producto ( imagen) y Moneda â€” extensiÃ³n del Core (Fase 5)
+
+| # | Feature | Prioridad | Estado | DescripciÃ³n |
+|---|---------|-----------|--------|-------------|
+| IMG1 | Imagen de producto en filesystem | ðŸŸ¡ | âœ… | `services/imagenes.ts` valida magic bytes (JPG/PNG/WebP, â‰¤2MB), persiste en `%APPDATA%/tog-admin/imagenes/<id>.<ext>`. UI muestra thumbnail vÃ­a `ProductImage` + canal IPC `productos:get-imagen` (migraciÃ³n 030) |
+| CUR1 | SÃ­mbolo + nombre de moneda + tasa de cambio | ðŸ”´ | âœ… | `configuracion: currency_symbol`, `currency_name`, `tasa_cambio`. `renderer/services/currency.ts` aplica la tasa a todos los importes. Form `Config â†’ Negocio` permite editar los tres (migraciÃ³n 029) |
+
+---
+
 ## Resumen de Estado
 
 | CategorÃ­a | Total | âœ… Completado | â³ Pendiente |
@@ -265,40 +289,55 @@
 | Seguridad | 8 | 8 | 0 |
 | Infraestructura | 8 | 5 | 3 |
 | Futuro/ExpansiÃ³n | 12 | 5 | 7 |
-| **TOTAL** | **132** | **119** | **13** |
+| Red Local (PC Base + hijas) | 10 | 8 | 2 |
+| Producto (imagen) + Moneda | 2 | 2 | 0 |
+| **TOTAL** | **144** | **131** | **13** |
 
-**Porcentaje completado: 90.2%**
+**Porcentaje completado: 91.0%**
 
 ---
 
 ## Cambios recientes (5-Sep-2026)
 
-Lote de 4 commits sobre la rama ix/license-modularization a partir de la revisión del cliente. No agregan features de catálogo grandes; son bugs, UX y la base para los próximos.
+Lote de 4 commits sobre la rama ix/license-modularization a partir de la revisión del cliente. No agregan features de catálogo grandes; son bugs, UX y la base para los próximos.
 
 ### Commit A — Bugs pequeños (985c96d)
 
 - **Header / búsqueda global** — el input del header ahora es funcional (Ctrl+K). Busca en productos (incluye coincidencia exacta por código de barras → abre el POS), clientes y ventas por número.
 - **MesasPage auto-refresh** — el listado de mesas se refresca cada 5s cuando no hay comanda abierta (antes había que cambiar a Cocina para ver los cambios).
-- **Restaurant usa los métodos de pago del Core** — el modal de cobro de mesa ahora carga los métodos configurados en metodos_pago (no más hardcodeados). El handler metodos-pago:list con ctivoOnly se relaja a pos_access para que un cajero pueda listarlos sin permisos de admin.
+- **Restaurant usa los métodos de pago del Core** — el modal de cobro de mesa ahora carga los métodos configurados en metodos_pago (no más hardcodeados). El handler metodos-pago:list con activoOnly se relaja a pos_access para que un cajero pueda listarlos sin permisos de admin.
 
-### Commit B — POS / venta (7b2d7a)
+### Commit B — POS / venta (7b2d7a)
 
-- **Cliente opcional en POS para factura** — selector general arriba del carrito; se persiste en entas.cliente_id (migración 027). Imprime los datos del cliente en el ticket.
-- **Hold sale / Borradores** — nueva tabla entas_borrador + handlers orradores:list/save/load/delete + UI en POS (botón "Guardar venta" y modal "Borradores"). El borrador se elimina automáticamente al cobrar.
+- **Cliente opcional en POS para factura** — selector general arriba del carrito; se persiste en ventas.cliente_id (migración 026). Imprime los datos del cliente en el ticket.
+- **Hold sale / Borradores** — nueva tabla ventas_borrador + handlers borradores:list/save/load/delete + UI en POS (botón "Guardar venta" y modal "Borradores"). El borrador se elimina automáticamente al cobrar.
 
 ### Commit C — Impresión (c159cae)
 
-- **Imprimir remito** — emitos:getById con join de productos del pedido + botón Imprimir en la tabla; ticket con datos del cliente y firma.
-- **Ticket al cobrar mesa** — el doCheckout de restaurant imprime el ticket de la venta creada vía entas:getById (mismo patrón que el POS).
-- **Nota de entrega como tipo de comprobante** — migración 028 agrega entas.tipo_comprobante ('factura' default / 'nota_entrega'). Checkbox en el modal de cobro del POS cambia el encabezado del ticket.
+- **Imprimir remito** — remitos:getById con join de productos del pedido + botón Imprimir en la tabla; ticket con datos del cliente y firma.
+- **Ticket al cobrar mesa** — el doCheckout de restaurant imprime el ticket de la venta creada vía ventas:getById (mismo patrón que el POS).
+- **Nota de entrega como tipo de comprobante** — migración 027 agrega ventas.tipo_comprobante ('factura' default / 'nota_entrega'). Checkbox en el modal de cobro del POS cambia el encabezado del ticket.
 
 ### Commit D — Almacenes + Listas de precio (24a48de)
 
-- **Almacenes (base + hooks)** — migración 029 crea lmacenes y producto_almacen; seed automático del almacén "Principal"; página AlmacenesPage con CRUD y stock por producto. Listo para traspasos y kardex por almacén (preparado en DB, queda para fase futura).
+- **Almacenes (base + hooks)** — migración 028 crea almacenes y producto_almacen; seed automático del almacén "Principal"; página AlmacenesPage con CRUD y stock por producto. Listo para traspasos y kardex por almacén (preparado en DB, queda para fase futura).
 - **Listas de precio mejoradas** — además del factor global, ahora cada lista puede tener productos con precio_override y clientes asignados vía cliente_lista_precio. UI con tabs Listas / Productos / Clientes.
 
-### Pendiente (no incluido)
+### Commit E — Fase 5 + Interconexión por red local (5-Sep-2026)
 
-- 🕓 **Interconexión por red local** (PC Base + hijas) → documentado y planificado en 	og-platform/docs/INTERCONEXION-RED.md. No se prioriza hasta que un cliente con varias PCs lo pida.
-- ⏳ **Tasa de cambio y símbolo de moneda** (Fase 8 del roadmap).
-- ⏳ **Fase 5 (Productos vs Servicios, subcategorías, marca, imagen)** — subcategorías y marca ya están; falta tipo producto/servicio e imagen.
+Spike funcional completo de la **interconexión PC Base + PC hijas** + las features de la **Fase 5 (Productos / Servicios / Imagen / Moneda)**, fusionado a master tras la revisión del cliente. Detalle completo en `docs/ARCHITECTURE.md` (sección "Módulo Red Local") y `docs/MODULOS.md`.
+
+- **Red local** (migración 031): tablas `pcs_enlazadas`, `sesiones_activas`, `codigos_enlace`; `services/red-{config,server,client,session}.ts`; `modules/red/handlers.ts`; UI en `Config → Sistema → Red Local` (generar código, listar PCs, desvincular); `SetupPage` para PC Hija.
+- **Sesión única** por usuario en el grupo (`red-session.ts`); el `auth:login` recibe `__par_id` por RPC para registrar en la Base.
+- **`max_pcs` en licencias**: `signLicense` valida 1–20; `tog-platform` lo acepta en emisión manual.
+- **Imagen de producto en filesystem** (migración 030): `services/imagenes.ts` valida magic bytes JPG/PNG/WebP ≤2MB; canales `productos:set-imagen|get-imagen|delete-imagen`; UI `ProductImage`.
+- **Moneda, símbolo y tasa de cambio** (migración 029): `configuracion: currency_name`; `renderer/services/currency.ts` aplica símbolo + tasa a toda la app.
+- **Logger centralizado**: `services/logger.ts` (electron-log con degradación a `console` en CLI).
+- **Validación de origen IPC** endurecida: `handleIpc` (`core/auth/ipc-guard.ts`) rechaza cualquier sender que no sea main-frame `file://` o `localhost:5173`; la misma tabla de handlers se usa como dispatcher para `red-client.ts` cuando una Hija reenvía un RPC.
+
+### Pendiente
+
+- ⏳ **Exportar cotización a PDF nativo** (Fase 6 — hoy se imprime a ventana).
+- ⏳ **Facturación fiscal Venezuela** (Fase 8 — depende de normativa SNAT).
+- ⏳ **Heartbeat automático (60s)** para expulsar sesiones huérfanas en la red local; hoy se libera al cerrar/desloguear la hija.
+- ⏳ **TLS local** con cert autofirmado generado al primer arranque de la PC Base (spike funcional actual: HTTP plano en LAN con credenciales de par).

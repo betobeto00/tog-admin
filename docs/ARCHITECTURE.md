@@ -23,7 +23,7 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │              SQLite Database                         │    │
 │  │         (tog-admin.db — archivo local)               │    │
-│  │         23 migraciones · 27 tablas · 27+ índices     │    │
+│  │         32 migraciones · 30 tablas · 30+ índices     │    │
 │  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -41,12 +41,19 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 | `preload.ts` | API segura IPC (contextBridge) |
 | `ipc-handlers.ts` | Registro central: delega en los `register*Handlers()` de cada módulo |
 | `core/auth/` | Login (`auth-service.ts`) + permisos (`permissions.ts` → `checkPermissionOrFail`) + guard de origen IPC (`ipc-guard.ts` → `handleIpc`) |
-| `modules/<modulo>/` | Handlers IPC por módulo: inventario, ventas, configuracion, caja-extra, license, distribuidor, restaurant, terminal, crash-report, shared |
+| `modules/<modulo>/` | Handlers IPC por módulo: inventario, ventas, configuracion, caja-extra, license, distribuidor, restaurant, terminal, crash-report, red, shared |
 | `db/database.ts` | SQLite + migraciones + seeds |
 | `services/valorTerminal.ts` | Comunicación serial VP800 (USB/COM) |
 | `services/license.ts` | Validación de licencias (consume `license-crypto`) |
 | `services/license-crypto.ts` | Cripto RSA pura (clave pública embebida, verificación de firma) — testeable fuera de Electron |
 | `services/license-sync.ts` | Sincronización con TOG Platform (canal `license:sync`): descarga, re-valida firma RSA y guarda |
+| `services/imagenes.ts` | Imágenes de producto en filesystem (`%APPDATA%/tog-admin/imagenes/`) — valida magic bytes (JPG/PNG/WebP, ≤2MB) |
+| `services/logger.ts` | Wrapper sobre `electron-log` (degrada a `console` fuera de Electron) |
+| `services/red-config.ts` | Modo de la PC (`base`/`hija`/`local`) leyendo `red_modo` + licencia activa |
+| `services/red-server.ts` | Servidor HTTP local `:3002` que levanta la **PC Base** para atender PCs hijas (vincular / rpc / logout) |
+| `services/red-client.ts` | Cliente HTTP de la **PC Hija** hacia la Base (vincular / rpc / logout) |
+| `services/red-session.ts` | Sesión única por usuario en todo el grupo de PCs (`registrarSesion`, `liberarSesionesDePar`) |
+| `modules/red/` | Handlers IPC del módulo red (`red:status`, `vincular`, `desvincular`, `generar-codigo`, `listar-pcs`, `logout`) — registro análogo a otros módulos |
 | `services/crash-reporter.ts` | Sistema de reportes de error |
 | `services/updater.ts` | Auto-actualizaciones vía GitHub (`update:*`) |
 | `services/configCache.ts` | Cache de configuración |
@@ -128,6 +135,8 @@ Renderer (React)                    Main (Node.js)
 | Backup / DB | `backup:create`, `backup:restore`, `db:reset` |
 | Terminal | `terminal:conectar`, `desconectar`, `estado`, `procesar-pago` |
 | Licencia | `license:status`, `validate`, `import`, `sync` (pre-auth), `reset-state` |
+| Productos (imagen) | `productos:set-imagen`, `get-imagen`, `delete-imagen` (filesystem, `%APPDATA%/tog-admin/imagenes/<id>.<ext>`) |
+| Red local (PC Base + hijas) | `red:status` (pre-auth), `red:vincular` (pre-auth), `red:desvincular` (pre-auth), `red:generar-codigo`, `red:listar-pcs`, `red:logout` |
 | Crash Reports | `crash-report:save`, `list`, `read`, `delete`, `open-folder`, `path` |
 | i18n | `i18n:get-lang`, `i18n:set-lang` |
 | Updater | `update:check`, `download`, `install` |
@@ -137,7 +146,7 @@ Renderer (React)                    Main (Node.js)
 
 ---
 
-## Modelo de Datos (22 Migraciones)
+## Modelo de Datos (31 Migraciones)
 
 ### Migraciones
 
@@ -166,13 +175,21 @@ Renderer (React)                    Main (Node.js)
 | 021 | creditos | `creditos`, `credito_abonos` + 4 índices |
 | 022 | metodo_pago_fiado | inserta método de pago `fiado` |
 | 023 | productos_compuestos | `producto_componentes`, `venta_detalle_componentes` + 4 índices |
+| 024 | restaurant | `mesas`, `comandas`, `comanda_detalles`, `comanda_detalle_estados` + índices |
+| 025 | reportes_visuales | `reportes_visuales` (guardar reportes personalizados) |
+| 026 | ventas_cliente_id | `ventas.cliente_id` (cliente opcional en el POS) |
+| 027 | ventas_tipo_comprobante | `ventas.tipo_comprobante` (`factura`/`nota_entrega`) |
+| 028 | almacenes_y_listas_precio | `almacenes`, `producto_almacen`, `lista_precio_productos.precio_override`, `cliente_lista_precio` (stock por depósito + listas con overrides por producto y asignación por cliente) |
+| 029 | currency_name | `configuracion.currency_name` (USD/Bs/EUR… para tickets) |
+| 030 | producto_imagen_path | `productos.imagen_path` (ruta a filesystem; imagen vive en `%APPDATA%/tog-admin/imagenes/`) |
+| 031 | red_local | `pcs_enlazadas`, `sesiones_activas`, `codigos_enlace` + 2 índices (interconexión PC Base + hijas) |
 
 ### Tablas Principales
 
 | Tabla | Registros típicos | Descripción |
 |-------|-------------------|-------------|
 | `usuarios` | 2-10 | Usuarios del sistema con roles y permisos |
-| `productos` | 100-5000 | Inventario (incl. `tipo` producto/servicio, `marca`, `subcategoria_id`, `imagen`) |
+| `productos` | 100-5000 | Inventario (incl. `tipo` producto/servicio, `marca`, `subcategoria_id`, `imagen_path` apuntando a filesystem) |
 | `categorias` | 5-50 | Categorías de productos |
 | `subcategorias` | 10-200 | Subcategorías por categoría |
 | `unidades_medida` | 10-20 | Unidades de medida (seeded: ud, paq, cj, res, etc.) |
@@ -195,10 +212,22 @@ Renderer (React)                    Main (Node.js)
 | `listas_precio` | 1-20 | Listas de precio (creada en 015; sin UI aún) |
 | `creditos` | 10-2000 | Ventas a crédito/fiado con saldo pendiente (`pendiente`/`pagado`/`anulado`) |
 | `credito_abonos` | 10-10000 | Abonos parciales contra cada crédito |
+| `pcs_enlazadas` | 0-20 | PCs hijas enlazadas a la Base (migración 031): `par_id`, `nombre`, `ip`, `cert_hash`, `last_seen` |
+| `sesiones_activas` | 0-20 | Sesión única por usuario en todo el grupo (migración 031): `usuario_id` UNIQUE, `par_id`, `sesion_token`, `opened_at` |
+| `codigos_enlace` | 0-100 | Códigos de enlace de un solo uso con expiración (5 min) |
+| `almacenes` | 1-10 | Almacenes/depósitos (seed `Principal`) |
+| `producto_almacen` | 100-50000 | Stock por (producto, almacén) |
 
-### Índices (22+)
+### Índices (35+)
 
 Todos los índices están optimizados para los patrones de consulta típicos del POS.
+
+> **Migraciones 024–031 (resumen):** Restaurant (024), Reportes Visuales (025),
+> Cliente opcional en POS (026), Nota de entrega como comprobante (027),
+> Almacenes con stock por depósito + listas de precio con overrides y
+> asignación por cliente (028), `currency_name` para tickets (029),
+> `imagen_path` apuntando a filesystem (030), e interconexión de red local
+> `pcs_enlazadas` / `sesiones_activas` / `codigos_enlace` (031).
 
 ---
 
@@ -206,13 +235,16 @@ Todos los índices están optimizados para los patrones de consulta típicos del
 
 | Componente | Archivo | Función |
 |------------|---------|---------|
-| `LicenseGate` | `LicenseGate.tsx` | Bloquea la app si no hay licencia válida |
+| `LicenseGate` | `LicenseGate.tsx` | Bloquea la app si no hay licencia válida. En modo PC Hija muestra botón **"Conectar a una PC Base"** y renderiza `SetupPage` |
+| `SetupPage` | `pages/SetupPage.tsx` | Pantalla de primer inicio para PC Hija: pide IP de la Base + código de enlace + nombre de PC |
+| `ProductImage` | `components/ProductImage.tsx` | Thumbnail de producto con fallback y skeleton, consume `productos:get-imagen` |
 | `ErrorBoundary` | `ErrorBoundary.tsx` | Captura errores React + genera reporte automático |
 | `Tutorial` | `Tutorial.tsx` | Onboarding de 5 pasos para nuevos usuarios |
 | `ForcePasswordChange` | `ForcePasswordChange.tsx` | Obliga cambio de contraseña en primer login |
 | `Toast` | `ui/Toast.tsx` | Sistema de notificaciones |
 | `CartItem` | `pos/CartItem.tsx` | Precio editable + descuento por item |
 | `PermissionsModal` | `ui/PermissionsModal.tsx` | Gestión de permisos por usuario |
+| `LicenseSyncForm` | `LicenseSyncForm.tsx` | Form de Sincronizar (URL + empresa_id + api_key) — usado en pantalla de bloqueo y Config → Licencia |
 | `Layout` | `layout/Layout.tsx` | Sidebar + Header + Outlet |
 | `Header` | `layout/Header.tsx` | Campana de notificaciones (stock bajo + caja) |
 | `Sidebar` | `layout/Sidebar.tsx` | Navegación principal (oculta módulos según permisos) |
@@ -224,6 +256,118 @@ Todos los índices están optimizados para los patrones de consulta típicos del
 | `useBarcodeScanner` | `hooks/useBarcodeScanner.ts` | Captura global de escáner USB HID |
 | `usePermissions` | `hooks/usePermissions.ts` | Verificación de permisos (has, hasAny, hasAll) |
 | `useActiveModules` | `hooks/useModules.ts` | Módulos activos según la licencia (refresca en vivo con el evento `tog:license-updated`) |
+
+---
+
+## Módulo Red Local (PC Base + PC Hijas)
+
+Permite interconectar varias PCs de un mismo cliente en la **misma LAN** para que operen contra una sola base de datos y compartan la misma licencia. Activado por el campo `max_pcs` (1–20) de la licencia firmada RSA.
+
+### Topología
+
+```
+        ┌──────────────────────────────────────────────┐
+        │  PC Base (tiene licencia local + DB)         │
+        │  • servidor HTTP local :3002 (Node http)     │
+        │  • sqlite en %APPDATA%/tog-admin/            │
+        │  • expone /api/red/vincular|rpc|logout       │
+        └────────────────────┬─────────────────────────┘
+                             │  HTTP (LAN)
+        ┌────────────────────┼─────────────────────────┐
+        ▼                    ▼                         ▼
+   PC Hija 1            PC Hija 2                 PC Hija N
+   (mismo .exe,         misma app,                misma app
+    sin licencia)        sin licencia              sin licencia
+   • ipc-handlers.ts    reenvía IPC               reenvía IPC
+     reenvía cada        vía rpcABase()            vía rpcABase()
+     canal no-local      → handlers de la Base
+     vía HTTP al server
+```
+
+### Modos de la app
+
+`src/main/services/red-config.ts` define `getRedModo()`:
+
+| Modo | Cómo se determina | Comportamiento |
+|---|---|---|
+| `base` | `red_modo = 'base'` **o** licencia activa válida (con `max_pcs ≥ 1`) | Levanta el servidor `:3002` y registra todos los handlers |
+| `hija` | `red_modo = 'hija'` (guardada al vincularse) | Solo handlers locales + reenvío a la Base |
+| `local` | Licencia sin `max_pcs > 1` y sin config hija | Modo tradicional: una PC, sin red |
+
+El modo **se evalúa en cada import** de `red-config.ts` (no requiere restart). El cambio se persiste en la tabla `configuracion` (`red_modo`, `red_base_url`, `red_par_id`, `red_cert_hash`, `red_pc_nombre`).
+
+### Servicios clave
+
+| Servicio | Rol |
+|---|---|
+| `services/red-config.ts` | Lee/escribe la config de red; provee `getRedModo()`, `isBase()`, `isHija()`, `getHijaConfig()` |
+| `services/red-server.ts` | `createRedServer({getDb, getHandler, getMaxPcs, port})` — HTTP server singleton, `startRedServerIfBase()`, `stopRedServer()`, `generarCodigoEnlace(db)` (códigos de 6 chars hex, TTL 5 min, un solo uso) |
+| `services/red-client.ts` | Cliente de la Hija: `vincularABase()`, `desvincularDeBase()`, `rpcABase()` (timeout 15s), `logoutEnBase()` |
+| `services/red-session.ts` | `registrarSesion(db, usuarioId, parId)` rechaza si el usuario ya tiene sesión en otro `par_id`; `liberarSesionesDePar(db, parId)`; `parTieneSesionActiva(db, parId)`; `generarToken(bytes=16)` |
+| `modules/red/handlers.ts` | Handlers IPC del módulo: `red:status`, `red:vincular`, `red:desvincular`, `red:generar-codigo`, `red:listar-pcs`, `red:logout` |
+
+### Endpoints HTTP del servidor (PC Base)
+
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| POST | `/api/red/vincular` | código de enlace (header body) | Handshake: valida código no usado y vigente, persiste `pcs_enlazadas`, devuelve `{ par_id, cert_hash }` |
+| POST | `/api/red/logout` | par_id + cert_hash (body) | Libera las sesiones del par (logout de la hija) |
+| POST | `/api/red/rpc` | par_id + cert_hash + sesión activa (body) | Despacho genérico de cualquier canal IPC: reenvía a los mismos handlers locales; si el canal es pre-auth, basta con `par_id`+`cert_hash`; si no, requiere sesión activa en ese par |
+
+### Flujo de uso
+
+```
+[PC Base]                            [PC Hija]
+                                      • instalar .exe (sin licencia)
+                                      • abrir app → LicenseGate muestra
+                                        botón "Conectar a una PC Base"
+                                      • completa IP + código + nombre → SetupPage
+                                      • POST /api/red/vincular → par_id + cert_hash
+                                      • guarda red_modo='hija'
+                                      • reenvía TODOS los IPC vía rpcABase()
+
+[PC Base] admin genera código:
+  • Config → Sistema → Red Local
+  • "Generar código de enlace" → ABC123 (5 min)
+  • el admin lo transcribe a la hija
+
+[PC Hija] sesión única:
+  • login → auth:login (con __par_id) → registrarSesion() en la Base
+  • si el mismo usuario ya tiene sesión en otra par → 401
+  • al cerrar sesión → red:logout → libera sesiones del par en la Base
+  • al cerrar la app → before-quit → logoutEnBase() best-effort
+```
+
+### Tests y smoke
+
+- `src/main/services/red-session.test.ts` — sesión única (mismo par OK, par distinto → error).
+- `src/main/services/red-server.test.ts` — handshake / rpc / logout / tope `max_pcs` con `DbLike` en memoria.
+- `src/main/services/red-client.test.ts` — `vincularABase` con `fetch` mockeado.
+
+Pendientes (no en spike actual): **TLS local** con cert autofirmado por Base al primer arranque y **heartbeat 60s** para expulsar sesiones huérfanas. Ver `tog-platform/docs/INTERCONEXION-RED.md`.
+
+---
+
+## Servicios transversales nuevos
+
+### `services/imagenes.ts` — Imágenes de producto en filesystem
+
+Las imágenes se guardan fuera de SQLite para evitar inflar la DB. Validación por **magic bytes** (no por `Content-Type`), límite 2 MB, formatos JPG/PNG/WebP.
+
+```
+%APPDATA%/tog-admin/imagenes/
+└── <producto_id>.jpg | .png | .webp
+```
+
+Funciones exportadas: `saveImagen(id, buffer)`, `deleteImagen(id)`, `getImagenPath(id)`, `getImagenDataUrl(id)` (data URL para `<img>`). El handler `productos:get-imagen` usa `getImagenDataUrl` para servir al renderer sin exponer el filesystem.
+
+### `services/logger.ts` — Wrapper sobre `electron-log`
+
+API: `logger.info|warn|error|debug('módulo', msg, ...args)`. Degrada a `console` cuando el binario no es Electron (modo CLI: `tsx scripts/*.ts`, `npm run db:migrate`) para no romper la consola con `app.getPath()`.
+
+### `renderer/services/currency.ts` — Moneda global en el renderer
+
+Estado en memoria (`symbol`, `rate`, `name`) inicializado por `loadCurrency()` desde `configuracion` (`currency_symbol`, `currency_name`, `tasa_cambio`). Se llama en `App.tsx` al autenticar. Helpers: `formatMoney(amount)` aplica símbolo + tasa; `getSymbol()`, `getRate()`, `getName()`, `setCurrency()`.
 
 ---
 
@@ -239,9 +383,11 @@ Todos los índices están optimizados para los patrones de consulta típicos del
 | Validación IPC | 24 schemas Zod en handlers críticos |
 | Licencias | RSA-2048 con validación offline |
 | Error handling | ErrorBoundary global + crash reports + logging diagnóstico |
-| Internacionalización | i18n con 2 idiomas (ES/EN), ~1,382 keys por idioma en el renderer (+97 en main) |
+| Internacionalización | i18n con 2 idiomas (ES/EN), ~1,329 keys por idioma en el renderer (+97 en main) |
 | Backup automático | Al cerrar caja se crea backup de la DB |
-| Permisos | 41 permisos en 8 categorías (ventas+créditos, caja, inventario, compras, cotizaciones, reportes, administración, distribuidor), control granular por usuario |
+| Permisos | 48 permisos en 9 categorías (ventas+créditos, caja, inventario, compras, cotizaciones, reportes, distribuidor, restaurant, administración), control granular por usuario (incluye `red_manage` para gestión de PC Base) |
+| Sesión única en red local | Un usuario solo puede estar activo en una PC del grupo a la vez (`services/red-session.ts`) |
+| Validación origen IPC | `handleIpc` (`core/auth/ipc-guard.ts`): rechaza cualquier sender que no sea main-frame `file://` (empaquetado) o `localhost:5173` (dev) |
 
 ---
 
@@ -332,8 +478,10 @@ Para el histórico completo con todas las fases (incluyendo pendientes), ver:
 2. ✅ **Subcategorías + Marca** — implementado: tabla `subcategorias`, `productos.marca` (migraciones 018/019)
 3. ✅ **Venta a crédito/fiado** — implementado: método Fiado + página Créditos con abonos (migraciones 020-022)
 4. ✅ **Combos / productos compuestos** — implementado: componentes en el modal de producto, costo real + margen, stock por componentes y desglose en ticket (migración 023)
-5. **Tasa de cambio + Símbolo moneda** — Expansión internacional (Fase 8)
-6. **Exportar cotización a PDF** — Profesionalismo (Fase 6)
-7. **Facturación fiscal Venezuela** — Cumplimiento legal (Fase 8)
+5. ✅ **Interconexión por red local (PC Base + hijas)** — implementado: módulo `red/`, sesión única, tope por `max_pcs` de la licencia (migración 032)
+6. ✅ **Imagen de producto en filesystem** — implementado: `src/main/services/imagenes.ts` valida magic bytes, persiste en `%APPDATA%/tog-admin/imagenes/` (migración 031)
+7. ✅ **Moneda, símbolo y tasa de cambio** — implementado: `src/renderer/services/currency.ts` aplica símbolo + tasa de `configuracion` a toda la app (migración 030)
+8. **Exportar cotización a PDF** — Profesionalismo (Fase 6)
+9. **Facturación fiscal Venezuela** — Cumplimiento legal (Fase 8)
 
 > El estado por feature vive en `FEATURES.md`; `ROADMAP.md` y `ROADMAP-INTEGRACION.md` son históricos (sus SQL de migraciones propuestas no coinciden con la numeración real).

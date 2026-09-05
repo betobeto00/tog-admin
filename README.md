@@ -9,24 +9,30 @@ Desktop app construida con Electron + React + TypeScript + SQLite. Una PC, una c
 ## Features
 
 ### Core
-- 🔐 Login with role-based access (admin / cashier) + rate limiting
+- 🔐 Login with role-based access (admin / cashier / manager) + rate limiting
 - 🛒 Point of Sale with cart, search, checkout & receipt printing
 - 💳 **Terminal integration (Valor VP800)** — cobro con tarjeta por USB
 - 🏷️ **Discounts** — per-item (%) and global (%)
-- 📦 Inventory: products, categories, custom units of measure, barcodes
+- 📦 Inventory: products, categories, subcategories, brands, custom units of measure, barcodes
 - 🔧 **Inventory adjustment** — manual stock correction with justification
 - 💰 Cash Register: open, entries/withdrawals, closeout with reconciliation
 - 🖨️ **Print closeout report** — detailed cash register closing
 - 📊 Dashboard with daily summary, low stock alerts, **and latest sales**
-- 🧾 Sales history with detail view, void, and re-print
-- 📝 Quotes: create, edit, approve/reject, print
+- 🧾 Sales history with detail view, void, re-print, credit/fiado tracking
+- 📝 Quotes: create, edit, approve/reject, print, **convert to sale**
 - 🚚 Purchases with suppliers and automatic stock updates
-- 👥 Supplier management (EIN, phone, email, address)
+- 👥 Supplier management (international tax/reg. document, phone, email, address)
 - 📈 Reports with charts: daily sales, top products, payment methods
-- 📦 **Distribuidor module** (license-gated): client registry (international tax/reg. document) + sales orders with sequential numbering and states (pendiente → despachado/entregado/anulado)
-- 🔐 **Licensing v2**: offline RSA-2048 keys **and** a **Sincronizar** button that downloads the active license from the TOG Platform backend and re-validates its signature locally
+- 🏬 **Multi-warehouse** — `almacenes` + `producto_almacen` (stock por depósito)
+- 📋 **Price lists** — listas de precio con factor global, overrides por producto y asignación por cliente
+- 📦 **Distribuidor module** (license-gated): client registry (international tax/reg. document) + sales orders with sequential numbering and states (pendiente → → despachado/entregado/anulado)
+- 🍽️ **Restaurant module** (license-gated): tables, table-side orders, kitchen screen, table billing
+- 🖼️ **Product image on filesystem** — JPG/PNG/WebP, máx.2MB, magic-byte validation
+- 💱 **Currency symbol + exchange rate** — `currency_symbol` + `currency_name` + `tasa_cambio` se aplican a toda la app
+- 🔐 **Licensing v2**: offline RSA-2048 keys **and** a **Sincronizar** button that downloads the active license from the TOG Platform backend and re-validates its signature locally. Soporta `max_pcs` (1–20) para activar el módulo de red local
+- 🌐 **LAN interconnection (PC Base + PC hijas)** (license-gated by `max_pcs` ≥ 2): una sola licencia, una sola DB, una sesión activa por usuario en todo el grupo
 - ⚙️ Settings: business name, EIN, address, Sales Tax, currency
-- 👤 User management with roles (admin / cashier) + password change
+- 👤 User management with roles (admin / cashier / manager) + password change
 - 🔒 **Forced password change** on first login (admin)
 
 ### Seguridad
@@ -36,7 +42,8 @@ Desktop app construida con Electron + React + TypeScript + SQLite. Una PC, una c
 - 🛡️ **Session timeout** — 30 min auto-logout
 - 🐛 **Crash reports** — automatic error reports with system info
 - 🔑 **License sync** — pre-auth channel `license:sync` (works from the lock screen): URL + empresa ID + api key → download → RSA re-validation → save
-- ✅ **159 automated tests** — validations, services, IPC handlers, React components
+- 🔐 **Validación de origen IPC** — `handleIpc` (`core/auth/ipc-guard.ts`): solo main-frame `file://` (producción) o `localhost:5173` (dev); un origen ajeno lanza error y no ejecuta el handler
+- ✅ **265 automated tests** — validations, services, IPC handlers, React components, sesión única, servidor HTTP de red local
 
 ### UI/UX
 - 🎨 **Hero background** — imagen de fondo en pantalla de login
@@ -44,6 +51,7 @@ Desktop app construida con Electron + React + TypeScript + SQLite. Una PC, una c
 - 🖼️ **Icono transparente** — icono sin fondo para el instalador
 - 🌐 **i18n (Internationalization)** — English/Spanish with ~1,329 translation keys per language
 - 📋 **Release Notes** — historial de versiones visible desde el login
+- 🖧 **PC Hija setup screen** — al instalar el `.exe` sin licencia, la pantalla de bloqueo ofrece "Conectar a una PC Base" con input de IP + código + nombre
 
 ### Actualizaciones
 - 🔄 **Auto-update system** — notificación automática de nuevas versiones via GitHub Releases
@@ -72,14 +80,17 @@ npm install
 # Ejecutar en modo desarrollo
 npm run dev
 
-# Ejecutar tests
+# Ejecutar tests (Vitest: 265 tests)
 npm test
 
 # Tests en watch mode
 npm run test:watch
 
-# Verificar tipos
-npm run typecheck
+# Verificar tipos (renderer + main)
+npm run typecheck:all
+
+# Correr migraciones manualmente (CLI, sin Electron)
+npm run db:migrate
 ```
 
 Esto arranca Vite (renderer) y Electron (main process) con hot-reload.
@@ -140,9 +151,10 @@ Para más detalles, ver [docs/GUIA_DESARROLLADOR.md](docs/GUIA_DESARROLLADOR.md)
 ```
 tog-admin/
 ├── docs/                    # Documentación del proyecto
-│   ├── ARCHITECTURE.md       # Arquitectura real (migraciones, IPC, módulos)
-│   ├── LICENCIAMIENTO.md     # Guía de licencias (offline + Sincronizar)
+│   ├── ARCHITECTURE.md       # Arquitectura real (migraciones, IPC, módulos, red local)
+│   ├── LICENCIAMIENTO.md     # Guía de licencias (offline + Sincronizar + max_pcs)
 │   ├── MODULOS.md            # Catálogo de módulos TOG Platform
+│   ├── INTERCONEXION-RED.md  # Diseño + estado del módulo red local (espejo tog-platform)
 │   ├── QA-SYNC.md            # QA del flujo Sincronizar
 │   └── ...
 ├── packaging/
@@ -159,10 +171,10 @@ tog-admin/
 │   │   ├── index.ts         # Entry point
 │   │   ├── preload.ts       # API segura para renderer
 │   │   ├── ipc-handlers.ts  # Registro central: delega en cada register*Handlers()
-│   │   ├── core/auth/       # auth-service.ts + permissions.ts (checkPermissionOrFail)
-│   │   ├── modules/         # Handlers IPC por módulo (inventario, ventas, license, distribuidor…)
+│   │   ├── core/auth/       # auth-service.ts + permissions.ts (checkPermissionOrFail) + ipc-guard.ts (handleIpc, origen seguro)
+│   │   ├── modules/         # Handlers IPC por módulo (inventario, ventas, license, distribuidor, restaurant, red, shared…)
 │   │   ├── db/
-│   │   │   ├── database.ts  # SQLite + migraciones + seeds
+│   │   │   ├── database.ts  # SQLite + 31 migraciones + seeds
 │   │   │   └── migrate.ts
 │   │   ├── i18n/            # Traducciones main process
 │   │   │   └── locales/     # es.json, en.json
@@ -171,27 +183,32 @@ tog-admin/
 │   │       ├── license.ts        # Validación de licencias
 │   │       ├── license-crypto.ts # Cripto RSA pura (tests sin Electron)
 │   │       ├── license-sync.ts   # Sync con TOG Platform (license:sync)
+│   │       ├── imagenes.ts       # Imágenes de producto en filesystem (magic bytes, ≤2MB)
+│   │       ├── logger.ts         # Wrapper electron-log (degrada a console fuera de Electron)
+│   │       ├── red-config.ts     # Modo PC (base / hija / local)
+│   │       ├── red-server.ts     # Servidor HTTP :3002 (PC Base)
+│   │       ├── red-client.ts     # Cliente HTTP (PC Hija)
+│   │       ├── red-session.ts    # Sesión única por usuario (grupo de PCs)
 │   │       ├── crash-reporter.ts # Reportes de error
 │   │       └── updater.ts        # Auto-actualizaciones
 │   ├── renderer/            # React frontend
 │   │   ├── main.tsx         # Entry point React
 │   │   ├── App.tsx          # Router + lazy loading
-│   │   ├── pages/           # Vistas (14 páginas: Core + Clientes/Pedidos)
-│   │   ├── components/      # Componentes UI
-│   │   │   ├── pos/         # CartItem
-│   │   │   ├── ui/          # Modal, ConfirmDialog, Toast
-│   │   │   └── layout/      # Layout, Header, Sidebar
+│   │   ├── pages/           # Vistas (Core + Clientes/Pedidos + Almacenes + ListasPrecio + SetupPage para PC Hija)
+│   │   ├── components/      # Componentes UI (ProductImage, LicenseGate, SetupPage…)
 │   │   ├── stores/          # Estado (Zustand + session timeout)
+│   │   ├── services/        # currency.ts (símbolo + tasa en toda la app)
 │   │   ├── i18n/            # Traducciones renderer
 │   │   │   └── locales/     # es/, en/
 │   │   └── lib/             # Utilidades
 │   └── shared/              # Tipos y validaciones
 │       ├── types.ts
+│       ├── papeleria-api.d.ts  # Tipos de la API expuesta al renderer
 │       ├── validations.ts   # Schemas Zod
-│       ├── permissions.ts   # Catálogo de permisos (39)
+│       ├── permissions.ts   # Catálogo de 48 permisos
 │       ├── ipc-channels.ts  # Canales IPC + PREAUTH_CHANNELS
 │       └── modules.ts       # Catálogo de módulos TOG Platform
-├── keys/                    # Claves RSA (licencias)
+├── keys/                    # Claves RSA (licencias) — fuera del repo (.gitignore)
 ├── package.json
 ├── tsconfig.json
 ├── tsconfig.main.json
@@ -212,25 +229,30 @@ tog-admin/
 | Build | Vite + electron-builder |
 | Instalador | NSIS (electron-builder) |
 | Terminal pago | Serialport (VP800) |
+| Red local (LAN) | Node `http` (servidor :3002 PC Base + cliente PC Hija) |
 | Testing | Vitest + React Testing Library |
 | i18n | i18next + react-i18next |
 | Licencias | RSA-2048 (Node.js crypto) |
 | Auto-update | electron-updater + GitHub Releases |
+| Logging | electron-log (degrada a `console` en CLI) |
 
 ## Default Credentials
 
 | Username | Password | Role |
 |----------|----------|------|
 | admin | admin123 | Admin |
+| maria | empleado123 | Cajero (prueba) |
 
-> ⚠️ You will be forced to change the password on first login.
+> ⚠️ You will be forced to change the admin password on first login.
 
 ## Seguridad
 
 - ✅ **bcrypt** password hashing (10 salt rounds)
 - ✅ **contextIsolation** + contextBridge (Electron IPC seguro)
+- ✅ **Validación de origen IPC** — `handleIpc` rechaza cualquier sender que no sea main-frame `file://` (producción) o `localhost:5173` (dev)
 - ✅ **Rate limiting** — 5 intentos fallidos → bloqueo 15 min
 - ✅ **Session timeout** — 30 min auto-logout por inactividad
+- ✅ **Sesión única en red local** — un usuario solo puede estar activo en una PC del grupo a la vez (`services/red-session.ts`)
 - ✅ **Zod validation** en handlers críticos
 - ✅ **Stock validation** — previene stock negativo
 - ✅ **Backup/Restore** — copia de seguridad de la base de datos

@@ -222,9 +222,12 @@ Salida esperada:
 | `machine_id` | ❌ No | ID de máquina del cliente | `"a1b2c3d4e5f6"` |
 | `--modules=a,b,c` | ❌ No | Módulos TOG Platform activados (v2) | `--modules=distribuidor,productor` |
 
+> `max_pcs` (módulo Red Local) **no** se setea desde `generate-license.js` todavía. Se emite **vía tog-platform** (`POST /api/empresas/:id/licencias` con `{ max_pcs: N }`). Cuando el script CLI lo soporte, la flag será `--max-pcs=N` (N entre 1 y 20).
+
 **Si no proporcionas `machine_id`**, la licencia funcionará en **cualquier PC**.  
 **Si proporcionas `machine_id`**, la licencia solo funcionará en **esa PC específica**.  
-**Si no proporcionas `--modules`**, la licencia cubre solo el módulo base (Comercializador). Los módulos válidos se definen en `src/shared/modules.ts`.
+**Si no proporcionas `--modules`**, la licencia cubre solo el módulo base (Comercializador). Los módulos válidos se definen en `src/shared/modules.ts`.  
+**Para multi-PC (Red Local)**, emite la licencia desde `tog-platform` (`POST /api/empresas/:id/licencias`) incluyendo `max_pcs`. Ver sección "¿Puedo vincular la licencia a múltiples PCs?" abajo.
 
 ---
 
@@ -379,9 +382,16 @@ Sí. Usa una fecha de expiración lejana:
 ```bash
 node scripts/generate-license.js "Cliente" "2099-12-31"
 ```
-
 ### ¿Puedo vincular la licencia a múltiples PCs?
-El script actual solo acepta un `machine_id`. Para múltiples PCs, necesitarías generar múltiples licencias o modificar el script para aceptar un array de IDs.
+
+**Sí**, vía el módulo Red Local (ver `docs/ARCHITECTURE.md` → "Módulo Red Local"). Pasos:
+
+1. Genera la licencia con `--max-pcs=N` (N entre 2 y 20) cuando la emitas desde `scripts/generate-license.js` o vía `tog-platform` (`POST /api/empresas/:id/licencias` con `{ max_pcs: N }`).
+2. Importa o sincroniza la licencia en la **PC Base**. Verá Config → Sistema → Red Local con el servidor activo en `:3002` y el botón **"Generar código de enlace"**.
+3. En cada PC Hija: instalar el `.exe`, abrir la app, en la pantalla de bloqueo hacer clic en **"Conectar a una PC Base"**, completar IP de la Base + código + nombre. La hija queda enlazada y reenvía todas las llamadas a la Base.
+4. La Base rechaza más PCs de las que diga `max_pcs` (tope en el handshake de `vincular`).
+
+**Alternativa sin red local** (modo offline puro): genera N licencias independientes (una por PC), cada una con su `machine_id` o sin `machine_id` para que funcionen en cualquier PC.
 
 ### ¿Qué pasa si el cliente cambia de PC?
 Si la licencia tiene `machine_id`, necesitas generar una nueva licencia para la nueva PC. Si no tiene `machine_id`, simplemente copia el mismo `license.key`.
@@ -455,6 +465,9 @@ node scripts/generate-license.js "Nombre" "AAAA-MM-DD" "machine_id"
 
 # Con módulos TOG Platform activados (v2)
 node scripts/generate-license.js "Nombre" "AAAA-MM-DD" "machine_id" --modules=distribuidor,productor
+
+# Con múltiples PCs (Red Local, ver "Módulo Red Local" en ARCHITECTURE.md)
+node scripts/generate-license.js "Nombre" "AAAA-MM-DD" "machine_id" --modules=distribuidor --max-pcs=4
 ```
 
 ### Verificar licencia actual
@@ -471,6 +484,7 @@ node scripts/generate-license.js "Nombre" "AAAA-MM-DD" "machine_id" --modules=di
   "version": "1.0.0",
   "machineId": "a1b2c3d4e5f6",
   "modules": ["distribuidor"],
+  "max_pcs": 4,
   "emitida": "2026-08-28T22:00:00.000Z",
   "id": "f7e8d9c0b1a2",
   "firma": "base64-encoded-rsa-signature..."
@@ -478,6 +492,7 @@ node scripts/generate-license.js "Nombre" "AAAA-MM-DD" "machine_id" --modules=di
 ```
 
 > `modules` es **opcional** (licencias v2, TOG Platform): lista los módulos activados además del base Comercializador. Las licencias v1 sin `modules` siguen siendo válidas y cubren el módulo base. La app muestra el estado de cada módulo en **Configuración → Sistema → Módulos de TOG Platform** (catálogo en `src/shared/modules.ts`).
+> `max_pcs` es **opcional** (licencias con red local). Si está presente y es ≥ 2, la PC con licencia pasa a ser **PC Base** y permite vincular hasta `max_pcs-1` PCs hijas (ver `docs/ARCHITECTURE.md` → "Módulo Red Local"). Si está ausente o es 1, la app opera en modo local sin red.
 
 ---
 

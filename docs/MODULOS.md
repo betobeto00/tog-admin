@@ -102,9 +102,25 @@ Si Roberto está offline 100%, el modelo degradado es: **tú le mandas la clave 
 
 Al hacer login, el usuario **escoge el módulo al que va a entrar** (POS, Distribución, Producción, Administración, Recursos Humanos, Postventa, Restaurant…). No son sesiones separadas: el módulo activado por la licencia lo filtra el Sidebar/Router, y el login solo aterriza al usuario en su área. El admin asigna módulos y accesos a cada usuario.
 
-### 3.6 Multi-PC por red local (planificado)
+### 3.6 Multi-PC por red local
 
-La licencia define el número de PCs conectadas: **1 PC/1 caja** (solo la Base) o **multi-PC de 2 a 20** (Base + hijas). **Un usuario solo puede estar con sesión activa en una PC a la vez** (admin en PC 1 no entra en PC 2). Detalle de la mecánica (enlace, token, anti-bypass) en `INTERCONEXION-RED.md` (repo tog-platform).
+La licencia define el número de PCs conectadas: **1 PC/1 caja** (solo la Base, `max_pcs=1` por default) o **multi-PC de 2 a 20** (Base + hijas, `max_pcs` en la licencia firmada). **Un usuario solo puede estar con sesión activa en una PC a la vez**: `services/red-session.ts` registra `sesiones_activas(usuario_id UNIQUE, par_id, sesion_token)` y rechaza el login si el mismo usuario está activo en otro `par_id`.
+
+Implementación (estado actual — spike funcional mergeado a master en tog-admin + tog-platform):
+
+- **tog-admin** (migración 031): tablas `pcs_enlazadas`, `sesiones_activas`, `codigos_enlace`. Servicios `red-{config,server,client,session}.ts`. Módulo `red/handlers.ts`. `SetupPage` para PC Hija.
+- **tog-platform**: `POST /api/empresas/:id/licencias` acepta `max_pcs` (1–20) y lo incluye firmado; `signLicense` valida el rango.
+- **Flujo**: PC Base genera código (5 min, un solo uso) desde Config → Sistema → Red Local. PC Hija lo transcribe junto con su IP y nombre → handshake HTTP → ambas comparten DB. Cualquier `auth:login` reenviado por RPC lleva `__par_id` para registrar la sesión en la Base.
+- **Pendiente para producción**: TLS local con cert autofirmado generado al primer arranque de la Base y heartbeat 60 s para expulsar sesiones huérfanas. Detalle completo en `tog-platform/docs/INTERCONEXION-RED.md`.
+
+### 3.7 Productos / Servicios, Imagen y Moneda (Fase 5)
+
+Tres features ya implementadas como **extensión del Core Comercializador** (no son módulos activables por licencia; viven en el Core):
+
+- **Producto vs Servicio** (migración 016): columna `productos.tipo` (`producto`/`servicio`). Los servicios no consumen stock.
+- **Subcategorías + Marca** (migraciones 017/018): tabla `subcategorias(categoria_id)`, columna `productos.marca`.
+- **Imagen de producto en filesystem** (migración 030): `services/imagenes.ts` valida magic bytes (JPG/PNG/WebP, ≤2MB) y persiste en `%APPDATA%/tog-admin/imagenes/<id>.<ext>`. UI `<ProductImage>` consume el canal IPC `productos:get-imagen` para no exponer el filesystem al renderer.
+- **Moneda, símbolo y tasa de cambio** (migración 029): `configuracion: currency_symbol`, `currency_name`, `tasa_cambio`. `renderer/services/currency.ts` aplica símbolo + tasa a todos los importes de la app.
 
 ---
 
@@ -215,8 +231,9 @@ Estos números son una **referencia para el roadmap**, no la tabla de precios fi
 - [ ] Módulo Administración: submódulo **contable** completo (libros: compras, ventas, inventario, mayor, diario; **retenciones de ley según el país del cliente**), reportes de gestión.
 - [ ] Módulo Recursos Humanos (empleados, nómina básica, asistencia).
 - [x] Módulo Restaurant (mesas, comanda, cocina) — **MVP v1 (4-Sep-2026)**: ver `docs/DISENO-MODULO-RESTAURANTE.md` y `docs/FEATURES.md` (RST1–RST5). Pendientes v2: cuentas divididas, enrutado de comandas a una impresora térmica dedicada (la impresión de comanda ya existe vía el flujo estándar), propinas, áreas del salón.
-- [ ] Interconexión por red local/Intranet entre PC Base y PC hijas (ver `tog-platform/docs/INTERCONEXION-RED.md`).
-- [ ] Multi-moneda, multi-idioma, fiscal por país.
+- [x] Interconexión por red local/Intranet entre PC Base y PC hijas (5-Sep-2026) — **spike funcional mergeado a master**: ver `docs/ARCHITECTURE.md` sección "Módulo Red Local" + `tog-platform/docs/INTERCONEXION-RED.md`. Pendiente para producción: TLS local + heartbeat 60 s.
+- [x] Multi-moneda, símbolo de moneda y tasa de cambio (5-Sep-2026) — `configuracion.currency_symbol/currency_name/tasa_cambio`; `renderer/services/currency.ts` aplica a toda la app.
+- [x] Imagen de producto en filesystem (5-Sep-2026) — `services/imagenes.ts` con validación por magic bytes.
 
 ---
 

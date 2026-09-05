@@ -58,4 +58,21 @@ Ver `docs/ARCHITECTURE.md` (estado actual), `docs/MODULOS.md` (referencia concep
 
 Los handlers IPC DEBEN validar permisos con `checkPermissionOrFail(data, channel, permission)` antes de ejecutar lógica de negocio. `checkPermissionOrFail` está en `src/main/core/auth/permissions.ts`; el admin pasa siempre (tiene todas las claves de `PERMISSIONS`).
 
-Canales pre-auth (sin sesión, no requieren `usuario_id`): la lista canónica es `PREAUTH_CHANNELS` en `src/shared/ipc-channels.ts` — actualmente `app:version`, `auth:login`, `crash-report:save`, `i18n:get-lang`, `i18n:set-lang`, `license:status`, `license:sync`, `license:validate`, `license:import`. El renderer mantiene un espejo en `api-client.ts`; al tocar la lista, actualizar AMBOS lugares. `license:import` y `license:sync` DEBEN seguir pre-auth: son los caminos para activar la app desde la pantalla de bloqueo (antes del login). `license:sync` descarga la licencia activa desde el backend TOG Platform (`src/main/services/license-sync.ts`, URL + id de empresa + api key) y la valida con la firma RSA local antes de guardarla.
+Canales pre-auth (sin sesión, no requieren `usuario_id`): la lista canónica es `PREAUTH_CHANNELS` en `src/shared/ipc-channels.ts` — actualmente `app:version`, `auth:login`, `crash-report:save`, `i18n:get-lang`, `i18n:set-lang`, `license:status`, `license:sync`, `license:validate`, `license:import`, `red:status`, `red:vincular`, `red:desvincular`. El renderer mantiene un espejo en `api-client.ts`; al tocar la lista, actualizar AMBOS lugares. `license:import`, `license:sync`, `red:status`, `red:vincular` y `red:desvincular` DEBEN seguir pre-auth: son los caminos para activar la app desde la pantalla de bloqueo (antes del login). `license:sync` descarga la licencia activa desde el backend TOG Platform (`src/main/services/license-sync.ts`, URL + id de empresa + api key) y la valida con la firma RSA local antes de guardarla.
+
+## Módulo Red Local (PC Base + hijas)
+
+Activado por la licencia cuando `max_pcs ≥ 2`. Servicios principales en `src/main/services/`:
+
+- `red-config.ts` — `getRedModo()` resuelve `base` (licencia activa), `hija` (`red_modo='hija'` guardado) o `local` (instalación sin red). Persiste en `configuracion`: `red_modo`, `red_base_url`, `red_par_id`, `red_cert_hash`, `red_pc_nombre`.
+- `red-server.ts` — `createRedServer(deps)` y singleton `startRedServerIfBase()`. Endpoints: `POST /api/red/vincular` (handshake con código de 6 chars hex, TTL 5 min, un solo uso), `POST /api/red/rpc` (despacho genérico de canales IPC a los mismos handlers locales), `POST /api/red/logout`.
+- `red-client.ts` — en la hija: `vincularABase(baseUrl, codigo, nombre)`, `desvincularDeBase()`, `rpcABase(canal, args)`, `logoutEnBase()`. Timeout 15 s para RPC.
+- `red-session.ts` — `registrarSesion(db, usuarioId, parId)` rechaza si el mismo `usuario_id` ya tiene sesión activa en otro `par_id`. `parTieneSesionActiva`, `liberarSesionesDePar`.
+
+Handlers IPC del módulo en `src/main/modules/red/handlers.ts`: `red:status`, `red:vincular`, `red:desvincular`, `red:generar-codigo`, `red:listar-pcs`, `red:logout`. Permiso dedicado `red_manage` (solo admin).
+
+**Reenvío RPC desde la Hija**: `src/main/ipc-handlers.ts` detecta `isHija()` y registra solo los handlers locales (app:version, i18n, crash-report, update, feedback, red:*). Para los demás canales, registra un forwarder genérico que llama `rpcABase(canal, args)` y devuelve la respuesta del handler en la Base. `handleIpc` (`src/main/core/auth/ipc-guard.ts`) registra tanto el handler real como la entrada en el map `ipcListeners` que el servidor HTTP usa para despachar.
+
+**Setup de PC Hija**: `src/renderer/pages/SetupPage.tsx` se renderiza desde `LicenseGate` cuando la licencia local no es válida y el usuario hace clic en "Conectar a una PC Base". Pide IP, código de enlace y nombre de PC.
+
+Tests Vitest en `src/main/services/red-{server,client,session}.test.ts` (DB en memoria via `DbLike` + `fetch` mockeado).
