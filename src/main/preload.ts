@@ -39,6 +39,21 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.invoke('usuarios:setPermissions', payload),
   },
 
+  // Almacenes
+  almacenes: {
+    list: (activoOnly?: boolean) => ipcRenderer.invoke('almacenes:list', { activoOnly: activoOnly ?? true }),
+    create: (payload: { nombre: string; direccion?: string; usuario_id?: number }) =>
+      ipcRenderer.invoke('almacenes:create', payload),
+    update: (payload: { id: number; data: any; usuario_id?: number }) =>
+      ipcRenderer.invoke('almacenes:update', payload),
+    delete: (payload: { id: number; usuario_id?: number }) =>
+      ipcRenderer.invoke('almacenes:delete', payload),
+    stock: (payload: { producto_id?: number; almacen_id?: number; usuario_id?: number }) =>
+      ipcRenderer.invoke('almacenes:stock', payload),
+    setStock: (payload: { producto_id: number; almacen_id: number; stock: number; usuario_id?: number }) =>
+      ipcRenderer.invoke('almacenes:set-stock', payload),
+  },
+
   // Categorías
   categorias: {
     list: () => ipcRenderer.invoke('categorias:list'),

@@ -667,6 +667,44 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
         CREATE INDEX IF NOT EXISTS idx_ventas_tipo_comprobante ON ventas(tipo_comprobante);
       `,
     },
+    {
+      nombre: '029_almacenes_y_listas_precio',
+      sql: `
+        CREATE TABLE IF NOT EXISTS almacenes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nombre TEXT NOT NULL UNIQUE,
+          direccion TEXT,
+          activo INTEGER NOT NULL DEFAULT 1,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE TABLE IF NOT EXISTS producto_almacen (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          producto_id INTEGER NOT NULL REFERENCES productos(id),
+          almacen_id INTEGER NOT NULL REFERENCES almacenes(id),
+          stock REAL NOT NULL DEFAULT 0,
+          actualizado_en TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE(producto_id, almacen_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_producto_almacen_producto ON producto_almacen(producto_id);
+        CREATE INDEX IF NOT EXISTS idx_producto_almacen_almacen ON producto_almacen(almacen_id);
+
+        CREATE TABLE IF NOT EXISTS lista_precio_productos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          lista_id INTEGER NOT NULL REFERENCES listas_precio(id),
+          producto_id INTEGER NOT NULL REFERENCES productos(id),
+          precio_override REAL,
+          UNIQUE(lista_id, producto_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_lpp_lista ON lista_precio_productos(lista_id);
+        CREATE INDEX IF NOT EXISTS idx_lpp_producto ON lista_precio_productos(producto_id);
+
+        CREATE TABLE IF NOT EXISTS cliente_lista_precio (
+          cliente_id INTEGER NOT NULL REFERENCES clientes(id),
+          lista_id INTEGER NOT NULL REFERENCES listas_precio(id),
+          PRIMARY KEY (cliente_id, lista_id)
+        );
+      `,
+    },
   ]
 }
 
@@ -742,6 +780,10 @@ function seedDatabase(db: Database.Database): void {
       for (const [clave, valor, desc] of configs) {
         insertConfig.run(clave, valor, desc)
       }
+
+      // Almacén por defecto
+      const insertAlmacen = db!.prepare('INSERT OR IGNORE INTO almacenes (id, nombre, direccion) VALUES (1, ?, ?)')
+      insertAlmacen.run('Principal', 'Almacén principal')
     })
 
     seedInTransaction()

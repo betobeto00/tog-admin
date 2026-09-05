@@ -91,6 +91,18 @@ const { db, handles, state } = vi.hoisted(() => {
       activo INTEGER NOT NULL DEFAULT 1,
       creado_en TEXT NOT NULL DEFAULT (datetime('now'))
     );
+    CREATE TABLE lista_precio_productos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lista_id INTEGER NOT NULL REFERENCES listas_precio(id),
+      producto_id INTEGER NOT NULL REFERENCES productos(id),
+      precio_override REAL,
+      UNIQUE(lista_id, producto_id)
+    );
+    CREATE TABLE cliente_lista_precio (
+      cliente_id INTEGER NOT NULL REFERENCES clientes(id),
+      lista_id INTEGER NOT NULL REFERENCES listas_precio(id),
+      PRIMARY KEY (cliente_id, lista_id)
+    );
     CREATE TABLE configuracion (
       clave TEXT PRIMARY KEY,
       valor TEXT NOT NULL,

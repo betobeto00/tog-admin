@@ -386,6 +386,14 @@ export interface IpcChannels {
   'categorias:update': { id: number; data: Partial<CategoriaCreate> }
   'categorias:delete': { id: number }
 
+  // Almacenes
+  'almacenes:list': { activoOnly?: boolean }
+  'almacenes:create': { nombre: string; direccion?: string }
+  'almacenes:update': { id: number; data: { nombre?: string; direccion?: string; activo?: number } }
+  'almacenes:delete': { id: number }
+  'almacenes:stock': { producto_id?: number; almacen_id?: number }
+  'almacenes:set-stock': { producto_id: number; almacen_id: number; stock: number }
+
   // Subcategorías
   'subcategorias:list': { categoria_id?: number }
   'subcategorias:create': SubcategoriaCreate
@@ -465,6 +473,11 @@ export interface IpcChannels {
   'listas-precio:create': { nombre: string; factor: number }
   'listas-precio:update': { id: number; data: { nombre?: string; factor?: number; activo?: number } }
   'listas-precio:delete': { id: number }
+  'listas-precio:productos': { lista_id: number }
+  'listas-precio:set-producto': { lista_id: number; producto_id: number; precio_override: number | null }
+  'listas-precio:clientes': { lista_id: number }
+  'listas-precio:set-cliente': { lista_id: number; cliente_id: number }
+  'listas-precio:unset-cliente': { lista_id: number; cliente_id: number }
 
   // Reportes visuales guardados
   'reportes-visuales:list': void

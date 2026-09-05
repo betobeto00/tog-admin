@@ -23,6 +23,7 @@ import {
   Utensils,
   ChefHat,
   PieChart,
+  Warehouse,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react'
@@ -71,6 +72,7 @@ export default function Sidebar() {
       { to: '/pos', icon: ShoppingCart, label: t('nav.pos'), permission: 'pos_access' },
       { to: '/caja', icon: Lock, label: t('nav.cash'), permission: 'caja_access' },
       { to: '/inventario', icon: Package, label: t('nav.inventory'), permission: 'inventario_access' },
+      { to: '/almacenes', icon: Warehouse, label: t('nav.warehouses') || 'Almacenes', permission: 'inventario_access' },
       { to: '/ventas', icon: Receipt, label: t('nav.sales'), permission: 'pos_access' },
       { to: '/creditos', icon: Wallet, label: t('nav.credits'), permission: 'creditos_view' },
       { to: '/compras', icon: Truck, label: t('nav.purchases'), permission: 'compras_access' },

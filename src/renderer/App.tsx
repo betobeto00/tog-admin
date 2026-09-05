@@ -16,6 +16,7 @@ import CajaPage from './pages/CajaPage'
 import ComprasPage from './pages/ComprasPage'
 import ProveedoresPage from './pages/ProveedoresPage'
 import ClientesPage from './pages/ClientesPage'
+import AlmacenesPage from './pages/AlmacenesPage'
 import PedidosPage from './pages/PedidosPage'
 import RemitosPage from './pages/RemitosPage'
 import ListasPrecioPage from './pages/ListasPrecioPage'
@@ -79,6 +80,7 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="pos" element={<POSPage />} />
           <Route path="inventario" element={<InventarioPage />} />
+          <Route path="almacenes" element={<AlmacenesPage />} />
           <Route path="ventas" element={<VentasPage />} />
           <Route path="creditos" element={<CreditosPage />} />
           <Route path="caja" element={<CajaPage />} />

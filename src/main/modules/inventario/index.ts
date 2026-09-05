@@ -4,6 +4,7 @@ import { registerSubcategoriasHandlers } from './subcategorias'
 import { registerProductosHandlers } from './productos'
 import { registerProductosCsvHandlers } from './csv'
 import { registerCombosHandlers } from './combos'
+import { registerAlmacenesHandlers } from './almacenes'
 
 export function registerInventarioHandlers(): void {
   registerCategoriasHandlers()
@@ -12,6 +13,7 @@ export function registerInventarioHandlers(): void {
   registerProductosHandlers()
   registerProductosCsvHandlers()
   registerCombosHandlers()
+  registerAlmacenesHandlers()
 }
 
 export {
@@ -21,4 +23,5 @@ export {
   registerProductosHandlers,
   registerProductosCsvHandlers,
   registerCombosHandlers,
+  registerAlmacenesHandlers,
 }
