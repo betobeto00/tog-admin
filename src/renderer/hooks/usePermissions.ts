@@ -1,31 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuthStore } from '@core/auth/store'
+import { PERMISSIONS, ROLE_DEFAULTS } from '@shared/permissions'
 import { callApi } from '../lib/api-client'
 
-// Default permissions for cajero role (same as shared/permissions.ts ROLE_DEFAULTS)
-const DEFAULT_CAJERO = [
-  'pos_access', 'pos_discount', 'pos_edit_price', 'pos_quick_sale',
-  'caja_access', 'caja_open', 'caja_close', 'caja_movement', 'caja_report_x',
-  'inventario_access', 'inventario_create', 'inventario_edit',
-  'compras_access', 'compras_create',
-  'quotes_access', 'quotes_create',
-  'reportes_access',
-]
-
-// All permission keys (admin has all)
-const ALL_PERMISSIONS = [
-  'pos_access', 'pos_void_sale', 'pos_discount', 'pos_edit_price', 'pos_quick_sale',
-  'caja_access', 'caja_open', 'caja_close', 'caja_movement', 'caja_report_x',
-  'inventario_access', 'inventario_create', 'inventario_edit', 'inventario_delete',
-  'inventario_adjust', 'inventario_categories', 'inventario_units',
-  'compras_access', 'compras_create', 'compras_suppliers',
-  'quotes_access', 'quotes_create',
-  'reportes_access', 'reportes_export',
-  'config_access', 'config_edit', 'config_terminal', 'config_backup', 'config_db_reset',
-  'usuarios_access', 'usuarios_manage_roles',
-  'distribuidor_clientes_view', 'distribuidor_clientes_edit',
-  'distribuidor_pedidos_view', 'distribuidor_pedidos_edit',
-]
+const ALL_PERMISSIONS = Object.keys(PERMISSIONS) as string[]
 
 export function usePermissions() {
   const usuario = useAuthStore((s) => s.usuario)
@@ -55,10 +33,10 @@ export function usePermissions() {
       if (result.success && result.permisos) {
         setPermissions(result.permisos)
       } else {
-        setPermissions(DEFAULT_CAJERO)
+        setPermissions(ROLE_DEFAULTS.cajero as unknown as string[])
       }
     } catch {
-      setPermissions(DEFAULT_CAJERO)
+      setPermissions(ROLE_DEFAULTS.cajero as unknown as string[])
     }
     setLoading(false)
   }

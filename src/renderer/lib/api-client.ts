@@ -1,23 +1,9 @@
 import { useAuthStore } from '@core/auth/store'
 import type { IpcChannel, AnyIpcChannel, IpcPushChannel } from '@shared/ipc-channels'
 import type { PapeleriaAPI } from '@shared/papeleria-api'
+import { PREAUTH_CHANNELS as PREAUTH_CHANNELS_RAW } from '@shared/ipc-channels'
 
-const PREAUTH_CHANNELS: ReadonlySet<string> = new Set([
-  'app:version',
-  'auth:login',
-  'crash-report:save',
-  'feedback:send',
-  'i18n:get-lang',
-  'i18n:set-lang',
-  'license:status',
-  'license:sync',
-  'license:validate',
-  'license:import',
-  'red:status',
-  'red:vincular',
-  'red:desvincular',
-  'red:heartbeat',
-])
+const PREAUTH_CHANNELS: ReadonlySet<string> = new Set(PREAUTH_CHANNELS_RAW as readonly string[])
 
 function needsUserId(channel: string): boolean {
   return !PREAUTH_CHANNELS.has(channel)
