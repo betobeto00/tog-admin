@@ -151,6 +151,35 @@
 
 ---
 
+## Módulo: Contabilidad 🟡 (adicional por licencia `administracion`)
+
+| # | Feature | Prioridad | Estado | Descripción |
+|---|---------|-----------|--------|-------------|
+| CTB1 | Resumen ejecutivo | 🔴 | ✅ | Ventas, compras, costo de ventas, utilidad bruta, impuestos y diferencia de caja del período (default: mes actual) |
+| CTB2 | Libro de ventas | 🔴 | ✅ | Filas por venta (excluye anuladas/borradores) + totales + export CSV |
+| CTB3 | Libro de compras | 🔴 | ✅ | Filas por compra con proveedor + totales + export CSV |
+| CTB4 | Libro de inventario | 🔴 | ✅ | Ajustes del período + kardex por producto (entradas por compras, salidas por ventas, ajustes, valor de stock a costo) + CSV |
+| CTB5 | Libro diario | 🟡 | ✅ | Asientos automáticos por venta (caja/ingresos) y compra (gasto/caja); vista con totales debe/haber |
+| CTB6 | Gating por licencia y permisos | 🔴 | ✅ | Menú/rutas/handlers solo con módulo `administracion` en la licencia + permisos `contable_view` / `contable_export` |
+| CTB7 | Retenciones de ley por país | 🟡 | ⏳ | Requiere normativa fiscal por país (proyecto separado) |
+| CTB8 | Mayor y balance general | 🟡 | ⏳ | Derivables del libro diario; fase 2 |
+
+---
+
+## Módulo: Recursos Humanos 🟡 (adicional por licencia `rrhh`)
+
+| # | Feature | Prioridad | Estado | Descripción |
+|---|---------|-----------|--------|-------------|
+| RRH1 | Empleados CRUD | 🔴 | ✅ | Altas/bajas lógicas, cargo, salario mensual, documento, contacto; desactiva en vez de borrar si tiene nóminas |
+| RRH2 | Asistencia diaria | 🔴 | ✅ | Marca presente/tarde/ausente por empleado y fecha (upsert), vista del día con estado pendiente |
+| RRH3 | Nómina por período | 🔴 | ✅ | Proporcional a días presentes/tarde sobre 30 días, bonos y deducciones por empleado, regeneración idempotente |
+| RRH4 | Pago de nómina | 🔴 | ✅ | Marca nóminas como pagadas con fecha; recibo imprimible en UI |
+| RRH5 | Gating por licencia y permisos | 🔴 | ✅ | Menú/rutas/handlers solo con módulo `rrhh` en la licencia + permisos `rrhh_view` / `rrhh_edit` / `rrhh_nomina` |
+| RRH6 | Roles y permisos finos por empleado | 🟡 | ⏳ | Los empleados no son usuarios de la app; fase futura |
+| RRH7 | Beneficios legales por país | 🟡 | ⏳ | Vacaciones, utilidades, prestaciones (depende de normativa) |
+
+---
+
 ## MÃ³dulo: Cotizaciones ðŸŸ¡
 
 | # | Feature | Prioridad | Estado | DescripciÃ³n |

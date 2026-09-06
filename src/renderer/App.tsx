@@ -27,6 +27,8 @@ import ReportesVisualesPage from './pages/ReportesVisualesPage'
 import ConfigPage from './pages/ConfigPage'
 import QuotesPage from './pages/QuotesPage'
 import HelpPage from './pages/HelpPage'
+import ContabilidadPage from './pages/ContabilidadPage'
+import RrhhPage from './pages/RrhhPage'
 import Tutorial, { hasTutorialCompleted } from './components/Tutorial'
 import LicenseGate from './components/LicenseGate'
 import { loadCurrency } from './services/currency'
@@ -105,6 +107,8 @@ export default function App() {
           <Route path="reportes" element={<ReportesPage />} />
           <Route path="reportes-visuales" element={<ReportesVisualesPage />} />
           <Route path="cotizaciones" element={<QuotesPage />} />
+          <Route path="contabilidad" element={<ContabilidadPage />} />
+          <Route path="rrhh" element={<RrhhPage />} />
           <Route path="configuracion" element={<ConfigPage />} />
           <Route path="ayuda" element={<HelpPage />} />
         </Route>

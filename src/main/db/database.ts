@@ -760,6 +760,72 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
         CREATE INDEX IF NOT EXISTS idx_pcs_enlazadas_last_heartbeat ON pcs_enlazadas(last_heartbeat);
       `,
     },
+    {
+      nombre: '034_contable',
+      sql: `
+        CREATE TABLE IF NOT EXISTS asientos_contables (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          fecha TEXT NOT NULL DEFAULT (datetime('now')),
+          tipo TEXT NOT NULL,
+          descripcion TEXT NOT NULL,
+          referencia_tipo TEXT,
+          referencia_id INTEGER,
+          cuenta TEXT NOT NULL,
+          debe REAL NOT NULL DEFAULT 0,
+          haber REAL NOT NULL DEFAULT 0,
+          usuario_id INTEGER REFERENCES usuarios(id),
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_asientos_fecha ON asientos_contables(fecha);
+        CREATE INDEX IF NOT EXISTS idx_asientos_ref ON asientos_contables(referencia_tipo, referencia_id);
+      `,
+    },
+    {
+      nombre: '035_rrhh',
+      sql: `
+        CREATE TABLE IF NOT EXISTS empleados (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nombre TEXT NOT NULL,
+          documento TEXT,
+          cargo TEXT,
+          salario_mensual REAL NOT NULL DEFAULT 0,
+          telefono TEXT,
+          direccion TEXT,
+          fecha_ingreso TEXT NOT NULL DEFAULT (date('now')),
+          activo INTEGER NOT NULL DEFAULT 1,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS asistencia (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          empleado_id INTEGER NOT NULL REFERENCES empleados(id),
+          fecha TEXT NOT NULL DEFAULT (date('now')),
+          estado TEXT NOT NULL DEFAULT 'presente',
+          notas TEXT,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE(empleado_id, fecha)
+        );
+        CREATE INDEX IF NOT EXISTS idx_asistencia_fecha ON asistencia(fecha);
+
+        CREATE TABLE IF NOT EXISTS nominas (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          empleado_id INTEGER NOT NULL REFERENCES empleados(id),
+          periodo_inicio TEXT NOT NULL,
+          periodo_fin TEXT NOT NULL,
+          salario_base REAL NOT NULL DEFAULT 0,
+          dias_trabajados INTEGER NOT NULL DEFAULT 0,
+          bonos REAL NOT NULL DEFAULT 0,
+          deducciones REAL NOT NULL DEFAULT 0,
+          total_pagar REAL NOT NULL DEFAULT 0,
+          estado TEXT NOT NULL DEFAULT 'pendiente',
+          pagado_en TEXT,
+          usuario_id INTEGER REFERENCES usuarios(id),
+          creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE(empleado_id, periodo_inicio, periodo_fin)
+        );
+        CREATE INDEX IF NOT EXISTS idx_nominas_periodo ON nominas(periodo_inicio, periodo_fin);
+      `,
+    },
   ]
 }
 

@@ -38,7 +38,7 @@ describe('PERMISSIONS', () => {
 
   it('categories are from a known set', () => {
     const validCategories = new Set([
-      'Ventas', 'Caja', 'Inventario', 'Compras', 'Cotizaciones', 'Reportes', 'Distribuidor', 'Restaurant', 'Administración',
+      'Ventas', 'Caja', 'Inventario', 'Compras', 'Cotizaciones', 'Reportes', 'Distribuidor', 'Restaurant', 'Administración', 'Contabilidad', 'Recursos Humanos',
     ])
     for (const perm of Object.values(PERMISSIONS)) {
       expect(validCategories.has(perm.category.es)).toBe(true)

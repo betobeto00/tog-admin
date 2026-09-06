@@ -4,7 +4,7 @@
  * Ver docs/MODULOS.md para la visión de producto.
  */
 
-export type ModuleId = 'comercializador' | 'distribuidor' | 'restaurant' | 'productor' | 'procesador' | 'postventa'
+export type ModuleId = 'comercializador' | 'distribuidor' | 'restaurant' | 'productor' | 'procesador' | 'postventa' | 'administracion' | 'rrhh'
 
 export interface ModuleInfo {
   id: ModuleId
@@ -62,6 +62,20 @@ export const ADDON_MODULES: ModuleInfo[] = [
     requiere: ['comercializador'],
     base: false,
   },
+  {
+    id: 'administracion',
+    nombre: 'Administración',
+    descripcion: 'Submódulo Contable: libro de ventas, compras e inventario, diario/mayor simplificado y exportación para el contador.',
+    requiere: ['comercializador'],
+    base: false,
+  },
+  {
+    id: 'rrhh',
+    nombre: 'Recursos Humanos',
+    descripcion: 'Empleados, asistencia diaria y nómina por período con deducciones y recibo imprimible.',
+    requiere: [],
+    base: false,
+  },
 ]
 
 /** Catálogo completo en orden de la cadena: Productor → Procesador → Comercializador → Distribuidor (+ Postventa) */
@@ -72,6 +86,8 @@ export const MODULE_CATALOG: ModuleInfo[] = [
   ADDON_MODULES.find((m) => m.id === 'distribuidor')!,
   ADDON_MODULES.find((m) => m.id === 'restaurant')!,
   ADDON_MODULES.find((m) => m.id === 'postventa')!,
+  ADDON_MODULES.find((m) => m.id === 'administracion')!,
+  ADDON_MODULES.find((m) => m.id === 'rrhh')!,
 ]
 
 const VALID_IDS = new Set<string>(MODULE_CATALOG.map((m) => m.id))

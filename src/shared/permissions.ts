@@ -278,6 +278,35 @@ export const PERMISSIONS = {
     category: { es: 'Restaurant', en: 'Restaurant' },
     description: { es: 'Abrir comandas, agregar ítems, enviar a cocina y cobrar la mesa', en: 'Open orders, add items, send to kitchen and charge the table' },
   },
+
+  // === ADMINISTRACIÓN (CONTABLE) ===
+  contable_view: {
+    label: { es: 'Ver Contabilidad', en: 'View Accounting' },
+    category: { es: 'Contabilidad', en: 'Accounting' },
+    description: { es: 'Ver libros de ventas/compras/inventario y libro diario', en: 'View sales/purchases/inventory books and journal' },
+  },
+  contable_export: {
+    label: { es: 'Exportar Libros', en: 'Export Books' },
+    category: { es: 'Contabilidad', en: 'Accounting' },
+    description: { es: 'Exportar los libros contables a CSV para el contador', en: 'Export accounting books to CSV for the accountant' },
+  },
+
+  // === RECURSOS HUMANOS ===
+  rrhh_view: {
+    label: { es: 'Ver Empleados', en: 'View Employees' },
+    category: { es: 'Recursos Humanos', en: 'Human Resources' },
+    description: { es: 'Ver empleados y su asistencia', en: 'View employees and attendance' },
+  },
+  rrhh_edit: {
+    label: { es: 'Gestionar Empleados', en: 'Manage Employees' },
+    category: { es: 'Recursos Humanos', en: 'Human Resources' },
+    description: { es: 'Crear y editar empleados, registrar asistencia', en: 'Create and edit employees, record attendance' },
+  },
+  rrhh_nomina: {
+    label: { es: 'Procesar Nómina', en: 'Process Payroll' },
+    category: { es: 'Recursos Humanos', en: 'Human Resources' },
+    description: { es: 'Generar nóminas por período y marcarlas como pagadas', en: 'Generate payroll periods and mark them as paid' },
+  },
 } as const
 
 export type PermissionKey = keyof typeof PERMISSIONS
@@ -334,6 +363,8 @@ export const PERMISSION_CATEGORIES = [
   { key: 'Reportes', icon: '📊', color: 'indigo' },
   { key: 'Distribuidor', icon: '🚚', color: 'orange' },
   { key: 'Restaurant', icon: '🍽️', color: 'yellow' },
+  { key: 'Contabilidad', icon: '📊', color: 'indigo' },
+  { key: 'Recursos Humanos', icon: '👥', color: 'purple' },
   { key: 'Administración', icon: '⚙️', color: 'red' },
 ] as const
 

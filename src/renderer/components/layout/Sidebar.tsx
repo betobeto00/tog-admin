@@ -22,6 +22,8 @@ import {
   Tag,
   Utensils,
   ChefHat,
+  Calculator,
+  UsersRound,
   PieChart,
   Warehouse,
   ChevronDown,
@@ -93,11 +95,16 @@ export default function Sidebar() {
       { to: '/restaurant-mesas', icon: Utensils, label: t('nav.restaurantTables'), permission: 'restaurant_mesas_view', modulo: 'restaurant' },
       { to: '/restaurant-cocina', icon: ChefHat, label: t('nav.restaurantKitchen'), permission: 'restaurant_comandas_view', modulo: 'restaurant' },
     ]
+    const administracion: MenuItem[] = [
+      { to: '/contabilidad', icon: Calculator, label: t('nav.accounting'), permission: 'contable_view', modulo: 'administracion' },
+      { to: '/rrhh', icon: UsersRound, label: t('nav.rrhh'), permission: 'rrhh_view', modulo: 'rrhh' },
+    ]
 
     return [
       { id: 'core', labelKey: 'nav.group.comercializador', color: 'text-blue-300', items },
       { id: 'distribuidor', labelKey: 'nav.group.distribuidor', color: 'text-emerald-300', items: distribuidor },
       { id: 'restaurant', labelKey: 'nav.group.restaurant', color: 'text-orange-300', items: restaurant },
+      { id: 'administracion', labelKey: 'nav.group.administracion', color: 'text-amber-300', items: administracion },
     ]
   }, [t])
 
