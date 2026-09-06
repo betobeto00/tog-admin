@@ -3,7 +3,7 @@
  * Protocolo: Semi-integración por cable USB (puerto COM virtual)
  *
  * El terminal se comunica con tramas JSON envueltas entre STX (0x02) y ETX (0x03).
- * Documentación: VP800-connect.md en docs/
+ * Protocolo: Perform Transaction (Sale API) de Valor PayTech, semi-integración
  */
 
 import { t } from '../i18n'
