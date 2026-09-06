@@ -80,7 +80,7 @@ npm install
 # Ejecutar en modo desarrollo
 npm run dev
 
-# Ejecutar tests (Vitest: 265 tests)
+# Ejecutar tests (Vitest: 332 tests en 28 archivos)
 npm test
 
 # Tests en watch mode
@@ -152,9 +152,10 @@ Para más detalles, ver [docs/GUIA_DESARROLLADOR.md](docs/GUIA_DESARROLLADOR.md)
 tog-admin/
 ├── docs/                    # Documentación del proyecto
 │   ├── ARCHITECTURE.md       # Arquitectura real (migraciones, IPC, módulos, red local)
+│   ├── FEATURES.md           # Estado por feature (fuente de verdad operativa)
+│   ├── historia/             # Docs históricos: roadmaps, auditorías, planes (no operativos)
 │   ├── LICENCIAMIENTO.md     # Guía de licencias (offline + Sincronizar + max_pcs)
-│   ├── MODULOS.md            # Catálogo de módulos TOG Platform
-│   ├── INTERCONEXION-RED.md  # Diseño + estado del módulo red local (espejo tog-platform)
+│   ├── MODULOS.md            # Catálogo de módulos (espejo de tog-platform/docs/MODULOS.md)
 │   ├── QA-SYNC.md            # QA del flujo Sincronizar
 │   └── ...
 ├── packaging/
@@ -205,7 +206,7 @@ tog-admin/
 │       ├── types.ts
 │       ├── papeleria-api.d.ts  # Tipos de la API expuesta al renderer
 │       ├── validations.ts   # Schemas Zod
-│       ├── permissions.ts   # Catálogo de 48 permisos
+│       ├── permissions.ts   # Catálogo de 57 permisos en 11 categorías
 │       ├── ipc-channels.ts  # Canales IPC + PREAUTH_CHANNELS
 │       └── modules.ts       # Catálogo de módulos TOG Platform
 ├── keys/                    # Claves RSA (licencias) — fuera del repo (.gitignore)

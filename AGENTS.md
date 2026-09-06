@@ -52,7 +52,13 @@ Este repositorio usa **graphify** para mantener un grafo de conocimiento navegab
 - **Canales IPC tipados:** `src/shared/ipc-channels.ts` (tipo `IpcChannel` y lista `PREAUTH_CHANNELS`). El renderer llama por `callApi` en `src/renderer/lib/api-client.ts`, que inyecta `usuario_id` y lanza error si el handler responde `{ success: false }`.
 - La visión de plataforma modular (módulos activables por licencia) vive en https://github.com/betobeto00/tog-platform.
 
-Ver `docs/ARCHITECTURE.md` (estado actual), `docs/MODULOS.md` (referencia conceptual), `docs/INFORME-ERP.md` (auditoría), `docs/ARQUITECTURA-MODULAR.md` (plan).
+Ver `docs/README.md` (índice de documentación y reglas de canon), `docs/ARCHITECTURE.md` (estado actual), `docs/FEATURES.md` (estado por feature), `docs/MODULOS.md` (catálogo espejo de tog-platform). El resto está en `docs/historia/`.
+
+## Documentación (canon)
+
+- **Canon operativo** (raíz de `docs/`): `README.md` (índice + reglas), `ARCHITECTURE.md`, `FEATURES.md`, `MODULOS.md`, `LICENCIAMIENTO.md`, `QA-SYNC.md`, `UPDATER_NOTES.md`, `GUIA_DESARROLLADOR.md`, `MANUAL_USUARIO.html`.
+- **Historia** (`docs/historia/`): roadmaps, auditorías, planes, bitácoras, benchmarks. No son fuente de verdad; no los actualices, solo archiva.
+- Regla: **un tema, un archivo canónico**. Números clave (permisos, tests, migraciones, páginas) se actualizan en la fuente canónica, no en varios docs. Antes de crear un doc nuevo, revisa si puede vivir dentro de uno existente.
 
 ## Permisos IPC
 

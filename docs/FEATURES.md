@@ -232,7 +232,7 @@
 | # | Feature | Prioridad | Estado | DescripciÃ³n |
 |---|---------|-----------|--------|-------------|
 | SEC1 | Sistema de licencias RSA-2048 | ðŸ”´ | âœ… | Licencias offline con validaciÃ³n de firma + **Sincronizar** (canal pre-auth `license:sync`, re-validaciÃ³n RSA local) |
-| SEC2 | Permisos por usuario (41 permisos) | ðŸŸ¡ | âœ… | 8 categorÃ­as de permisos granulares (incl. `distribuidor_*` y `creditos_*`) |
+| SEC2 | Permisos por usuario (57 permisos) | ðŸŸ¡ | âœ… | 11 categorÃ­as de permisos granulares (incl. `distribuidor_*`, `creditos_*` y `red_manage`) |
 | SEC3 | Rate limiting en login | ðŸ”´ | âœ… | Bloqueo despuÃ©s de 5 intentos |
 | SEC4 | Session timeout | ðŸ”´ | âœ… | 30 min de inactividad |
 | SEC5 | Password hashing (bcrypt) | ðŸ”´ | âœ… | 10 salt rounds |
@@ -248,8 +248,8 @@
 |---|---------|-----------|--------|-------------|
 | INF1 | Auto-update (electron-updater) | ðŸŸ¡ | âœ… | Actualizaciones vÃ­a GitHub Releases |
 | INF2 | NSIS installer | ðŸŸ¡ | âœ… | Instalador Windows con acceso directo |
-| INF3 | i18n (ES/EN) | ðŸŸ¡ | âœ… | ~1,382 keys por idioma (ES/EN, renderer) |
-| INF4 | Tests automatizados | ðŸŸ¡ | âœ… | 204 tests (Vitest: validaciones, servicios, handlers IPC, componentes) |
+| INF3 | i18n (ES/EN) | ðŸŸ¡ | âœ… | ~1,862 keys por idioma (ES/EN, renderer) + ~97 en main |
+| INF4 | Tests automatizados | ðŸŸ¡ | âœ… | 332 tests en 28 archivos (Vitest: validaciones, servicios, handlers IPC, componentes) |
 | INF5 | Build portable | ðŸŸ¢ | âœ… | VersiÃ³n sin instalador |
 | INF6 | Instalador X32 | ðŸŸ¡ | â³ | Instalador para arquitectura de 32 bits |
 | INF7 | Logging estructurado (winston) | ðŸŸ¡ | â³ | Logging centralizado en main process |
@@ -288,8 +288,8 @@
 | NET6 | Setup screen para PC Hija | ðŸ”´ | âœ… | `SetupPage` (pantalla de bloqueo â†’ botÃ³n "Conectar a una PC Base"): pide IP, cÃ³digo y nombre. Se renderiza desde `LicenseGate` cuando la licencia no es vÃ¡lida localmente |
 | NET7 | Permiso `red_manage` | ðŸŸ¡ | âœ… | Solo admin puede generar cÃ³digos y ver PCs enlazadas |
 | NET8 | Logout distribuido | ðŸŸ¡ | âœ… | Al desloguear en la hija se llama `red:logout` (libera sesiones en la Base). Al cerrar la app (`before-quit`) se llama best-effort |
-| NET9 | TLS local | ðŸŸ¢ | â³ | Pendiente: cert autofirmado generado al primer arranque de la Base |
-| NET10 | Heartbeat 60s para expulsar sesiones huÃ©rfanas | ðŸŸ¢ | â³ | Pendiente: hoy la sesiÃ³n se libera al cerrar/desloguear la hija |
+| NET9 | TLS local | 🟢 | ✅ | Implementado (5-Sep-2026): cert autofirmado generado al primer arranque de la Base (`services/red-cert.ts`), HTTPS en `:3002`, la hija ancla al cert recibido en el handshake |
+| NET10 | Heartbeat 60s para expulsar sesiones huérfanas | 🟢 | ✅ | Implementado (5-Sep-2026): `useRedHeartbeat` en la hija envía heartbeat cada 60s; la Base actualiza `last_heartbeat` y libera sesiones huérfanas (> 5 min) |
 
 ### MÃ³dulo: Producto ( imagen) y Moneda â€” extensiÃ³n del Core (Fase 5)
 
@@ -369,5 +369,4 @@ Spike funcional completo de la **interconexión PC Base + PC hijas** + las featu
 
 - ⏳ **Exportar cotización a PDF nativo** (Fase 6 — hoy se imprime a ventana).
 - ⏳ **Facturación fiscal Venezuela** (Fase 8 — depende de normativa SNAT).
-- ⏳ **Heartbeat automático (60s)** para expulsar sesiones huérfanas en la red local; hoy se libera al cerrar/desloguear la hija.
-- ⏳ **TLS local** con cert autofirmado generado al primer arranque de la PC Base (spike funcional actual: HTTP plano en LAN con credenciales de par).
+- ✅ **TLS local + Heartbeat 60s** — implementados el 5-Sep-2026 (`services/red-cert.ts`, `useRedHeartbeat.ts`, migración de `last_heartbeat`). Ver sección Módulo Red Local.

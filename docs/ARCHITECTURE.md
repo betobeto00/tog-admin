@@ -23,7 +23,7 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │              SQLite Database                         │    │
 │  │         (tog-admin.db — archivo local)               │    │
-│  │         32 migraciones · 30 tablas · 30+ índices     │    │
+│  │         42 migraciones · 40+ tablas · 40+ índices     │    │
 │  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -53,6 +53,8 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 | `services/red-server.ts` | Servidor HTTP local `:3002` que levanta la **PC Base** para atender PCs hijas (vincular / rpc / logout) |
 | `services/red-client.ts` | Cliente HTTP de la **PC Hija** hacia la Base (vincular / rpc / logout) |
 | `services/red-session.ts` | Sesión única por usuario en todo el grupo de PCs (`registrarSesion`, `liberarSesionesDePar`) |
+| `services/red-cert.ts` | Certificado TLS autofirmado de la PC Base: genera al primer arranque, carga en los siguientes; la Base expone HTTPS en `:3002` y la hija ancla al cert recibido en el handshake |
+| `services/red-heartbeat` (renderer: `hooks/useRedHeartbeat.ts`) | Heartbeat de 60 s desde la hija; la Base actualiza `last_heartbeat` y libera sesiones huérfanas (> 5 min) |
 | `modules/red/` | Handlers IPC del módulo red (`red:status`, `vincular`, `desvincular`, `generar-codigo`, `listar-pcs`, `logout`) — registro análogo a otros módulos |
 | `services/crash-reporter.ts` | Sistema de reportes de error |
 | `services/updater.ts` | Auto-actualizaciones vía GitHub (`update:*`) |
@@ -91,7 +93,7 @@ Router (HashRouter)
 - **Un solo archivo:** `tog-admin.db` en `%APPDATA%/tog-admin/`
 - **Sin servidor:** No necesita MySQL ni nada externo
 - **Respaldo:** Copiar el archivo `.db` = respaldo completo
-- **Migraciones:** Sistema de versionado de esquema (23 migraciones)
+- **Migraciones:** Sistema de versionado de esquema (42 migraciones, 001–042)
 - **WAL mode:** Permite lectura mientras escribe
 
 ### 4. Comunicación IPC
@@ -385,7 +387,7 @@ Estado en memoria (`symbol`, `rate`, `name`) inicializado por `loadCurrency()` d
 | Error handling | ErrorBoundary global + crash reports + logging diagnóstico |
 | Internacionalización | i18n con 2 idiomas (ES/EN), ~1,329 keys por idioma en el renderer (+97 en main) |
 | Backup automático | Al cerrar caja se crea backup de la DB |
-| Permisos | 48 permisos en 9 categorías (ventas+créditos, caja, inventario, compras, cotizaciones, reportes, distribuidor, restaurant, administración), control granular por usuario (incluye `red_manage` para gestión de PC Base) |
+| Permisos | 57 permisos en 11 categorías (Ventas, Caja, Inventario, Compras, Cotizaciones, Reportes, Distribuidor, Restaurant, Contabilidad, Recursos Humanos, Administración), control granular por usuario (incluye `red_manage` para gestión de PC Base) |
 | Sesión única en red local | Un usuario solo puede estar activo en una PC del grupo a la vez (`services/red-session.ts`) |
 | Validación origen IPC | `handleIpc` (`core/auth/ipc-guard.ts`): rechaza cualquier sender que no sea main-frame `file://` (empaquetado) o `localhost:5173` (dev) |
 
@@ -466,10 +468,10 @@ Desarrollador                          Cliente
 
 ## Roadmap de Expansión
 
-Para el histórico completo con todas las fases (incluyendo pendientes), ver:
-- **[ROADMAP.md](./ROADMAP.md)** — Roadmap histórico (referencia; no aplicar sus migraciones propuestas)
-- **[ROADMAP-INTEGRACION.md](./ROADMAP-INTEGRACION.md)** — Borrador histórico de planificación
-- **[Caso-Venezuela.md](./Caso-Venezuela.md)** — Análisis regulatorio Venezuela (referencia)
+Para el histórico completo con todas las fases (incluyendo pendientes), ver `docs/historia/`:
+- **[historia/ROADMAP.md](./historia/ROADMAP.md)** — Roadmap histórico (referencia; no aplicar sus migraciones propuestas)
+- **[historia/ROADMAP-INTEGRACION.md](./historia/ROADMAP-INTEGRACION.md)** — Borrador histórico de planificación
+- **[historia/Caso-Venezuela.md](./historia/Caso-Venezuela.md)** — Análisis regulatorio Venezuela (referencia)
 - **[benchmarkin-Integra-POS.md](./benchmarkin-Integra-POS.md)** — Benchmarking competitivo (referencia)
 
 ### Próximas prioridades
@@ -484,4 +486,4 @@ Para el histórico completo con todas las fases (incluyendo pendientes), ver:
 8. **Exportar cotización a PDF** — Profesionalismo (Fase 6)
 9. **Facturación fiscal Venezuela** — Cumplimiento legal (Fase 8)
 
-> El estado por feature vive en `FEATURES.md`; `ROADMAP.md` y `ROADMAP-INTEGRACION.md` son históricos (sus SQL de migraciones propuestas no coinciden con la numeración real).
+> El estado por feature vive en `FEATURES.md`; `historia/ROADMAP.md` y `historia/ROADMAP-INTEGRACION.md` son históricos (sus SQL de migraciones propuestas no coinciden con la numeración real).
