@@ -172,9 +172,10 @@
 |---|---------|-----------|--------|-------------|
 | RRH1 | Empleados CRUD | 🔴 | ✅ | Altas/bajas lógicas, cargo, salario mensual, documento, contacto; desactiva en vez de borrar si tiene nóminas |
 | RRH2 | Asistencia diaria | 🔴 | ✅ | Marca presente/tarde/ausente por empleado y fecha (upsert), vista del día con estado pendiente |
-| RRH3 | Nómina por período | 🔴 | ✅ | Proporcional a días presentes/tarde sobre 30 días, bonos y deducciones por empleado, regeneración idempotente |
+| RRH3 | Nómina por período | 🔴 | ✅ | Salario base prorrateado según `tipo_pago` (mensual ×1, quincenal ×0.5, semanal ×0.25) × días presentes/tarde sobre 30 (activable con `salario_base_activo`), bonos y deducciones por empleado **y globales**, regeneración idempotente (migración 042) |
 | RRH4 | Pago de nómina | 🔴 | ✅ | Marca nóminas como pagadas con fecha; recibo imprimible en UI |
 | RRH5 | Gating por licencia y permisos | 🔴 | ✅ | Menú/rutas/handlers solo con módulo `rrhh` en la licencia + permisos `rrhh_view` / `rrhh_edit` / `rrhh_nomina` |
+| RRH8 | Conceptos de nómina | 🔴 | ✅ | Asignaciones/deducciones por nómina (`rrhh:nomina-concepto-add/delete/list`) con recálculo automático del total; bloqueados si la nómina está pagada; listado incluye conceptos + datos extendidos del empleado (experiencia, años de servicio, nivel académico) |
 | RRH6 | Roles y permisos finos por empleado | 🟡 | ⏳ | Los empleados no son usuarios de la app; fase futura |
 | RRH7 | Beneficios legales por país | 🟡 | ⏳ | Vacaciones, utilidades, prestaciones (depende de normativa) |
 

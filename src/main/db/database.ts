@@ -826,9 +826,168 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
         CREATE INDEX IF NOT EXISTS idx_nominas_periodo ON nominas(periodo_inicio, periodo_fin);
       `,
     },
-  ]
-}
+    {
+      nombre: '035b_nomina_conceptos',
+      sql: `
+        CREATE TABLE IF NOT EXISTS nomina_conceptos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nomina_id INTEGER NOT NULL REFERENCES nominas(id) ON DELETE CASCADE,
+          nombre TEXT NOT NULL,
+          tipo TEXT NOT NULL CHECK(tipo IN ('asignacion', 'deduccion')),
+          monto REAL NOT NULL DEFAULT 0,
+          orden INTEGER NOT NULL DEFAULT 0,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_nomina_conceptos_nomina ON nomina_conceptos(nomina_id);
+      `,
+    },
+    {
+      nombre: '036_productor',
+      sql: `
+        CREATE TABLE IF NOT EXISTS cultivos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nombre TEXT NOT NULL,
+          variedad TEXT,
+          unidad TEXT NOT NULL DEFAULT 'kg',
+          notas TEXT,
+          activo INTEGER NOT NULL DEFAULT 1,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
 
+        CREATE TABLE IF NOT EXISTS siembras (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          cultivo_id INTEGER NOT NULL REFERENCES cultivos(id),
+          descripcion TEXT,
+          fecha_siembra TEXT NOT NULL DEFAULT (date('now')),
+          area REAL NOT NULL DEFAULT 0,
+          unidad_area TEXT NOT NULL DEFAULT 'ha',
+          cantidad_sembrada REAL NOT NULL DEFAULT 0,
+          estado TEXT NOT NULL DEFAULT 'activa',
+          fecha_cosecha TEXT,
+          cantidad_cosechada REAL NOT NULL DEFAULT 0,
+          notas TEXT,
+          usuario_id INTEGER REFERENCES usuarios(id),
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_siembras_estado ON siembras(estado);
+
+        CREATE TABLE IF NOT EXISTS costos_campo (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          siembra_id INTEGER NOT NULL REFERENCES siembras(id),
+          fecha TEXT NOT NULL DEFAULT (date('now')),
+          concepto TEXT NOT NULL,
+          monto REAL NOT NULL DEFAULT 0,
+          notas TEXT,
+          usuario_id INTEGER REFERENCES usuarios(id),
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_costos_campo_siembra ON costos_campo(siembra_id);
+      `,
+    },
+    {
+      nombre: '037_postventa',
+      sql: `
+        CREATE TABLE IF NOT EXISTS tickets_postventa (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          numero TEXT NOT NULL UNIQUE,
+          venta_id INTEGER REFERENCES ventas(id),
+          cliente_nombre TEXT NOT NULL,
+          cliente_telefono TEXT,
+          asunto TEXT NOT NULL,
+          descripcion TEXT,
+          estado TEXT NOT NULL DEFAULT 'abierto',
+          prioridad TEXT NOT NULL DEFAULT 'media',
+          usuario_id INTEGER REFERENCES usuarios(id),
+          cerrado_en TEXT,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_tickets_estado ON tickets_postventa(estado);
+
+        CREATE TABLE IF NOT EXISTS ticket_mensajes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          ticket_id INTEGER NOT NULL REFERENCES tickets_postventa(id),
+          autor TEXT NOT NULL,
+          mensaje TEXT NOT NULL,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS devoluciones (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          venta_id INTEGER REFERENCES ventas(id),
+          ticket_id INTEGER REFERENCES tickets_postventa(id),
+          producto_id INTEGER REFERENCES productos(id),
+          cantidad REAL NOT NULL DEFAULT 1,
+          monto REAL NOT NULL DEFAULT 0,
+          motivo TEXT NOT NULL,
+          tipo TEXT NOT NULL DEFAULT 'devolucion',
+          usuario_id INTEGER REFERENCES usuarios(id),
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS garantias (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          venta_id INTEGER REFERENCES ventas(id),
+          ticket_id INTEGER REFERENCES tickets_postventa(id),
+          producto_id INTEGER REFERENCES productos(id),
+          vence_en TEXT,
+          estado TEXT NOT NULL DEFAULT 'vigente',
+          resolucion TEXT,
+          resuelto_en TEXT,
+          usuario_id INTEGER REFERENCES usuarios(id),
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+      `,
+},
+      {
+        nombre: '038_productos_costo_combo',
+        sql: `
+          ALTER TABLE productos ADD COLUMN costo_real REAL;
+          ALTER TABLE productos ADD COLUMN es_combo INTEGER NOT NULL DEFAULT 0;
+        `,
+      },
+      {
+        nombre: '039_cargos',
+        sql: `
+          CREATE TABLE IF NOT EXISTS cargos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            salario_base_mensual REAL NOT NULL DEFAULT 0,
+            activo INTEGER NOT NULL DEFAULT 1,
+            creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+          );
+        `,
+      },
+      {
+        nombre: '040_empleado_cargo',
+        sql: `
+          CREATE TABLE IF NOT EXISTS empleado_cargo (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            empleado_id INTEGER NOT NULL REFERENCES empleados(id) ON DELETE CASCADE,
+            cargo_id INTEGER NOT NULL REFERENCES cargos(id),
+            fecha_asignacion TEXT NOT NULL DEFAULT (datetime('now')),
+            activo INTEGER NOT NULL DEFAULT 1
+          );
+          CREATE INDEX IF NOT EXISTS idx_empleado_cargo_empleado ON empleado_cargo(empleado_id);
+          CREATE INDEX IF NOT EXISTS idx_empleado_cargo_cargo ON empleado_cargo(cargo_id);
+        `,
+      },
+      {
+        nombre: '041_empleado_extendido',
+        sql: `
+          ALTER TABLE empleados ADD COLUMN experiencia TEXT;
+          ALTER TABLE empleados ADD COLUMN anos_servicio INTEGER NOT NULL DEFAULT 0;
+          ALTER TABLE empleados ADD COLUMN nivel_academico TEXT;
+        `,
+      },
+      {
+        nombre: '042_nominas_flexible',
+        sql: `
+          ALTER TABLE nominas ADD COLUMN tipo_pago TEXT;
+          ALTER TABLE nominas ADD COLUMN salario_base_activo INTEGER NOT NULL DEFAULT 0;
+        `,
+      },
+    ]
+}
 // ============================================
 // SEEDS (datos iniciales)
 // ============================================

@@ -4,6 +4,7 @@ import { checkPermissionOrFail } from '../../core/auth'
 import { getActiveModules } from '../../services/license'
 import { ventaCreateSchema } from '../../../shared/validations'
 import { esCombo, explotar, agruparHojas } from '../inventario/combos'
+import { registrarAsientosVenta, revertirAsientosVenta } from '../administracion/asientos'
 
 /**
  * Crea una venta completa (validación, stock, combos, crédito/fiado y caja).
@@ -170,6 +171,13 @@ export function createVenta(data: any): any {
       "UPDATE configuracion SET valor = ? WHERE clave = 'ticket_numero_venta'"
     ).run(String(numeroVenta))
 
+    // Asiento contable de la venta (best-effort, nunca rompe la venta)
+    registrarAsientosVenta(
+      db,
+      { id: Number(ventaId), numero_venta: numeroVenta, fecha: hoy, total: data.total, impuesto: data.impuesto, metodo_pago: data.metodo_pago, monto_pagado: data.monto_pagado },
+      data.usuario_id ?? null,
+    )
+
     return { id: ventaId, numero_venta: numeroVenta, credito_id: creditoId }
   })
 
@@ -304,6 +312,9 @@ export function registerVentasHandlers(): void {
       if (credito && credito.estado === 'pendiente') {
         db!.prepare("UPDATE creditos SET estado = 'anulado' WHERE id = ?").run(credito.id)
       }
+
+      // Revertir asientos contables de la venta anulada (best-effort)
+      revertirAsientosVenta(db, data.id)
 
       return { success: true }
     })

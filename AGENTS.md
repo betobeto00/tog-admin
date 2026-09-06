@@ -40,7 +40,7 @@ Este repositorio usa **graphify** para mantener un grafo de conocimiento navegab
 - **Lenguaje:** TypeScript estricto (`tsc --noEmit` debe pasar).
 - **Tests:** Vitest. Correr `npm test` antes de commit.
 - **Estilo:** NO agregar comentarios al código salvo que el usuario lo pida explícitamente.
-- **Commits:** mensajes en inglés, una línea, imperativo. NO commitear sin que el usuario lo pida.
+- **Commits:** mensajes en inglés, imperativo.
 - **Seguridad:** NUNCA commitear secretos. `.env` ya está en `.gitignore`.
 
 ## Arquitectura

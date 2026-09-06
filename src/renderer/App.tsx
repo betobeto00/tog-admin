@@ -29,6 +29,8 @@ import QuotesPage from './pages/QuotesPage'
 import HelpPage from './pages/HelpPage'
 import ContabilidadPage from './pages/ContabilidadPage'
 import RrhhPage from './pages/RrhhPage'
+import ProductorPage from './pages/ProductorPage'
+import PostventaPage from './pages/PostventaPage'
 import Tutorial, { hasTutorialCompleted } from './components/Tutorial'
 import LicenseGate from './components/LicenseGate'
 import { loadCurrency } from './services/currency'
@@ -109,6 +111,8 @@ export default function App() {
           <Route path="cotizaciones" element={<QuotesPage />} />
           <Route path="contabilidad" element={<ContabilidadPage />} />
           <Route path="rrhh" element={<RrhhPage />} />
+          <Route path="produccion" element={<ProductorPage />} />
+          <Route path="postventa" element={<PostventaPage />} />
           <Route path="configuracion" element={<ConfigPage />} />
           <Route path="ayuda" element={<HelpPage />} />
         </Route>

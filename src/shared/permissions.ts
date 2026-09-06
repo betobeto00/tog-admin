@@ -307,6 +307,30 @@ export const PERMISSIONS = {
     category: { es: 'Recursos Humanos', en: 'Human Resources' },
     description: { es: 'Generar nóminas por período y marcarlas como pagadas', en: 'Generate payroll periods and mark them as paid' },
   },
+
+  // === PRODUCTOR ===
+  productor_view: {
+    label: { es: 'Ver Producción', en: 'View Production' },
+    category: { es: 'Productor', en: 'Producer' },
+    description: { es: 'Ver cultivos, siembras, cosechas y su costeo', en: 'View crops, plantings, harvests and their costing' },
+  },
+  productor_edit: {
+    label: { es: 'Gestionar Producción', en: 'Manage Production' },
+    category: { es: 'Productor', en: 'Producer' },
+    description: { es: 'Crear cultivos y siembras, registrar cosechas y costos de campo', en: 'Create crops and plantings, record harvests and field costs' },
+  },
+
+  // === POSTVENTA ===
+  postventa_view: {
+    label: { es: 'Ver Postventa', en: 'View After-Sales' },
+    category: { es: 'Postventa', en: 'After-Sales' },
+    description: { es: 'Ver tickets de soporte, devoluciones y garantías', en: 'View support tickets, returns and warranties' },
+  },
+  postventa_edit: {
+    label: { es: 'Gestionar Postventa', en: 'Manage After-Sales' },
+    category: { es: 'Postventa', en: 'After-Sales' },
+    description: { es: 'Crear tickets, registrar devoluciones y resolver garantías', en: 'Create tickets, record returns and resolve warranties' },
+  },
 } as const
 
 export type PermissionKey = keyof typeof PERMISSIONS

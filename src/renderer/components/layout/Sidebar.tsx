@@ -26,6 +26,8 @@ import {
   UsersRound,
   PieChart,
   Warehouse,
+  Sprout,
+  LifeBuoy,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react'
@@ -99,11 +101,19 @@ export default function Sidebar() {
       { to: '/contabilidad', icon: Calculator, label: t('nav.accounting'), permission: 'contable_view', modulo: 'administracion' },
       { to: '/rrhh', icon: UsersRound, label: t('nav.rrhh'), permission: 'rrhh_view', modulo: 'rrhh' },
     ]
+    const productor: MenuItem[] = [
+      { to: '/produccion', icon: Sprout, label: t('nav.production'), permission: 'productor_view', modulo: 'productor' },
+    ]
+    const postventa: MenuItem[] = [
+      { to: '/postventa', icon: LifeBuoy, label: t('nav.afterSales'), permission: 'postventa_view', modulo: 'postventa' },
+    ]
 
     return [
       { id: 'core', labelKey: 'nav.group.comercializador', color: 'text-blue-300', items },
       { id: 'distribuidor', labelKey: 'nav.group.distribuidor', color: 'text-emerald-300', items: distribuidor },
       { id: 'restaurant', labelKey: 'nav.group.restaurant', color: 'text-orange-300', items: restaurant },
+      { id: 'productor', labelKey: 'nav.group.productor', color: 'text-lime-300', items: productor },
+      { id: 'postventa', labelKey: 'nav.group.postventa', color: 'text-rose-300', items: postventa },
       { id: 'administracion', labelKey: 'nav.group.administracion', color: 'text-amber-300', items: administracion },
     ]
   }, [t])

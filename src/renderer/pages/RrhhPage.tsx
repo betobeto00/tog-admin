@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  Users, CalendarCheck, Banknote, Plus, Edit2, Trash2, Save, X, CheckCircle2, Printer
+  Users, CalendarCheck, Banknote, Plus, Edit2, Trash2, Save, X, CheckCircle2, Printer, FileText
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
@@ -23,6 +23,10 @@ interface Nomina {
   id: number; empleado_id: number; empleado_nombre: string; empleado_documento: string | null; empleado_cargo: string | null
   periodo_inicio: string; periodo_fin: string; salario_base: number; dias_trabajados: number
   bonos: number; deducciones: number; total_pagar: number; estado: string; pagado_en: string | null
+  conceptos?: NominaConcepto[]
+}
+interface NominaConcepto {
+  id: number; nomina_id: number; nombre: string; tipo: 'asignacion' | 'deduccion'; monto: number; orden: number
 }
 
 const ESTADOS_ASISTENCIA = ['presente', 'ausente', 'tarde', 'permiso', 'descanso'] as const
@@ -50,8 +54,16 @@ export default function RrhhPage() {
   const [nominaHasta, setNominaHasta] = useState(HOY())
   const [nominas, setNominas] = useState<Nomina[]>([])
   const [generando, setGenerando] = useState(false)
+  const [tipoPago, setTipoPago] = useState<'semanal' | 'quincenal' | 'mensual'>('mensual')
+  const [salarioBaseActivo, setSalarioBaseActivo] = useState(true)
+  const [bonosGlobales, setBonosGlobales] = useState('')
+  const [deduccionesGlobales, setDeduccionesGlobales] = useState('')
   const [bonos, setBonos] = useState<Record<number, string>>({})
   const [deducciones, setDeducciones] = useState<Record<number, string>>({})
+  const [conceptosNominaId, setConceptosNominaId] = useState<number | null>(null)
+  const [conceptoForm, setConceptoForm] = useState<{ nombre: string; tipo: 'asignacion' | 'deduccion'; monto: string }>({
+    nombre: '', tipo: 'asignacion', monto: '',
+  })
 
   const loadEmpleados = async () => {
     try {
@@ -155,6 +167,10 @@ export default function RrhhPage() {
       const res = await callApi<{ success: boolean; nominas: Nomina[]; error?: string }>('rrhh:nomina-generar', {
         periodo_inicio: nominaDesde,
         periodo_fin: nominaHasta,
+        tipo_pago: tipoPago,
+        salario_base_activo: salarioBaseActivo,
+        bonos_globales: bonosGlobales.trim() === '' ? undefined : parseFloat(bonosGlobales) || 0,
+        deducciones_globales: deduccionesGlobales.trim() === '' ? undefined : parseFloat(deduccionesGlobales) || 0,
         bonos: parseMap(bonos),
         deducciones: parseMap(deducciones),
       })
@@ -179,9 +195,63 @@ export default function RrhhPage() {
     }
   }
 
+  const openConceptos = async (nominaId: number) => {
+    setConceptosNominaId(nominaId)
+    setConceptoForm({ nombre: '', tipo: 'asignacion', monto: '' })
+  }
+
+  const agregarConcepto = async () => {
+    if (conceptosNominaId === null) return
+    if (!conceptoForm.nombre.trim()) { toast.error(t('rrhh.conceptNameRequired')); return }
+    const monto = parseFloat(conceptoForm.monto) || 0
+    if (monto < 0) { toast.error(t('rrhh.conceptAmountInvalid')); return }
+    try {
+      await callApi('rrhh:nomina-concepto-add', {
+        nomina_id: conceptosNominaId,
+        nombre: conceptoForm.nombre.trim(),
+        tipo: conceptoForm.tipo,
+        monto,
+      })
+      setConceptoForm({ nombre: '', tipo: conceptoForm.tipo, monto: '' })
+      await loadNominas()
+      toast.success(t('common.save'))
+    } catch (err: any) {
+      toast.error(err?.message || t('common.error'))
+    }
+  }
+
+  const eliminarConcepto = async (id: number) => {
+    try {
+      await callApi('rrhh:nomina-concepto-delete', { id })
+      await loadNominas()
+    } catch (err: any) {
+      toast.error(err?.message || t('common.error'))
+    }
+  }
+
   const imprimirRecibos = () => {
+    const bizName = localStorage.getItem('tog.config.nombre_negocio') || ''
+    const bizAddr = localStorage.getItem('tog.config.direccion') || ''
+    const bizPhone = localStorage.getItem('tog.config.telefono') || ''
+    const bizTax = localStorage.getItem('tog.config.ein') || ''
+    const header = bizName
+      ? `<div style="text-align:center;margin-bottom:10px">
+          <div style="font-weight:bold;font-size:14px">${bizName}</div>
+          ${bizTax ? `<div style="font-size:10px;color:#555">${bizTax}</div>` : ''}
+          ${bizAddr ? `<div style="font-size:10px;color:#555">${bizAddr}</div>` : ''}
+          ${bizPhone ? `<div style="font-size:10px;color:#555">${bizPhone}</div>` : ''}
+        </div>`
+      : ''
+    const conceptBlock = (n: Nomina) => {
+      if (!n.conceptos || n.conceptos.length === 0) return ''
+      const rows = n.conceptos.map((c) =>
+        `<div style="display:flex;justify-content:space-between;font-size:11px"><span>${c.nombre}</span><span>${c.tipo === 'asignacion' ? '+' : '-'}${formatMoney(c.monto)}</span></div>`
+      ).join('')
+      return `<div style="margin:4px 0">${rows}</div>`
+    }
     const recibos = nominas.map((n) => `
       <div style="page-break-after:always;font-family:monospace;font-size:12px;width:280px;margin:0 auto;padding:10px">
+        ${header}
         <h2 style="text-align:center;margin:4px 0;font-size:14px">${t('rrhh.payrollReceipt')}</h2>
         <div style="text-align:center;font-size:10px;color:#666">${n.periodo_inicio} → ${n.periodo_fin}</div>
         <hr style="border:none;border-top:1px dashed #000;margin:8px 0">
@@ -191,8 +261,11 @@ export default function RrhhPage() {
         <hr style="border:none;border-top:1px dashed #000;margin:8px 0">
         <div style="display:flex;justify-content:space-between"><span>${t('rrhh.baseSalary')}</span><span>${formatMoney(n.salario_base)}</span></div>
         <div style="display:flex;justify-content:space-between"><span>${t('rrhh.daysWorked')}</span><span>${n.dias_trabajados}</span></div>
+        ${conceptBlock(n)}
+        ${(n.conceptos && n.conceptos.length > 0) ? `<div style="display:flex;justify-content:space-between;font-size:11px"><span>${t('rrhh.assignments')}</span><span>+${formatMoney(n.bonos)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px"><span>${t('rrhh.deductions')}</span><span>-${formatMoney(n.deducciones)}</span></div>` : `
         <div style="display:flex;justify-content:space-between"><span>${t('rrhh.bonuses')}</span><span>${formatMoney(n.bonos)}</span></div>
-        <div style="display:flex;justify-content:space-between"><span>${t('rrhh.deductions')}</span><span>-${formatMoney(n.deducciones)}</span></div>
+        <div style="display:flex;justify-content:space-between"><span>${t('rrhh.deductions')}</span><span>-${formatMoney(n.deducciones)}</span></div>`}
         <hr style="border:none;border-top:1px dashed #000;margin:8px 0">
         <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:13px"><span>${t('rrhh.totalToPay')}</span><span>${formatMoney(n.total_pagar)}</span></div>
         <div style="text-align:center;font-size:10px;color:#666;margin-top:20px">${t('rrhh.receiptSignature')}</div>
@@ -357,6 +430,36 @@ export default function RrhhPage() {
                   className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300">
                   {generando ? t('common.saving') : t('rrhh.generatePayroll')}
                 </button>
+              </div>
+              <div className="flex flex-wrap items-end gap-3 pt-1 border-t border-gray-100">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">{t('rrhh.paymentType')}</label>
+                  <select value={tipoPago} onChange={(e) => setTipoPago(e.target.value as 'semanal' | 'quincenal' | 'mensual')}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                    <option value="semanal">{t('rrhh.paymentTypeWeekly')}</option>
+                    <option value="quincenal">{t('rrhh.paymentTypeBiweekly')}</option>
+                    <option value="mensual">{t('rrhh.paymentTypeMonthly')}</option>
+                  </select>
+                </div>
+                <label className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white cursor-pointer select-none">
+                  <input type="checkbox" checked={salarioBaseActivo} onChange={(e) => setSalarioBaseActivo(e.target.checked)}
+                    className="w-4 h-4 accent-blue-600" />
+                  {t('rrhh.baseSalaryActive')}
+                </label>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">{t('rrhh.globalBonuses')}</label>
+                  <input type="number" step="0.01" min="0" value={bonosGlobales}
+                    onChange={(e) => setBonosGlobales(e.target.value)} placeholder="0.00"
+                    className="w-28 px-3 py-2 border border-gray-300 rounded-lg text-right text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">{t('rrhh.globalDeductions')}</label>
+                  <input type="number" step="0.01" min="0" value={deduccionesGlobales}
+                    onChange={(e) => setDeduccionesGlobales(e.target.value)} placeholder="0.00"
+                    className="w-28 px-3 py-2 border border-gray-300 rounded-lg text-right text-sm" />
+                </div>
+              </div>
+              <div className="flex flex-wrap items-end gap-3">
                 {nominas.some((n) => n.estado === 'pendiente') && (
                   <>
                     <button onClick={pagarNomina}
@@ -420,11 +523,18 @@ export default function RrhhPage() {
                     </td>
                     <td className="px-4 py-3 text-right font-bold">{formatMoney(n.total_pagar)}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`inline-flex text-xs font-medium px-2 py-1 rounded-full ${
-                        n.estado === 'pagada' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {n.estado === 'pagada' ? t('rrhh.payrollPaidStatus') : t('rrhh.payrollPendingStatus')}
-                      </span>
+                      <div className="flex items-center justify-center gap-1">
+                        {has('rrhh_nomina') && n.estado === 'pendiente' && (
+                          <button onClick={() => openConceptos(n.id)} className="p-1.5 hover:bg-blue-50 rounded-lg" title={t('rrhh.conceptsTitle')}>
+                            <FileText className="w-4 h-4 text-blue-500" />
+                          </button>
+                        )}
+                        <span className={`inline-flex text-xs font-medium px-2 py-1 rounded-full ${
+                          n.estado === 'pagada' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {n.estado === 'pagada' ? t('rrhh.payrollPaidStatus') : t('rrhh.payrollPendingStatus')}
+                        </span>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -497,6 +607,84 @@ export default function RrhhPage() {
         title={t('rrhh.deleteEmployee')}
         message={t('rrhh.deleteEmployeeMsg', { name: deleteEmp?.nombre || '' })}
         confirmText={t('common.delete')} danger />
+
+      <Modal open={conceptosNominaId !== null} onClose={() => setConceptosNominaId(null)}
+        title={t('rrhh.conceptsTitle')}>
+        {conceptosNominaId !== null && (() => {
+          const n = nominas.find((x) => x.id === conceptosNominaId)
+          if (!n) return null
+          return (
+            <div className="space-y-3">
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="font-medium text-gray-900">{n.empleado_nombre}</p>
+                <p className="text-xs text-gray-500">{n.periodo_inicio} → {n.periodo_fin}</p>
+                <p className="text-xs text-gray-500">{t('rrhh.baseSalary')}: <strong>{formatMoney(n.salario_base)}</strong></p>
+              </div>
+
+              {n.estado === 'pagada' && (
+                <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded">{t('rrhh.conceptsLockedPaid')}</p>
+              )}
+
+              <div className="space-y-1 max-h-64 overflow-y-auto">
+                {(n.conceptos || []).length === 0 ? (
+                  <p className="text-center text-gray-400 py-4 text-sm">{t('rrhh.noConcepts')}</p>
+                ) : (n.conceptos || []).map((c) => (
+                  <div key={c.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">{c.nombre}</p>
+                      <p className="text-xs text-gray-500">{t(`rrhh.conceptType.${c.tipo}`)}</p>
+                    </div>
+                    <p className={`text-sm font-semibold mr-3 ${c.tipo === 'asignacion' ? 'text-green-600' : 'text-red-600'}`}>
+                      {c.tipo === 'asignacion' ? '+' : '-'}{formatMoney(c.monto)}
+                    </p>
+                    {n.estado === 'pendiente' && (
+                      <button onClick={() => eliminarConcepto(c.id)} className="p-1 hover:bg-red-50 rounded" title={t('common.delete')}>
+                        <Trash2 className="w-4 h-4 text-red-400" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {n.estado === 'pendiente' && (
+                <div className="border-t border-gray-200 pt-3 space-y-2">
+                  <p className="text-xs font-medium text-gray-700">{t('rrhh.addConcept')}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input value={conceptoForm.nombre}
+                      onChange={(e) => setConceptoForm({ ...conceptoForm, nombre: e.target.value })}
+                      placeholder={t('rrhh.conceptName')}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    <select value={conceptoForm.tipo}
+                      onChange={(e) => setConceptoForm({ ...conceptoForm, tipo: e.target.value as 'asignacion' | 'deduccion' })}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                      <option value="asignacion">{t('rrhh.conceptType.asignacion')}</option>
+                      <option value="deduccion">{t('rrhh.conceptType.deduccion')}</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <input type="number" step="0.01" min="0" value={conceptoForm.monto}
+                      onChange={(e) => setConceptoForm({ ...conceptoForm, monto: e.target.value })}
+                      placeholder="0.00"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    <button onClick={agregarConcepto}
+                      className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                      <Plus className="w-4 h-4" /> {t('common.add')}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                <div className="flex justify-between"><span>{t('rrhh.baseSalary')}</span><span>{formatMoney(n.salario_base)}</span></div>
+                <div className="flex justify-between text-green-600"><span>{t('rrhh.assignments')}</span><span>+{formatMoney(n.bonos)}</span></div>
+                <div className="flex justify-between text-red-600"><span>{t('rrhh.deductions')}</span><span>-{formatMoney(n.deducciones)}</span></div>
+                <hr className="my-2" />
+                <div className="flex justify-between font-bold"><span>{t('rrhh.totalToPay')}</span><span>{formatMoney(n.total_pagar)}</span></div>
+              </div>
+            </div>
+          )
+        })()}
+      </Modal>
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { compraCreateSchema } from '../../../shared/validations'
+import { registrarAsientosCompra } from '../administracion/asientos'
 
 export function registerComprasHandlers(): void {
   handleIpc('compras:list', async (_event, filters?: any) => {
@@ -75,6 +76,13 @@ export function registerComprasHandlers(): void {
         insertDetalle.run(compraId, det.producto_id, det.cantidad, det.costo_unitario, det.subtotal)
         updateStock.run(det.cantidad, det.producto_id)
       }
+
+      // Asiento contable de la compra (best-effort, nunca rompe la compra)
+      registrarAsientosCompra(
+        db,
+        { id: Number(compraId), numero_compra: numeroCompra, fecha: hoy, subtotal: data.subtotal, impuesto: data.impuesto, total: data.total },
+        data.usuario_id ?? null,
+      )
 
       return { id: compraId, numero_compra: numeroCompra }
     })

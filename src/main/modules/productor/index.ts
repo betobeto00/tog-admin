@@ -1,0 +1,1 @@
+export { registerProductorHandlers } from './handlers'

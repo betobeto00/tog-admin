@@ -1,0 +1,1 @@
+export { registerPostventaHandlers } from './handlers'
