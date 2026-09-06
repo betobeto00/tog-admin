@@ -1,8 +1,8 @@
 # 🔐 Sistema de Licencias TOG Admin — Guía Completa
 
-**Versión:** 1.0.0  
+**Versión:** 1.2.0  
 **Fecha:** 28 de agosto de 2026  
-**Última actualización:** 2 de septiembre de 2026
+**Última actualización:** 6 de septiembre de 2026
 
 ---
 
@@ -222,12 +222,12 @@ Salida esperada:
 | `machine_id` | ❌ No | ID de máquina del cliente | `"a1b2c3d4e5f6"` |
 | `--modules=a,b,c` | ❌ No | Módulos TOG Platform activados (v2) | `--modules=distribuidor,productor` |
 
-> `max_pcs` (módulo Red Local) **no** se setea desde `generate-license.js` todavía. Se emite **vía tog-platform** (`POST /api/empresas/:id/licencias` con `{ max_pcs: N }`). Cuando el script CLI lo soporte, la flag será `--max-pcs=N` (N entre 1 y 20).
+> `max_pcs` (módulo Red Local) se setea con `--max-pcs=N` (N entre 1 y 20), o **vía tog-platform** (`POST /api/empresas/:id/licencias` con `{ max_pcs: N }`). Ambos caminos producen la misma licencia (mismo orden de payload al firmar).
 
 **Si no proporcionas `machine_id`**, la licencia funcionará en **cualquier PC**.  
 **Si proporcionas `machine_id`**, la licencia solo funcionará en **esa PC específica**.  
 **Si no proporcionas `--modules`**, la licencia cubre solo el módulo base (Comercializador). Los módulos válidos se definen en `src/shared/modules.ts`.  
-**Para multi-PC (Red Local)**, emite la licencia desde `tog-platform` (`POST /api/empresas/:id/licencias`) incluyendo `max_pcs`. Ver sección "¿Puedo vincular la licencia a múltiples PCs?" abajo.
+**Para multi-PC (Red Local)**, emite la licencia con `--max-pcs=N` desde el script o desde `tog-platform` (`POST /api/empresas/:id/licencias`) incluyendo `max_pcs`. Ver sección "¿Puedo vincular la licencia a múltiples PCs?" abajo.
 
 ---
 
@@ -386,7 +386,7 @@ node scripts/generate-license.js "Cliente" "2099-12-31"
 
 **Sí**, vía el módulo Red Local (ver `docs/ARCHITECTURE.md` → "Módulo Red Local"). Pasos:
 
-1. Genera la licencia con `--max-pcs=N` (N entre 2 y 20) cuando la emitas desde `scripts/generate-license.js` o vía `tog-platform` (`POST /api/empresas/:id/licencias` con `{ max_pcs: N }`).
+1. Genera la licencia con `--max-pcs=N` (N entre 1 y 20) desde `scripts/generate-license.js`, o vía `tog-platform` (`POST /api/empresas/:id/licencias` con `{ max_pcs: N }`). A partir de 2 la PC pasa a ser PC Base.
 2. Importa o sincroniza la licencia en la **PC Base**. Verá Config → Sistema → Red Local con el servidor activo en `:3002` y el botón **"Generar código de enlace"**.
 3. En cada PC Hija: instalar el `.exe`, abrir la app, en la pantalla de bloqueo hacer clic en **"Conectar a una PC Base"**, completar IP de la Base + código + nombre. La hija queda enlazada y reenvía todas las llamadas a la Base.
 4. La Base rechaza más PCs de las que diga `max_pcs` (tope en el handshake de `vincular`).
@@ -492,7 +492,13 @@ node scripts/generate-license.js "Nombre" "AAAA-MM-DD" "machine_id" --modules=di
 ```
 
 > `modules` es **opcional** (licencias v2, TOG Platform): lista los módulos activados además del base Comercializador. Las licencias v1 sin `modules` siguen siendo válidas y cubren el módulo base. La app muestra el estado de cada módulo en **Configuración → Sistema → Módulos de TOG Platform** (catálogo en `src/shared/modules.ts`).
-> `max_pcs` es **opcional** (licencias con red local). Si está presente y es ≥ 2, la PC con licencia pasa a ser **PC Base** y permite vincular hasta `max_pcs-1` PCs hijas (ver `docs/ARCHITECTURE.md` → "Módulo Red Local"). Si está ausente o es 1, la app opera en modo local sin red.
+> `max_pcs` es **opcional** (licencias con red local). Si está presente y es ≥ 2, la PC con licencia pasa a ser **PC Base** y permite vincular hasta `max_pcs` PCs hijas **además** de la Base: el tope cuenta solo las enlazadas (`red-server.ts` rechaza cuando `enlazadas >= maxPcs`; verificado con test en `red-server.test.ts` — max_pcs=5 → 5 hijas enlazan, la 6ª es rechazada). Ver `docs/ARCHITECTURE.md` → "Módulo Red Local". Si está ausente o es 1, la app opera en modo local sin red. La app acepta valores 1–20 (`readMaxPcs` en `src/main/services/license.ts`); el script CLI y tog-platform validan el mismo rango.
+
+> El orden de las claves del JSON es crítico: la app valida la firma sobre
+> `JSON.stringify(payload sin "firma")`, así que el orden debe coincidir con
+> el usado al firmar (`scripts/generate-license.js`). `machineId`, `modules`
+> y `max_pcs` son opcionales; `version` es la versión del formato de licencia,
+> no de la app.
 
 ---
 

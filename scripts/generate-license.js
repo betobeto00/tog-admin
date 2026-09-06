@@ -1,6 +1,6 @@
 /**
  * Genera una licencia firmada RSA para un cliente.
- * Uso: node scripts/generate-license.js "NOMBRE DEL CLIENTE" "AAAA-MM-DD" [MACHINE_ID] [--modules a,b,c]
+ * Uso: node scripts/generate-license.js "NOMBRE DEL CLIENTE" "AAAA-MM-DD" [MACHINE_ID] [--modules=a,b,c] [--max-pcs=N]
  * - Necesita keys/private.key (generada con generate-keys.js).
  * - Escribe el .key en licenses/.
  */
@@ -10,8 +10,11 @@ const path = require('path')
 
 const VERSION = '1.0.0'
 
-// Módulos activables de TOG Platform. Mantener sincronizado con src/shared/modules.ts.
-const MODULE_IDS = ['comercializador', 'distribuidor', 'productor', 'procesador', 'postventa']
+// Módulos activables de TOG Platform. Mantener sincronizado con src/shared/modules.ts
+// (y con tog-platform/src/sign.js, que es la fuente canónica).
+const MODULE_IDS = ['comercializador', 'distribuidor', 'restaurant', 'productor', 'procesador', 'postventa', 'administracion', 'rrhh']
+const MAX_PCS_MIN = 1
+const MAX_PCS_MAX = 20
 
 const keysDir = path.resolve(__dirname, '..', 'keys')
 const licensesDir = path.resolve(__dirname, '..', 'licenses')
@@ -23,19 +26,23 @@ function fail(message) {
 }
 
 function parseFlags(argv) {
-  const out = { modules: null }
+  const out = { modules: null, maxPcs: null }
   for (const arg of argv) {
     if (arg.startsWith('--modules=')) {
       out.modules = arg.slice('--modules='.length)
     } else if (arg === '--modules') {
       fail('Formato inválido para --modules. Usa: --modules=distribuidor,productor')
+    } else if (arg.startsWith('--max-pcs=')) {
+      out.maxPcs = arg.slice('--max-pcs='.length)
+    } else if (arg === '--max-pcs') {
+      fail('Formato inválido para --max-pcs. Usa: --max-pcs=4')
     }
   }
   return out
 }
 
 function showUsage() {
-  console.error('Uso: node scripts/generate-license.js "NOMBRE DEL CLIENTE" "AAAA-MM-DD" [MACHINE_ID] [--modules=a,b,c]')
+  console.error('Uso: node scripts/generate-license.js "NOMBRE DEL CLIENTE" "AAAA-MM-DD" [MACHINE_ID] [--modules=a,b,c] [--max-pcs=N]')
   console.error('')
   console.error('Ejemplos:')
   console.error('  # Sin vincular a máquina (funciona en cualquier PC):')
@@ -47,6 +54,9 @@ function showUsage() {
   console.error('  # Con módulos adicionales activados (TOG Platform):')
   console.error('  node scripts/generate-license.js "Papelería El Sol" "2027-08-28" --modules=distribuidor')
   console.error('  node scripts/generate-license.js "Papelería El Sol" "2027-08-28" "a1b2c3d4e5f6" --modules=distribuidor,productor')
+  console.error('')
+  console.error('  # Con red local (PC Base + hasta N hijas; N entre 1 y 20):')
+  console.error('  node scripts/generate-license.js "Papelería El Sol" "2027-08-28" "a1b2c3d4e5f6" --max-pcs=4')
   process.exit(1)
 }
 
@@ -83,6 +93,15 @@ if (flags.modules) {
   modules = raw
 }
 
+let maxPcs = null
+if (flags.maxPcs != null) {
+  const n = Number(flags.maxPcs)
+  if (!Number.isInteger(n) || n < MAX_PCS_MIN || n > MAX_PCS_MAX) {
+    fail(`--max-pcs debe ser un entero entre ${MAX_PCS_MIN} y ${MAX_PCS_MAX} (recibido: "${flags.maxPcs}")`)
+  }
+  maxPcs = n
+}
+
 const privateKey = fs.readFileSync(privateKeyPath, 'utf8')
 
 // El orden de las claves es crítico: la app valida la firma con
@@ -95,6 +114,7 @@ const payload = {
   version: VERSION,
   machineId,
   ...(modules ? { modules } : {}),
+  ...(maxPcs != null ? { max_pcs: maxPcs } : {}),
   emitida: new Date().toISOString(),
   id,
 }
@@ -120,6 +140,7 @@ console.log(`   Expira: ${license.expira}`)
 console.log(`   Versión: ${license.version}`)
 console.log(`   Machine: ${license.machineId || '— (cualquier PC)'}`)
 console.log(`   Módulos: ${license.modules ? license.modules.join(', ') : '— (solo módulo base: Comercializador)'}`)
+console.log(`   Max PCs: ${license.max_pcs != null ? `${license.max_pcs} (PC Base + red local)` : '— (modo local)'}`)
 console.log(`   ID: ${license.id}`)
 console.log('')
 console.log('📋 Para activarla, el cliente importa el .key desde la pantalla de bloqueo de la app')
