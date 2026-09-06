@@ -136,24 +136,24 @@ export default function CajaPage() {
       .center{text-align:center}.right{text-align:right}
       hr{border:none;border-top:1px dashed #000;margin:8px 0}
     </style></head><body>
-      <h2>TOG Admin - {t('caja.receiptTitle')}</h2>
+      <h2>TOG Admin - ${t('caja.receiptTitle')}</h2>
       <div class="center">${formatDateTime(new Date().toISOString())}</div>
       <hr>
-      <div>{t('caja.receiptCashier')} <strong>${caja.usuario_nombre}</strong></div>
-      <div>{t('caja.receiptOpening')} ${formatDateTime(caja.fecha_apertura)}</div>
+      <div>${t('caja.receiptCashier')} <strong>${caja.usuario_nombre}</strong></div>
+      <div>${t('caja.receiptOpening')} ${formatDateTime(caja.fecha_apertura)}</div>
       <hr>
       <table>
-        <tr><td>{t('caja.receiptInitialFund')}</td><td class="right">${formatMoney(caja.fondo_inicial)}</td></tr>
-        <tr><td>{t('caja.receiptSales')}</td><td class="right">${formatMoney(caja.total_ventas)}</td></tr>
-        <tr><td>{t('caja.receiptEntries')}</td><td class="right">${formatMoney(caja.total_entradas)}</td></tr>
-        <tr><td>{t('caja.receiptWithdrawals')}</td><td class="right">${formatMoney(caja.total_salidas)}</td></tr>
-        <tr><td class="total">{t('caja.receiptExpectedTotal')}</td><td class="right total">${formatMoney(totalEsperado)}</td></tr>
+        <tr><td>${t('caja.receiptInitialFund')}</td><td class="right">${formatMoney(caja.fondo_inicial)}</td></tr>
+        <tr><td>${t('caja.receiptSales')}</td><td class="right">${formatMoney(caja.total_ventas)}</td></tr>
+        <tr><td>${t('caja.receiptEntries')}</td><td class="right">${formatMoney(caja.total_entradas)}</td></tr>
+        <tr><td>${t('caja.receiptWithdrawals')}</td><td class="right">${formatMoney(caja.total_salidas)}</td></tr>
+        <tr><td class="total">${t('caja.receiptExpectedTotal')}</td><td class="right total">${formatMoney(totalEsperado)}</td></tr>
       </table>
       <hr>
-      <div class="total">{t('caja.receiptPhysicalCount')} ${formatMoney(totalEsperado)}</div>
-      <div class="total">{t('caja.receiptDifference')} $0.00</div>
+      <div class="total">${t('caja.receiptPhysicalCount')} ${formatMoney(totalEsperado)}</div>
+      <div class="total">${t('caja.receiptDifference')} $0.00</div>
       <hr>
-      <div class="center" style="margin-top:15px;font-size:10px;color:#666">{t('caja.receiptDoc')}</div>
+      <div class="center" style="margin-top:15px;font-size:10px;color:#666">${t('caja.receiptDoc')}</div>
     </body></html>`
     const win = window.open('', '_blank', 'width=320,height=600')
     if (win) {

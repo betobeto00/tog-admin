@@ -215,11 +215,11 @@ export default function PermissionsModal({ open, onClose, userId, userName, user
                             <p className="text-sm font-medium text-gray-800">{def.label[lang]}</p>
                             <p className="text-xs text-gray-400">{def.description[lang]}</p>
                           </div>
-                          <div className={`relative w-10 h-5 rounded-full transition-colors ${
+                          <div className={`relative flex-shrink-0 w-10 h-5 rounded-full transition-colors ${
                             active ? 'bg-blue-600' : 'bg-gray-300'
                           }`}>
-                            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                              active ? 'translate-x-5' : 'translate-x-0.5'
+                            <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                              active ? 'translate-x-5' : 'translate-x-0'
                             }`} />
                           </div>
                         </button>

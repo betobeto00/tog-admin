@@ -253,8 +253,12 @@ export default function LoginPage() {
                     <p className="text-orange-700 font-medium text-[11px] mb-0.5">
                       ⚠️ {i18n.language === 'en' ? 'Update check failed' : 'Error al verificar actualizaciones'}
                     </p>
-                    <p className="text-orange-600 text-[11px] font-mono break-words">
-                      {updateInfo.error}
+                    <p className="text-orange-600 text-[11px] break-words">
+                      {updateInfo.error === 'UPDATES_NOT_SUPPORTED_IN_PORTABLE'
+                        ? (i18n.language === 'en'
+                          ? 'Automatic updates are not available in this portable/unpacked build. Download the installer to update automatically.'
+                          : 'Las actualizaciones automáticas no están disponibles en este build portable. Descargá el instalador para actualizar automáticamente.')
+                        : updateInfo.error}
                     </p>
                   </div>
                 )}

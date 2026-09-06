@@ -1,7 +1,9 @@
 import { autoUpdater, UpdateInfo } from 'electron-updater'
-import { app, BrowserWindow, dialog, shell } from 'electron'
+import { app, BrowserWindow, dialog } from 'electron'
 import { handleIpc } from '../core/auth/ipc-guard'
 import log from 'electron-log'
+import fs from 'node:fs'
+import path from 'node:path'
 
 // Configurar logging
 autoUpdater.logger = log
@@ -9,6 +11,16 @@ autoUpdater.logger = log
 // Deshabilitar auto-download — solo notificaremos al usuario
 autoUpdater.autoDownload = false
 autoUpdater.autoInstallOnAppQuit = false
+
+function updaterAvailable(): boolean {
+  if (!app.isPackaged) return false
+  try {
+    const ymlPath = path.join(process.resourcesPath, 'app-update.yml')
+    return fs.existsSync(ymlPath)
+  } catch {
+    return false
+  }
+}
 
 let mainWindow: BrowserWindow | null = null
 
@@ -81,11 +93,15 @@ export function setupAutoUpdater(win: BrowserWindow): void {
   })
 
   // Verificar actualizaciones al iniciar (después de 5 segundos)
-  setTimeout(() => {
-    autoUpdater.checkForUpdates().catch((err) => {
-      log.error('[Updater] Error al verificar actualizaciones:', err.message)
-    })
-  }, 5000)
+  if (updaterAvailable()) {
+    setTimeout(() => {
+      autoUpdater.checkForUpdates().catch((err) => {
+        log.error('[Updater] Error al verificar actualizaciones:', err.message)
+      })
+    }, 5000)
+  } else {
+    log.info('[Updater] Auto-actualización no disponible en este build (sin app-update.yml)')
+  }
 
   // Verificar cada 4 horas
   setInterval(() => {
@@ -103,6 +119,13 @@ export async function checkForUpdatesManual(): Promise<{
   error?: string
 }> {
   try {
+    if (!updaterAvailable()) {
+      return {
+        available: false,
+        currentVersion: app.getVersion(),
+        error: 'UPDATES_NOT_SUPPORTED_IN_PORTABLE',
+      }
+    }
     const currentVersion = app.getVersion()
     const result = await autoUpdater.checkForUpdates()
     if (result && result.updateInfo) {

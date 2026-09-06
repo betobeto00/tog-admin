@@ -958,10 +958,12 @@ export default function InventarioPage() {
                   </div>
                   <button
                     type="button"
+                    role="switch"
+                    aria-checked={esProductoCombo}
                     onClick={() => setComboMode(!comboMode)}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${esProductoCombo ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                    className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors ${esProductoCombo ? 'bg-emerald-500' : 'bg-gray-300'}`}
                   >
-                    <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${esProductoCombo ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${esProductoCombo ? 'translate-x-5' : 'translate-x-0'}`} />
                   </button>
                 </div>
 

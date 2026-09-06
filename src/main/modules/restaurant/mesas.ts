@@ -65,4 +65,29 @@ export function registerMesasHandlers(): void {
     db.prepare('UPDATE mesas SET activo = 0 WHERE id = ?').run(data.id)
     return { success: true }
   })
+
+  handleIpc('mesas:cerrar-vacias', async (_event, data?: { usuario_id?: number }) => {
+    const fail = checkPermissionOrFail(data, 'mesas:cerrar-vacias', 'restaurant_mesas_edit')
+    if (fail) return fail
+    const moduleFail = checkModuleOrFail()
+    if (moduleFail) return moduleFail
+    const db = getDatabase()
+    const cerrar = db.transaction(() => {
+      const rows = db!.prepare(`
+        SELECT c.id, c.mesa_id FROM comandas c
+        JOIN mesas m ON m.id = c.mesa_id
+        WHERE c.estado IN ('abierta','en_cocina','servida')
+          AND NOT EXISTS (SELECT 1 FROM comanda_detalles d WHERE d.comanda_id = c.id AND d.estado <> 'cancelado')
+      `).all() as any[]
+      const anuladas: number[] = []
+      for (const c of rows) {
+        db!.prepare("UPDATE comandas SET estado = 'anulada', cerrado_en = datetime('now') WHERE id = ?").run(c.id)
+        db!.prepare("UPDATE mesas SET estado = 'libre' WHERE id = ? AND NOT EXISTS (SELECT 1 FROM comandas x WHERE x.mesa_id = mesas.id AND x.estado NOT IN ('cobrada','anulada'))").run(c.mesa_id)
+        anuladas.push(Number(c.id))
+      }
+      return anuladas
+    })
+    const anuladas = cerrar()
+    return { success: true, anuladas, cantidad: anuladas.length }
+  })
 }

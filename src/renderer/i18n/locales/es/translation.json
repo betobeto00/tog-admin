@@ -84,6 +84,7 @@
     "restaurantTables": "Mesas",
     "restaurantKitchen": "Cocina",
     "visualReports": "Reportes Visuales",
+    "warehouses": "Almacenes",
     "group": {
       "comercializador": "Comercializador",
       "distribuidor": "Distribuidor",
@@ -140,6 +141,13 @@
     "tablesMerged": "Mesas fusionadas",
     "deleteTable": "Eliminar mesa",
     "deleteTableMsg": "La mesa se ocultará. Solo puedes eliminar mesas libres.",
+    "closeEmptyTables": "Cerrar mesas vacías",
+    "closeEmptyTablesHint": "Libera las mesas que tienen comanda abierta sin pedidos",
+    "closeEmptyTable": "Cerrar mesa vacía",
+    "closeEmptyTableMsg": "La comanda de {{name}} no tiene pedidos y se anulará. La mesa quedará libre.",
+    "tableClosed": "Mesa {{name}} cerrada",
+    "emptyTablesClosed": "{{count}} mesas cerradas",
+    "noEmptyTables": "No hay mesas con comanda vacía para cerrar",
     "noItems": "Aún no hay ítems en la comanda",
     "touchMode": "Modo touch",
     "shortcutHint": "Atajos: F2 buscar · F5 cobrar · F9 cocina",
@@ -148,6 +156,20 @@
     "refresh": "Refrescar",
     "error": "Error",
     "saving": "Guardando…"
+  },
+  "almacenes": {
+    "title": "Almacenes",
+    "registered": "almacenes registrados",
+    "new": "Nuevo almacén",
+    "empty": "No hay almacenes. Crea el primero.",
+    "products": "productos con stock",
+    "principalHint": "Almacén por defecto; no se puede eliminar.",
+    "name": "Nombre",
+    "namePlaceholder": "Sucursal Norte",
+    "address": "Dirección",
+    "hookHint": "Los traspasos entre almacenes y el kardex por almacén estarán disponibles próximamente.",
+    "deleteTitle": "Eliminar almacén",
+    "deleteMsg": "¿Eliminar este almacén? Si tiene stock no se podrá."
   },
   "clientes": {
     "title": "Clientes",

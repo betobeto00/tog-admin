@@ -55,6 +55,7 @@ Una papelería/centro de copiado e impresión es un negocio que ofrece:
 | **Transferencia** | Pago bancario (se registra referencia) |
 | **Pago Móvil** | Pago móvil venezolano (se registra referencia) |
 | **Mixto** | Parte efectivo + parte otro método |
+| **Fiado (On Account)** | Venta a crédito: registra deudor (nombre) y genera registro en el módulo Créditos |
 
 ---
 
@@ -299,3 +300,56 @@ npm run build:installer  # → release/TOG Admin Setup 1.0.8.exe
 - [electron-builder NSIS](https://www.electron.build/configuration/nsis) — Configuración del instalador
 - [LICENCIAMIENTO.md](./LICENCIAMIENTO.md) — Sistema de licencias RSA-2048
 - [PRODUCTION_BUILD_REPORT.md](./PRODUCTION_BUILD_REPORT.md) — Reporte detallado
+
+---
+
+## QA Round 2026-09-05 — i18n, Auto-Updater y Restaurant — Resuelto ✅
+
+### Problemas detectados en QA
+
+1. La búsqueda global mostraba claves crudas (`common.searchGlobalPlaceholder`, `common.searchGlobalEmpty`, `common.searchGlobalGoToInventory`).
+2. La página Almacenes mostraba claves crudas (`nav.warehouses`, `almacenes.title`, `almacenes.hookHint`…) y el modal tenía labels hardcoded ("Nombre *", "Dirección").
+3. El recibo impreso de Caja mostraba texto literal `t('caja.receiptTitle')` en vez de la traducción.
+4. El toggle de combo del formulario de producto se veía "encendido" cuando estaba apagado, y el knob se salía de la pista al activarlo.
+5. Restaurant (Mesas): no había forma de cerrar mesas/comandas que no pidieron nada.
+6. El menú Configuración (ni Ayuda) aparecía en el Sidebar, ni siquiera para admin.
+7. "⚠️ Error al verificar actualizaciones — ENOENT … resources\app-update.yml" en el build portable.
+
+### Causas Raíz
+
+1. Claves referenciadas bajo secciones inexistentes: el Header usaba `common.searchGlobal*` pero las claves viven en `pos.*`; la sección `almacenes` nunca se creó en ningún idioma. Los fallbacks `t('clave') || 'Texto'` enmascaraban el bug en ES (mostraban el texto) pero en EN la clave cruda quedaba visible.
+2. `{t('...')}` dentro de un **template literal** de JS: sin el `$` no hay interpolación — es texto literal que compila sin error y se imprime tal cual.
+3. Knob del toggle sin `left` explícito: ocupaba posición estática dentro del `<button>` (se veía corrido hacia la derecha incluso "apagado") y `translate-x-5` lo desbordaba al activarse.
+4. No existía canal IPC para anular comandas vacías, y el checkout exige ítems servidos/listos.
+5. `Sidebar.tsx` nunca incluyó entradas para `/configuracion` ni `/ayuda`; el grupo core solo tenía las páginas operativas.
+6. electron-updater requiere `app-update.yml` en `resources/`, que electron-builder genera **solo** para el target NSIS instalado. En `win-unpacked` (portable) o dev, `checkForUpdates()` rechaza con ENOENT.
+
+### Soluciones Aplicadas
+
+| # | Solución | Archivos |
+|---|----------|----------|
+| 1 | Repuntar el Header a `pos.searchGlobal*` | `Header.tsx` |
+| 2 | Crear sección `almacenes` completa + `nav.warehouses` en ES **y** EN; traducir labels del modal y confirmación de borrado | `translation.json`, `AlmacenesPage.tsx` |
+| 3 | `${t('...')}` en las 9 etiquetas del recibo (título, cajero, apertura, tabla, pie) | `CajaPage.tsx` |
+| 4 | Knob con `top-0.5 left-0.5` + `translate-x-0`/`translate-x-5`, `role="switch"` y `aria-checked`; mismo fix en el toggle de permisos | `InventarioPage.tsx`, `PermissionsModal.tsx` |
+| 5 | Canales IPC `comandas:close-empty` (una mesa) y `mesas:cerrar-vacias` (masivo): anulan la comanda (estado `anulada`, nunca cobran) y liberan la mesa. UI: botón "Cerrar mesas vacías" + ✕ por tarjeta de mesa sin consumo, con confirmación | `comandas.ts`, `mesas.ts`, `MesasPage.tsx`, `ipc-channels.ts` |
+| 6 | Entradas **Configuración** (`config_access`) y **Ayuda** en el grupo core del Sidebar | `Sidebar.tsx` |
+| 7 | Guard `updaterAvailable()` (`app.isPackaged` + `fs.existsSync(app-update.yml)`): salta el check al iniciar y el check manual devuelve mensaje amigable en vez del stack ENOENT | `updater.ts`, `LoginPage.tsx` |
+
+### Reglas i18n que salieron de esta ronda
+
+- Toda clave nueva se agrega en ES **y** EN en el mismo commit. El fallback `t('k') || 'Texto'` oculta el bug, no lo arregla: en EN se ve la clave cruda.
+- En HTML generado con template literals (tickets, recibos, comandas), las etiquetas van con `${t('...')}` — un `{t('...')}` compila sin error y se imprime literal.
+- Verificación rápida de paridad: aplanar ambas JSON a sets de claves y comparar (debe dar 0 diferencias en ambos sentidos).
+
+### Auto-actualización por tipo de build
+
+| Build | Auto-update | Motivo |
+|---|---|---|
+| `npm run dev` | ❌ | Sin `app-update.yml`; el check automático se salta (log informativo) |
+| `npm run build:win` (portable / win-unpacked) | ❌ | electron-builder no genera `app-update.yml`; el check manual muestra "no disponible en build portable" |
+| `npm run build:installer` (NSIS, instalado) | ✅ | `app-update.yml` presente en `resources/` |
+
+### Tests de regresión agregados
+
+- `restaurant.test.ts`: cerrar comandas vacías en masa libera solo las mesas sin consumo; `comandas:close-empty` cierra una comanda individual vacía; rechaza cerrar una comanda con ítems activos.

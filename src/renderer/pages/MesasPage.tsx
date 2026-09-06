@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Plus, Search, Trash2, Utensils, ArrowRight, Send,
-  CheckCircle, Minus, PlusCircle, Banknote, Smartphone, Printer
+  CheckCircle, Minus, PlusCircle, Banknote, Smartphone, Printer, X
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
@@ -77,6 +77,7 @@ export default function MesasPage() {
   const [metodosPagoActivos, setMetodosPagoActivos] = useState<Array<{ clave: string; nombre: string; icono?: string | null }>>([])
 
   const [deleteTable, setDeleteTable] = useState<Mesa | null>(null)
+  const [closeTable, setCloseTable] = useState<Mesa | null>(null)
 
   // Modo touch + atajos de teclado (F2 buscar · F5 cobrar · F9 cocina)
   const [touchMode, setTouchMode] = useState(() => localStorage.getItem('restaurant_touch_mode') === '1')
@@ -158,6 +159,48 @@ export default function MesasPage() {
     try {
       await callApi('mesas:delete', { id: mesa.id })
       setDeleteTable(null)
+      await loadMesas()
+    } catch (err: any) {
+      toast.error(err?.message || t('restaurant.error'))
+    }
+  }
+
+  const closeEmptyTables = async () => {
+    try {
+      const res = await callApi<{ success: boolean; cantidad?: number; anuladas?: number[]; error?: string }>('mesas:cerrar-vacias')
+      if (res?.success === false) {
+        toast.error(res.error || t('restaurant.error'))
+        return
+      }
+      if ((res.cantidad || 0) > 0) {
+        toast.success(t('restaurant.emptyTablesClosed', { count: res.cantidad || 0 }))
+      } else {
+        toast.info(t('restaurant.noEmptyTables'))
+      }
+      await loadMesas()
+    } catch (err: any) {
+      toast.error(err?.message || t('restaurant.error'))
+    }
+  }
+
+  const closeEmptyTable = (mesa: Mesa) => {
+    if (!mesa.comanda_id) {
+      setDeleteTable(mesa)
+      return
+    }
+    setCloseTable(mesa)
+  }
+
+  const confirmCloseEmptyTable = async () => {
+    if (!closeTable) return
+    try {
+      const res = await callApi<{ success: boolean; error?: string }>('comandas:close-empty', { comanda_id: closeTable.comanda_id })
+      if (res?.success === false) {
+        toast.error(res.error || t('restaurant.error'))
+        return
+      }
+      toast.success(t('restaurant.tableClosed', { name: closeTable.nombre }))
+      setCloseTable(null)
       await loadMesas()
     } catch (err: any) {
       toast.error(err?.message || t('restaurant.error'))
@@ -411,6 +454,11 @@ export default function MesasPage() {
               <p className="text-xs text-gray-400">{t('restaurant.shortcutHint')}</p>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={closeEmptyTables}
+            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 ${touchMode ? 'py-3 text-base' : ''}`}
+            title={t('restaurant.closeEmptyTablesHint')}>
+            <X className="w-4 h-4" /> {t('restaurant.closeEmptyTables')}
+          </button>
           <button onClick={toggleTouchMode}
             className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
               touchMode ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -437,7 +485,7 @@ export default function MesasPage() {
             return (
               <div key={mesa.id}
                 onClick={() => openComanda(mesa)}
-                className={`rounded-xl border cursor-pointer transition-shadow hover:shadow-md ${touchMode ? 'p-6 min-h-[120px]' : 'p-5'} ${libre ? 'bg-white border-gray-200' : 'bg-blue-50 border-blue-200'}`}>
+                className={`relative rounded-xl border cursor-pointer transition-shadow hover:shadow-md ${touchMode ? 'p-6 min-h-[120px]' : 'p-5'} ${libre ? 'bg-white border-gray-200' : 'bg-blue-50 border-blue-200'}`}>
                 <div className="flex items-start justify-between">
                   <div>
                     <p className={`font-bold text-gray-900 ${touchMode ? 'text-xl' : ''}`}>{mesa.nombre}</p>
@@ -447,6 +495,12 @@ export default function MesasPage() {
                     {libre ? t('restaurant.free') : t('restaurant.occupied')}
                   </span>
                 </div>
+                {!libre && mesa.comanda_id && (mesa.total_actual || 0) === 0 && (
+                  <button onClick={(e) => { e.stopPropagation(); closeEmptyTable(mesa) }}
+                    className="absolute top-2 right-2 p-1 hover:bg-red-50 rounded-lg" title={t('restaurant.closeEmptyTable')}>
+                    <X className="w-4 h-4 text-red-400" />
+                  </button>
+                )}
                 {!libre && (
                   <div className="mt-3 pt-3 border-t border-blue-100 flex items-center justify-between">
                     <span className={`font-semibold text-gray-900 ${touchMode ? 'text-lg' : 'text-sm'}`}>{formatMoney(mesa.total_actual || 0)}</span>
@@ -706,6 +760,12 @@ export default function MesasPage() {
         onConfirm={() => { if (deleteTable) removeTable(deleteTable) }}
         title={t('restaurant.deleteTable')} message={t('restaurant.deleteTableMsg')}
         confirmText={t('restaurant.deleteTable')} danger />
+
+      <ConfirmDialog open={!!closeTable} onClose={() => setCloseTable(null)}
+        onConfirm={confirmCloseEmptyTable}
+        title={t('restaurant.closeEmptyTable')}
+        message={t('restaurant.closeEmptyTableMsg', { name: closeTable?.nombre || '' })}
+        confirmText={t('restaurant.closeEmptyTable')} danger />
     </div>
   )
 }

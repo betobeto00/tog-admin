@@ -80,6 +80,8 @@ export default function Sidebar() {
       { to: '/cotizaciones', icon: FileText, label: t('nav.quotes'), permission: 'quotes_access' },
       { to: '/reportes', icon: BarChart3, label: t('nav.reports'), permission: 'reportes_access' },
       { to: '/reportes-visuales', icon: PieChart, label: t('nav.visualReports'), permission: 'reportes_access' },
+      { to: '/configuracion', icon: Settings, label: t('nav.settings'), permission: 'config_access' },
+      { to: '/ayuda', icon: HelpCircle, label: t('nav.help'), permission: null as string | null },
     ]
     const distribuidor: MenuItem[] = [
       { to: '/clientes', icon: Contact, label: t('nav.clients'), permission: 'distribuidor_clientes_view', modulo: 'distribuidor' },

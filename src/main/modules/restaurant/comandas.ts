@@ -142,6 +142,28 @@ export function registerComandasHandlers(): void {
     return { success: true }
   })
 
+  handleIpc('comandas:close-empty', async (_event, data: { comanda_id: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'comandas:close-empty', 'restaurant_comandas_edit')
+    if (fail) return fail
+    const moduleFail = checkModuleOrFail()
+    if (moduleFail) return moduleFail
+    const db = getDatabase()
+    const comanda = db.prepare(`
+      SELECT c.id, c.mesa_id FROM comandas c
+      WHERE c.id = ? AND c.estado NOT IN ('cobrada','anulada')
+        AND NOT EXISTS (SELECT 1 FROM comanda_detalles d WHERE d.comanda_id = c.id AND d.estado <> 'cancelado')
+    `).get(data.comanda_id) as any
+    if (!comanda) {
+      return { success: false, error: 'La comanda no existe, ya está cerrada o tiene pedidos' }
+    }
+    const cerrar = db.transaction(() => {
+      db!.prepare("UPDATE comandas SET estado = 'anulada', cerrado_en = datetime('now') WHERE id = ?").run(comanda.id)
+      db!.prepare("UPDATE mesas SET estado = 'libre' WHERE id = ? AND NOT EXISTS (SELECT 1 FROM comandas x WHERE x.mesa_id = mesas.id AND x.estado NOT IN ('cobrada','anulada'))").run(comanda.mesa_id)
+      return { success: true }
+    })
+    return cerrar()
+  })
+
   handleIpc('comandas:send-kitchen', async (_event, data: { comanda_id: number; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'comandas:send-kitchen', 'restaurant_comandas_edit')
     if (fail) return fail

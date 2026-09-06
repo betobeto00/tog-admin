@@ -229,6 +229,45 @@ describe('Restaurant: mesas', () => {
     const res = await call('mesas:create', { nombre: '   ', usuario_id: 1 })
     expect(res.success).toBe(false)
   })
+
+  it('cierra comandas vacías y libera sus mesas', async () => {
+    await call('comandas:open', { mesa_id: 1, usuario_id: 1 })
+    await call('comandas:open', { mesa_id: 2, usuario_id: 1 })
+    await call('comandas:add-item', { comanda_id: 1, producto_id: 1, cantidad: 1, usuario_id: 1 })
+
+    const res = await call('mesas:cerrar-vacias', { usuario_id: 1 })
+    expect(res.success).toBe(true)
+    expect(res.cantidad).toBe(1)
+    expect(res.anuladas).toContain(2)
+
+    const mesas = await call('mesas:list') as any[]
+    expect(mesas.find((m) => m.id === 1).estado).toBe('ocupada')
+    expect(mesas.find((m) => m.id === 2).estado).toBe('libre')
+
+    const comanda = db.prepare('SELECT estado, cerrado_en FROM comandas WHERE id = 2').get() as any
+    expect(comanda.estado).toBe('anulada')
+    expect(comanda.cerrado_en).toBeTruthy()
+  })
+
+  it('cierra una comanda vacía individual con comandas:close-empty', async () => {
+    const opened = await call('comandas:open', { mesa_id: 1, usuario_id: 1 })
+    await call('comandas:add-item', { comanda_id: opened.comanda_id, producto_id: 1, cantidad: 1, usuario_id: 1 })
+    const detalle = db.prepare('SELECT id FROM comanda_detalles WHERE comanda_id = ?').get(opened.comanda_id) as any
+    await call('comandas:remove-item', { comanda_id: opened.comanda_id, detalle_id: detalle.id, usuario_id: 1 })
+
+    const res = await call('comandas:close-empty', { comanda_id: opened.comanda_id, usuario_id: 1 })
+    expect(res.success).toBe(true)
+
+    const mesas = await call('mesas:list') as any[]
+    expect(mesas.find((m) => m.id === 1).estado).toBe('libre')
+  })
+
+  it('rechaza cerrar una comanda con ítems activos', async () => {
+    const opened = await call('comandas:open', { mesa_id: 2, usuario_id: 1 })
+    await call('comandas:add-item', { comanda_id: opened.comanda_id, producto_id: 1, cantidad: 1, usuario_id: 1 })
+    const res = await call('comandas:close-empty', { comanda_id: opened.comanda_id, usuario_id: 1 })
+    expect(res.success).toBe(false)
+  })
 })
 
 describe('Restaurant: comandas', () => {

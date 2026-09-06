@@ -214,7 +214,7 @@ export default function Header() {
             onChange={(e) => { setSearchQuery(e.target.value); if (!searchOpen) setSearchOpen(true) }}
             onFocus={() => setSearchOpen(true)}
             onKeyDown={onSearchKeyDown}
-            placeholder={t('common.searchGlobalPlaceholder') + ' (Ctrl+K)'}
+            placeholder={t('pos.searchGlobalPlaceholder') + ' (Ctrl+K)'}
             className="w-full pl-10 pr-16 py-2 border border-gray-200 rounded-lg text-sm
               focus:ring-2 focus:ring-blue-500 focus:border-blue-500
               bg-gray-50 placeholder-gray-400"
@@ -233,7 +233,7 @@ export default function Header() {
             {searching ? (
               <div className="p-3 text-sm text-gray-400">{t('common.loading')}</div>
             ) : searchHits.length === 0 ? (
-              <div className="p-3 text-sm text-gray-400">{t('common.searchGlobalEmpty')}</div>
+              <div className="p-3 text-sm text-gray-400">{t('pos.searchGlobalEmpty')}</div>
             ) : (
               <ul className="divide-y divide-gray-100">
                 {searchHits.map((hit, idx) => {
@@ -277,7 +277,7 @@ export default function Header() {
             <div className="border-t border-gray-100 px-3 py-2 bg-gray-50">
               <button onClick={() => { navigate('/inventario', { state: { query: searchQuery.trim() } }); setSearchOpen(false); setSearchQuery('') }}
                 className="text-xs font-medium text-blue-600 hover:text-blue-700">
-                {t('common.searchGlobalGoToInventory')} →
+                {t('pos.searchGlobalGoToInventory')} →
               </button>
             </div>
           </div>
