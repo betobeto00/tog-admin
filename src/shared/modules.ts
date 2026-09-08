@@ -4,7 +4,7 @@
  * Ver docs/MODULOS.md para la visión de producto.
  */
 
-export type ModuleId = 'comercializador' | 'distribuidor' | 'restaurant' | 'productor' | 'procesador' | 'postventa' | 'administracion' | 'rrhh'
+export type ModuleId = 'comercializador' | 'distribuidor' | 'restaurant' | 'productor' | 'procesador' | 'postventa' | 'administracion' | 'rrhh' | 'omniserv'
 
 export interface ModuleInfo {
   id: ModuleId
