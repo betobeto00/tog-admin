@@ -26,6 +26,12 @@ export type LicenseSyncResult =
   | { success: true; cliente: string; expira: string; modulos: string[] }
   | { success: false; error: string }
 
+export interface LicenseAccountSyncArgs {
+  url: string
+  email: string
+  password: string
+}
+
 const DEFAULT_TIMEOUT_MS = 10_000
 
 export async function syncLicenseFromServer(
@@ -104,5 +110,112 @@ export async function syncLicenseFromServer(
     cliente: licencia.cliente ?? '',
     expira: licencia.expira ?? '',
     modulos: normalizeModules(licencia.modules),
+  }
+}
+
+/**
+ * Sincroniza la licencia usando la cuenta OmniMargen (email + contraseña):
+ * login → perfil (empresa + api_key) → descarga la licencia activa.
+ * Mismo contrato de resultado que syncLicenseFromServer para reutilizar la UI.
+ */
+export async function syncLicenseWithAccount(
+  args: LicenseAccountSyncArgs,
+  deps: LicenseSyncDeps = {},
+): Promise<LicenseSyncResult> {
+  const url = (args?.url || '').trim().replace(/\/+$/, '')
+  const email = (args?.email || '').trim()
+  const password = args?.password || ''
+
+  if (!/^https?:\/\/.+/i.test(url)) {
+    return { success: false, error: 'La URL del servidor debe comenzar con http:// o https://' }
+  }
+  if (!email || !password) {
+    return { success: false, error: 'Email y contraseña son requeridos' }
+  }
+
+  const fetchImpl = deps.fetchImpl || (globalThis.fetch as LicenseSyncDeps['fetchImpl'])
+  const timeoutMs = deps.timeoutMs ?? DEFAULT_TIMEOUT_MS
+
+  const fail = (response: FetchResponseLike, body: any): LicenseSyncResult => {
+    const serverError = body?.error
+    return {
+      success: false,
+      error:
+        typeof serverError === 'string' && serverError
+          ? serverError
+          : `El servidor respondió con estado ${response.status}`,
+    }
+  }
+
+  let loginResponse: FetchResponseLike
+  try {
+    loginResponse = await requestJsonSafe(fetchImpl, `${url}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    }, timeoutMs)
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.name === 'AbortError' ? 'Tiempo de espera agotado. Intenta de nuevo.' : `No se pudo conectar con el servidor: ${err?.message || err}`,
+    }
+  }
+
+  let loginBody: any = {}
+  try {
+    loginBody = await loginResponse.json()
+  } catch {
+    loginBody = {}
+  }
+  if (!loginResponse.ok || !loginBody?.token) {
+    return fail(loginResponse, loginBody)
+  }
+
+  let profileResponse: FetchResponseLike
+  try {
+    profileResponse = await requestJsonSafe(fetchImpl, `${url}/api/user/profile`, {
+      headers: { Authorization: `Bearer ${loginBody.token}` },
+    }, timeoutMs)
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.name === 'AbortError' ? 'Tiempo de espera agotado. Intenta de nuevo.' : `No se pudo conectar con el servidor: ${err?.message || err}`,
+    }
+  }
+
+  let profileBody: any = {}
+  try {
+    profileBody = await profileResponse.json()
+  } catch {
+    profileBody = {}
+  }
+  if (!profileResponse.ok || !profileBody?.success) {
+    return fail(profileResponse, profileBody)
+  }
+
+  const empresa = profileBody?.empresa
+  if (!empresa?.id || !empresa?.api_key) {
+    return { success: false, error: 'Tu cuenta no tiene empresa vinculada. Complétala en omnimargen.site/cuenta.' }
+  }
+
+  const licenciaResult = await syncLicenseFromServer(
+    { url, empresaId: empresa.id, apiKey: empresa.api_key },
+    deps,
+  )
+  return licenciaResult
+}
+
+async function requestJsonSafe(
+  fetchImpl: LicenseSyncDeps['fetchImpl'],
+  url: string,
+  init: any,
+  timeoutMs: number,
+): Promise<FetchResponseLike> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetchImpl!(url, { ...init, signal: controller.signal })
+  } finally {
+    clearTimeout(timer)
   }
 }

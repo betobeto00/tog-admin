@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Globe, RefreshCw } from 'lucide-react'
+import { Globe, RefreshCw, User } from 'lucide-react'
 import { useToast } from './ui/Toast'
 import { callApi } from '../lib/api-client'
 
@@ -8,6 +8,10 @@ type SyncResult = { success: true; cliente: string; expira: string; modulos: str
 const LS_URL = 'tog_platform_sync_url'
 const LS_EMPRESA = 'tog_platform_sync_empresa'
 const LS_APIKEY = 'tog_platform_sync_apikey'
+
+// URL por defecto del backend TOG Platform desplegado en Railway: el botón
+// Sincronizar apunta ahí sin configuración manual (OmniServ ya lo usa igual).
+const DEFAULT_PLATFORM_URL = 'https://tog-platform-production.up.railway.app'
 
 function loadPref(key: string): string {
   try {
@@ -37,7 +41,7 @@ interface LicenseSyncFormProps {
  */
 export default function LicenseSyncForm({ onSynced, compact }: LicenseSyncFormProps) {
   const toast = useToast()
-  const [url, setUrl] = useState(loadPref(LS_URL))
+  const [url, setUrl] = useState(loadPref(LS_URL) || DEFAULT_PLATFORM_URL)
   const [empresaId, setEmpresaId] = useState(loadPref(LS_EMPRESA))
   const [apiKey, setApiKey] = useState(loadPref(LS_APIKEY))
   const [syncing, setSyncing] = useState(false)
@@ -90,7 +94,7 @@ export default function LicenseSyncForm({ onSynced, compact }: LicenseSyncFormPr
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://tuservidor.com"
+            placeholder={DEFAULT_PLATFORM_URL}
             className={inputClass}
           />
         </div>
@@ -129,6 +133,97 @@ export default function LicenseSyncForm({ onSynced, compact }: LicenseSyncFormPr
           La licencia se descarga, valida su firma y queda activa al instante.
         </p>
       </div>
+
+      <AccountSyncSection url={url} onSynced={onSynced} compact={compact} />
+    </div>
+  )
+}
+
+function AccountSyncSection({
+  url,
+  onSynced,
+}: {
+  url: string
+  onSynced?: () => void
+  compact?: boolean
+}) {
+  const toast = useToast()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [syncing, setSyncing] = useState(false)
+
+  const handleSyncAccount = async () => {
+    if (!email.trim() || !password) {
+      toast.error('Completa tu email y contraseña de OmniMargen.')
+      return
+    }
+    setSyncing(true)
+    try {
+      const result = await callApi<SyncResult>('license:sync-account', {
+        url: url.trim(),
+        email: email.trim(),
+        password,
+      })
+      if (result.success) {
+        const modulos = result.modulos.length ? result.modulos.join(', ') : 'base'
+        toast.success(`Cuenta sincronizada ✓ — ${result.cliente} (expira ${result.expira}). Módulos: ${modulos}`)
+        window.dispatchEvent(new Event('tog:license-updated'))
+        onSynced?.()
+      } else {
+        toast.error(result.error)
+      }
+    } catch (err: any) {
+      toast.error('Error sincronizando: ' + (err?.message || err))
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const inputClass =
+    'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white'
+
+  return (
+    <div className="mt-4 border-t border-gray-200 pt-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <User className="w-4 h-4 text-emerald-600" />
+        <p className="text-sm font-semibold text-gray-800">
+          Sincronizar con mi cuenta OmniMargen
+        </p>
+      </div>
+      <p className="text-xs text-gray-400">
+        Usa el email y contraseña de tu cuenta en omnimargen.site. La licencia de
+        tus módulos comprados se descarga y activa al instante.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="email@empresa.com"
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Contraseña</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            className={inputClass}
+          />
+        </div>
+      </div>
+      <button
+        onClick={handleSyncAccount}
+        disabled={syncing}
+        className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:bg-emerald-300"
+      >
+        <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+        {syncing ? 'Sincronizando...' : 'Sincronizar con mi cuenta'}
+      </button>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { syncLicenseFromServer } from './license-sync'
+import { syncLicenseFromServer, syncLicenseWithAccount } from './license-sync'
 
 const licenciaValida = {
   cliente: 'Corn Flakes LLC',
@@ -115,5 +115,101 @@ describe('syncLicenseFromServer', () => {
       { fetchImpl },
     )
     expect(result.success).toBe(false)
+  })
+})
+
+describe('syncLicenseWithAccount', () => {
+  it('login → perfil → descarga la licencia de la empresa vinculada', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ success: true, token: 'token-123', user: { email: 'a@b.com' } }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          empresa: { id: 9, nombre: 'AgroMaíz', api_key: 'api-key-9' },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ success: true, licencia: licenciaValida }),
+      })
+    const saveImpl = vi.fn(() => ({ success: true }))
+
+    const result = await syncLicenseWithAccount(
+      { url: 'https://licencias.ejemplo.com/', email: 'a@b.com', password: 'secreto' },
+      { fetchImpl, saveImpl },
+    )
+
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.cliente).toBe('Corn Flakes LLC')
+    const loginCall = fetchImpl.mock.calls[0] as [string, any]
+    expect(loginCall[0]).toBe('https://licencias.ejemplo.com/api/auth/login')
+    expect(loginCall[1].headers['Content-Type']).toBe('application/json')
+    const profileCall = fetchImpl.mock.calls[1] as [string, any]
+    expect(profileCall[1].headers.Authorization).toBe('Bearer token-123')
+    const licenciaCall = fetchImpl.mock.calls[2] as [string, any]
+    expect(licenciaCall[0]).toBe('https://licencias.ejemplo.com/api/empresas/9/licencia')
+    expect(licenciaCall[1].headers['x-api-key']).toBe('api-key-9')
+    expect(saveImpl).toHaveBeenCalledWith(JSON.stringify(licenciaValida))
+  })
+
+  it('propaga el error del login (credenciales incorrectas)', async () => {
+    const fetchImpl = okFetch(401, { success: false, error: 'Email o contraseña incorrectos' })
+    const result = await syncLicenseWithAccount(
+      { url: 'http://localhost:3001', email: 'a@b.com', password: 'mala' },
+      { fetchImpl },
+    )
+    expect(result).toEqual({ success: false, error: 'Email o contraseña incorrectos' })
+  })
+
+  it('informa cuando la cuenta no tiene empresa vinculada', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ success: true, token: 't' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ success: true, user: { email: 'a@b.com' }, empresa: null }),
+      })
+    const result = await syncLicenseWithAccount(
+      { url: 'http://localhost:3001', email: 'a@b.com', password: 'secreto' },
+      { fetchImpl },
+    )
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error).toContain('empresa vinculada')
+  })
+
+  it('devuelve mensaje claro si no se puede conectar', async () => {
+    const fetchImpl = vi.fn(async (_url: string, _init: any) => {
+      throw new Error('ECONNREFUSED')
+    })
+    const result = await syncLicenseWithAccount(
+      { url: 'http://localhost:3001', email: 'a@b.com', password: 'x' },
+      { fetchImpl },
+    )
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error).toContain('No se pudo conectar')
+  })
+
+  it('valida los parámetros de entrada', async () => {
+    const sinUrl = await syncLicenseWithAccount({ url: '', email: 'a@b.com', password: 'x' })
+    expect(sinUrl.success).toBe(false)
+    const sinEmail = await syncLicenseWithAccount({ url: 'http://x', email: '', password: 'x' })
+    expect(sinEmail.success).toBe(false)
+    const sinPass = await syncLicenseWithAccount({ url: 'http://x', email: 'a@b.com', password: '' })
+    expect(sinPass.success).toBe(false)
+    const urlMala = await syncLicenseWithAccount({ url: 'ftp://x', email: 'a@b.com', password: 'x' })
+    expect(urlMala.success).toBe(false)
   })
 })
