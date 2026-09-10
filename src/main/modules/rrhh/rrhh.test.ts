@@ -87,7 +87,7 @@ const { db, handles, state } = vi.hoisted(() => {
     CREATE INDEX idx_nomina_conceptos_nomina ON nomina_conceptos(nomina_id);
   `)
   const handles: Record<string, (event: any, data: any) => Promise<any>> = {}
-  const state = { active: ['comercializador', 'rrhh'] as string[] }
+  const state = { active: ['comercializador', 'administracion'] as string[] }
   return { db, handles, state }
 })
 
@@ -334,7 +334,7 @@ describe('RRHH: gating y permisos', () => {
     const res = await call('rrhh:empleados-list')
     expect(res.success).toBe(false)
     expect(res.error).toContain('no está activo')
-    state.active = ['comercializador', 'rrhh']
+    state.active = ['comercializador', 'administracion']
   })
 
   it('bloquea sin permisos (sin usuario_id)', async () => {

@@ -8,8 +8,8 @@ type DatabaseLike = {
 }
 
 function checkModuleOrFail(): { success: false; error: string } | null {
-  if (!getActiveModules().includes('rrhh')) {
-    return { success: false, error: 'El módulo Recursos Humanos no está activo en la licencia' }
+  if (!getActiveModules().includes('administracion')) {
+    return { success: false, error: 'El módulo Administración no está activo en la licencia' }
   }
   return null
 }

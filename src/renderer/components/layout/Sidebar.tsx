@@ -99,7 +99,7 @@ export default function Sidebar() {
     ]
     const administracion: MenuItem[] = [
       { to: '/contabilidad', icon: Calculator, label: t('nav.accounting'), permission: 'contable_view', modulo: 'administracion' },
-      { to: '/rrhh', icon: UsersRound, label: t('nav.rrhh'), permission: 'rrhh_view', modulo: 'rrhh' },
+      { to: '/rrhh', icon: UsersRound, label: t('nav.rrhh'), permission: 'rrhh_view', modulo: 'administracion' },
     ]
     const productor: MenuItem[] = [
       { to: '/produccion', icon: Sprout, label: t('nav.production'), permission: 'productor_view', modulo: 'productor' },
