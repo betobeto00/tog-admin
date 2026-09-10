@@ -9,9 +9,10 @@ export function registerCajaHandlers(): void {
     if (fail) return fail
     const db = getDatabase()
     return db.prepare(`
-      SELECT c.*, u.nombre as usuario_nombre
+      SELECT c.*, u.nombre as usuario_nombre, a.nombre as almacen_nombre
       FROM caja c
       LEFT JOIN usuarios u ON c.usuario_id = u.id
+      LEFT JOIN almacenes a ON c.almacen_id = a.id
       WHERE c.estado = 'abierta'
       ORDER BY c.fecha_apertura DESC
       LIMIT 1
@@ -29,8 +30,8 @@ export function registerCajaHandlers(): void {
     }
 
     const result = db.prepare(
-      'INSERT INTO caja (usuario_id, fondo_inicial) VALUES (?, ?)'
-    ).run(data.usuario_id, data.fondo_inicial)
+      'INSERT INTO caja (usuario_id, fondo_inicial, almacen_id) VALUES (?, ?, ?)'
+    ).run(data.usuario_id, data.fondo_inicial, data.almacen_id || null)
 
     return { success: true, id: result.lastInsertRowid }
   })
@@ -94,9 +95,10 @@ export function registerCajaHandlers(): void {
     if (fail) return fail
     const db = getDatabase()
     let sql = `
-      SELECT c.*, u.nombre as usuario_nombre
+      SELECT c.*, u.nombre as usuario_nombre, a.nombre as almacen_nombre
       FROM caja c
       LEFT JOIN usuarios u ON c.usuario_id = u.id
+      LEFT JOIN almacenes a ON c.almacen_id = a.id
       WHERE 1=1
     `
     const params: any[] = []

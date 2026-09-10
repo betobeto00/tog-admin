@@ -85,6 +85,7 @@ export interface ProductoCreate {
   stock_minimo?: number
   unidad?: string
   imagen?: string
+  almacen_id?: number
 }
 
 export interface ProductoUpdate {
@@ -103,6 +104,7 @@ export interface ProductoUpdate {
   unidad?: string
   imagen?: string
   activo?: number
+  almacen_id?: number
 }
 
 // --- Subcategorías ---
@@ -309,6 +311,7 @@ export interface Caja {
 export interface CajaAbrir {
   usuario_id: number
   fondo_inicial: number
+  almacen_id?: number
 }
 
 export interface CajaCerrar {
@@ -372,6 +375,14 @@ export interface MetodoPagoUpdate {
   orden?: number
 }
 
+export interface Almacen {
+  id: number
+  nombre: string
+  direccion: string | null
+  activo: number
+  creado_en: string
+}
+
 // --- IPC Channels ---
 export interface IpcChannels {
   // Auth
@@ -405,7 +416,7 @@ export interface IpcChannels {
   'subcategorias:delete': { id: number }
 
   // Productos
-  'productos:list': { search?: string; categoria_id?: number; subcategoria_id?: number }
+  'productos:list': { search?: string; categoria_id?: number; subcategoria_id?: number; almacen_id?: number }
   'productos:getById': { id: number }
   'productos:create': ProductoCreate
   'productos:update': { id: number; data: ProductoUpdate }

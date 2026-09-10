@@ -55,6 +55,7 @@ export const productoCreateSchema = z.object({
   stock_minimo: z.number().int().min(0).default(5),
   unidad: z.string().max(50).default('unidad'),
   imagen: z.string().max(1600000).nullable().optional(),
+  almacen_id: z.number().int().positive().optional(),
 })
 
 export const productoUpdateSchema = productoCreateSchema.partial()

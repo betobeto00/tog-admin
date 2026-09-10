@@ -92,4 +92,26 @@ export function registerAlmacenesHandlers(): void {
     `).run(data.producto_id, data.almacen_id, data.stock)
     return { success: true }
   })
+
+  handleIpc('almacenes:transfer', async (_event, data: { producto_id: number; origen_id: number; destino_id: number; cantidad: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'almacenes:transfer', 'inventario_edit')
+    if (fail) return fail
+    if (!data?.producto_id || !data?.origen_id || !data?.destino_id) return { success: false, error: 'producto_id, origen_id y destino_id son requeridos' }
+    if (data.origen_id === data.destino_id) return { success: false, error: 'El almacén de origen y destino deben ser diferentes' }
+    if (!data.cantidad || data.cantidad <= 0) return { success: false, error: 'La cantidad debe ser mayor a 0' }
+    const db = getDatabase()
+    const stockOrigen = db.prepare('SELECT stock FROM producto_almacen WHERE producto_id = ? AND almacen_id = ?').get(data.producto_id, data.origen_id) as any
+    if (!stockOrigen || stockOrigen.stock < data.cantidad) {
+      return { success: false, error: `Stock insuficiente en origen. Disponible: ${stockOrigen?.stock ?? 0}` }
+    }
+    const txn = db.transaction(() => {
+      db.prepare('UPDATE producto_almacen SET stock = stock - ?, actualizado_en = datetime(\'now\') WHERE producto_id = ? AND almacen_id = ?').run(data.cantidad, data.producto_id, data.origen_id)
+      db.prepare(`INSERT INTO producto_almacen (producto_id, almacen_id, stock, actualizado_en) VALUES (?, ?, ?, datetime('now'))
+        ON CONFLICT(producto_id, almacen_id) DO UPDATE SET stock = stock + excluded.stock, actualizado_en = datetime('now')`).run(data.producto_id, data.destino_id, data.cantidad)
+      const total = db.prepare('SELECT COALESCE(SUM(stock), 0) as t FROM producto_almacen WHERE producto_id = ?').get(data.producto_id) as any
+      db.prepare('UPDATE productos SET stock = ?, updated_at = datetime(\'now\') WHERE id = ?').run(total.t, data.producto_id)
+    })
+    txn()
+    return { success: true }
+  })
 }

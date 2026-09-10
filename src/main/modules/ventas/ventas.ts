@@ -45,6 +45,18 @@ export function createVenta(data: any): any {
 
   // Validación de stock. Un producto compuesto valida sus hojas (componentes
   // sin componentes propios); un producto normal valida su propio stock.
+  const cajaAbiertaInit = db.prepare("SELECT id, almacen_id FROM caja WHERE estado = 'abierta' LIMIT 1").get() as any
+  const almacenActivoId = cajaAbiertaInit?.almacen_id || null
+
+  const getStock = (productoId: number): number => {
+    if (almacenActivoId) {
+      const pa = db.prepare('SELECT stock FROM producto_almacen WHERE producto_id = ? AND almacen_id = ?').get(productoId, almacenActivoId) as any
+      return pa?.stock ?? 0
+    }
+    const p = db.prepare('SELECT stock FROM productos WHERE id = ?').get(productoId) as any
+    return p?.stock ?? 0
+  }
+
   const hojasPorDetalle: Map<number, { producto_id: number; nombre: string; tipo: string; cantidad: number }[]> = new Map()
   for (let idx = 0; idx < data.detalles.length; idx++) {
     const det = data.detalles[idx]
@@ -58,13 +70,14 @@ export function createVenta(data: any): any {
       hojasPorDetalle.set(idx, hojas)
       for (const hoja of hojas) {
         if (hoja.tipo === 'servicio') continue
-        const stockHoja = (db.prepare('SELECT stock FROM productos WHERE id = ?').get(hoja.producto_id) as any)?.stock ?? 0
+        const stockHoja = getStock(hoja.producto_id)
         if (Number(stockHoja) < hoja.cantidad) {
           return { success: false, error: `Stock insuficiente de "${hoja.nombre}" para el combo "${producto.nombre}". Disponible: ${stockHoja}, Necesario: ${hoja.cantidad}` }
         }
       }
-    } else if (producto.tipo !== 'servicio' && producto.stock < det.cantidad) {
-      return { success: false, error: `Stock insuficiente para "${producto.nombre}". Disponible: ${producto.stock}, Solicitado: ${det.cantidad}` }
+    } else if (producto.tipo !== 'servicio' && getStock(det.producto_id) < det.cantidad) {
+      const stockDisp = getStock(det.producto_id)
+      return { success: false, error: `Stock insuficiente para "${producto.nombre}". Disponible: ${stockDisp}, Solicitado: ${det.cantidad}` }
     }
   }
 
@@ -103,9 +116,17 @@ export function createVenta(data: any): any {
     const updateStock = db!.prepare(
       "UPDATE productos SET stock = stock - ? WHERE id = ? AND tipo != 'servicio'"
     )
+    const updateStockAlmacen = db!.prepare(
+      "UPDATE producto_almacen SET stock = stock - ? WHERE producto_id = ? AND almacen_id = ? AND stock >= ?"
+    )
     const insertComponente = db!.prepare(
       'INSERT INTO venta_detalle_componentes (venta_detalle_id, componente_id, cantidad) VALUES (?, ?, ?)'
     )
+
+    const syncProductStockLocal = (productoId: number) => {
+      const row = db!.prepare('SELECT COALESCE(SUM(stock), 0) as total FROM producto_almacen WHERE producto_id = ?').get(productoId) as any
+      db!.prepare("UPDATE productos SET stock = ?, actualizado_en = datetime('now') WHERE id = ?").run(row.total, productoId)
+    }
 
     for (let idx = 0; idx < data.detalles.length; idx++) {
       const det = data.detalles[idx]
@@ -122,13 +143,22 @@ export function createVenta(data: any): any {
       const ventaDetalleId = detalleResult.lastInsertRowid
       const hojas = hojasPorDetalle.get(idx)
       if (det.producto_id && hojas) {
-        // Combo: descontar stock de cada hoja y guardar snapshot para el desglose
         for (const hoja of hojas) {
-          updateStock.run(hoja.cantidad, hoja.producto_id)
+          if (almacenActivoId) {
+            updateStockAlmacen.run(hoja.cantidad, hoja.producto_id, almacenActivoId, hoja.cantidad)
+            syncProductStockLocal(hoja.producto_id)
+          } else {
+            updateStock.run(hoja.cantidad, hoja.producto_id)
+          }
           insertComponente.run(ventaDetalleId, hoja.producto_id, hoja.cantidad)
         }
       } else if (det.producto_id) {
-        updateStock.run(det.cantidad, det.producto_id)
+        if (almacenActivoId) {
+          updateStockAlmacen.run(det.cantidad, det.producto_id, almacenActivoId, det.cantidad)
+          syncProductStockLocal(det.producto_id)
+        } else {
+          updateStock.run(det.cantidad, det.producto_id)
+        }
       }
     }
 
@@ -284,23 +314,49 @@ export function registerVentasHandlers(): void {
         WHERE vd.venta_id = ?
       `).all(data.id) as any[]
 
+      const caja_venta = db!.prepare(`
+        SELECT c.almacen_id FROM ventas v
+        JOIN caja c ON v.usuario_id = c.usuario_id
+        WHERE v.id = ? AND c.estado = 'cerrada'
+        ORDER BY c.fecha_cierre DESC LIMIT 1
+      `).get(data.id) as any
+      const almacenVentaId = caja_venta?.almacen_id || null
+
       const updateStock = db!.prepare(
         "UPDATE productos SET stock = stock + ? WHERE id = ? AND tipo != 'servicio'"
       )
+      const updateStockAlmacen = db!.prepare(
+        "UPDATE producto_almacen SET stock = stock + ? WHERE producto_id = ? AND almacen_id = ?"
+      )
+      const syncProductStockLocal = (productoId: number) => {
+        const row = db!.prepare('SELECT COALESCE(SUM(stock), 0) as total FROM producto_almacen WHERE producto_id = ?').get(productoId) as any
+        db!.prepare("UPDATE productos SET stock = ?, actualizado_en = datetime('now') WHERE id = ?").run(row.total, productoId)
+      }
       const componentesDetalle = db!.prepare(
         'SELECT componente_id, cantidad FROM venta_detalle_componentes WHERE venta_detalle_id = ?'
       ) as any
       const tipoComponente = db!.prepare('SELECT tipo FROM productos WHERE id = ?')
       for (const det of detalles) {
-        // Si el detalle fue un combo, el stock se descontó de sus componentes: restaurar desde el snapshot.
         const comps = componentesDetalle.all(det.detalle_id) as { componente_id: number; cantidad: number }[]
         if (comps.length > 0) {
           for (const c of comps) {
             const tipo = (tipoComponente.get(c.componente_id) as any)?.tipo
-            if (tipo !== 'servicio') updateStock.run(c.cantidad, c.componente_id)
+            if (tipo !== 'servicio') {
+              if (almacenVentaId) {
+                updateStockAlmacen.run(c.cantidad, c.componente_id, almacenVentaId)
+                syncProductStockLocal(c.componente_id)
+              } else {
+                updateStock.run(c.cantidad, c.componente_id)
+              }
+            }
           }
         } else if (det.producto_id && det.tipo !== 'servicio') {
-          updateStock.run(det.cantidad, det.producto_id)
+          if (almacenVentaId) {
+            updateStockAlmacen.run(det.cantidad, det.producto_id, almacenVentaId)
+            syncProductStockLocal(det.producto_id)
+          } else {
+            updateStock.run(det.cantidad, det.producto_id)
+          }
         }
       }
 

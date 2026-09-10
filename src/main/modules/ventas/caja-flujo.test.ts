@@ -95,7 +95,8 @@ const { db, handles } = vi.hoisted(() => {
       usuario_id INTEGER,
       estado TEXT NOT NULL DEFAULT 'abierta',
       notas TEXT,
-      cerrado_en TEXT
+      cerrado_en TEXT,
+      almacen_id INTEGER
     );
     CREATE TABLE movimientos_caja (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -156,6 +157,22 @@ const { db, handles } = vi.hoisted(() => {
       usuario TEXT NOT NULL, contrasena TEXT NOT NULL,
       nombre TEXT NOT NULL, rol TEXT NOT NULL DEFAULT 'cajero',
       activo INTEGER NOT NULL DEFAULT 1
+    );
+    CREATE TABLE almacenes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre TEXT NOT NULL UNIQUE,
+      direccion TEXT,
+      activo INTEGER NOT NULL DEFAULT 1,
+      creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    INSERT INTO almacenes (id, nombre) VALUES (1, 'Principal');
+    CREATE TABLE producto_almacen (
+      producto_id INTEGER NOT NULL,
+      almacen_id INTEGER NOT NULL,
+      stock REAL NOT NULL DEFAULT 0,
+      actualizado_en TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (producto_id, almacen_id),
+      FOREIGN KEY (almacen_id) REFERENCES almacenes(id)
     );
   `)
   db.prepare("INSERT INTO configuracion (clave, valor) VALUES ('ticket_numero_venta', '0')").run()

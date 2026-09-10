@@ -138,11 +138,19 @@ const { db, handles, state } = vi.hoisted(() => {
     CREATE TABLE caja (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       fecha_apertura TEXT NOT NULL DEFAULT (datetime('now')),
+      fecha_cierre TEXT,
       estado TEXT NOT NULL DEFAULT 'abierta',
       fondo_inicial REAL NOT NULL DEFAULT 0,
       total_ventas REAL NOT NULL DEFAULT 0,
       total_entradas REAL NOT NULL DEFAULT 0,
-      total_salidas REAL NOT NULL DEFAULT 0
+      total_salidas REAL NOT NULL DEFAULT 0,
+      total_esperado REAL NOT NULL DEFAULT 0,
+      total_real REAL NOT NULL DEFAULT 0,
+      diferencia REAL NOT NULL DEFAULT 0,
+      usuario_id INTEGER,
+      notas TEXT,
+      cerrado_en TEXT,
+      almacen_id INTEGER
     );
     CREATE TABLE movimientos_caja (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -190,6 +198,22 @@ const { db, handles, state } = vi.hoisted(() => {
       componente_id INTEGER NOT NULL,
       cantidad REAL NOT NULL,
       creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE almacenes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre TEXT NOT NULL UNIQUE,
+      direccion TEXT,
+      activo INTEGER NOT NULL DEFAULT 1,
+      creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    INSERT INTO almacenes (id, nombre) VALUES (1, 'Principal');
+    CREATE TABLE producto_almacen (
+      producto_id INTEGER NOT NULL,
+      almacen_id INTEGER NOT NULL,
+      stock REAL NOT NULL DEFAULT 0,
+      actualizado_en TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (producto_id, almacen_id),
+      FOREIGN KEY (almacen_id) REFERENCES almacenes(id)
     );
   `)
   db.prepare("INSERT INTO configuracion (clave, valor) VALUES ('ticket_numero_venta', '0')").run()

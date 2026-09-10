@@ -6,6 +6,11 @@ import { productoCreateSchema, productoUpdateSchema } from '../../../shared/vali
 import { esCombo, disponibilidad, costoReal, detalleCombo } from './combos'
 import { saveImagen, deleteImagen, getImagenDataUrl } from '../../services/imagenes'
 
+function syncProductStock(db: any, productoId: number): void {
+  const row = db.prepare('SELECT COALESCE(SUM(stock), 0) as total FROM producto_almacen WHERE producto_id = ?').get(productoId) as any
+  db.prepare('UPDATE productos SET stock = ?, actualizado_en = datetime(\'now\') WHERE id = ?').run(row.total, productoId)
+}
+
 // Enriquecer un producto con datos de producto compuesto: un combo no tiene
 // stock propio; su stock real es la disponibilidad de sus componentes.
 function enriquecerProducto(db: any, row: any): any {
@@ -28,12 +33,15 @@ export function registerProductosHandlers(): void {
     const fail = checkPermissionOrFail(filters, 'productos:list', 'inventario_access')
     if (fail) return fail
     const db = getDatabase()
+    const almacenFilter = filters?.almacen_id
     let sql = `
       SELECT p.*, c.nombre as categoria_nombre, s.nombre as subcategoria_nombre,
              (SELECT COUNT(*) FROM producto_componentes pc WHERE pc.producto_id = p.id) AS es_combo
+             ${almacenFilter ? ', pa.stock as almacen_stock' : ''}
       FROM productos p
       LEFT JOIN categorias c ON p.categoria_id = c.id
       LEFT JOIN subcategorias s ON p.subcategoria_id = s.id
+      ${almacenFilter ? 'LEFT JOIN producto_almacen pa ON pa.producto_id = p.id AND pa.almacen_id = ' + Number(almacenFilter) : ''}
       WHERE p.activo = 1
     `
     const params: any[] = []
@@ -54,9 +62,21 @@ export function registerProductosHandlers(): void {
       params.push(filters.subcategoria_id)
     }
 
+    if (almacenFilter) {
+      sql += ` AND (pa.stock IS NOT NULL OR p.tipo = 'servicio')`
+    }
+
     sql += ` ORDER BY p.nombre`
     const rows = db.prepare(sql).all(...params) as any[]
-    return rows.map((r) => (r.es_combo ? enriquecerProducto(db, r) : { ...r, es_combo: 0, costo_real: Number(r.precio_compra) || 0 }))
+    return rows.map((r) => {
+      const enriched = r.es_combo ? enriquecerProducto(db, r) : { ...r, es_combo: 0, costo_real: Number(r.precio_compra) || 0 }
+      if (almacenFilter) {
+        enriched.stock_display = r.almacen_stock ?? 0
+      } else {
+        enriched.stock_display = enriched.stock
+      }
+      return enriched
+    })
   })
 
   handleIpc('productos:getById', async (_event, data: { id: number; usuario_id: number }) => {
@@ -89,6 +109,7 @@ export function registerProductosHandlers(): void {
     }
     const db = getDatabase()
     const esServicio = data.tipo === 'servicio'
+    const stockInicial = esServicio ? 0 : (data.stock || 0)
     const result = db.prepare(`
       INSERT INTO productos (codigo_barras, sku, nombre, descripcion, categoria_id,
         subcategoria_id, marca, tipo, precio_compra, precio_venta, stock, stock_minimo,
@@ -105,12 +126,20 @@ export function registerProductosHandlers(): void {
       data.tipo || 'producto',
       esServicio ? 0 : (data.precio_compra || 0),
       data.precio_venta || 0,
-      esServicio ? 0 : (data.stock || 0),
+      stockInicial,
       esServicio ? 0 : (data.stock_minimo || 5),
       data.unidad || (esServicio ? 'Servicio' : 'unidad'),
       data.imagen || null,
     )
-    return { id: result.lastInsertRowid }
+    const productoId = result.lastInsertRowid
+    if (!esServicio && data.almacen_id && stockInicial > 0) {
+      db.prepare(`
+        INSERT INTO producto_almacen (producto_id, almacen_id, stock)
+        VALUES (?, ?, ?)
+        ON CONFLICT(producto_id, almacen_id) DO UPDATE SET stock = stock + excluded.stock
+      `).run(productoId, data.almacen_id, stockInicial)
+    }
+    return { id: productoId }
   })
 
   handleIpc('productos:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
@@ -165,6 +194,27 @@ export function registerProductosHandlers(): void {
       d.activo,
       data.id,
     )
+
+    if (!esServicio && d.almacen_id !== undefined) {
+      const actualAlmacen = db.prepare('SELECT almacen_id FROM producto_almacen WHERE producto_id = ?').get(data.id) as any
+      const newAlmacenId = d.almacen_id || null
+      const oldAlmacenId = actualAlmacen?.almacen_id || null
+      if (newAlmacenId !== oldAlmacenId) {
+        const stockActual = valor('stock', d.stock, actual.stock, 0)
+        if (oldAlmacenId) {
+          db.prepare('UPDATE producto_almacen SET stock = 0 WHERE producto_id = ? AND almacen_id = ?').run(data.id, oldAlmacenId)
+        }
+        if (newAlmacenId) {
+          db.prepare(`
+            INSERT INTO producto_almacen (producto_id, almacen_id, stock)
+            VALUES (?, ?, ?)
+            ON CONFLICT(producto_id, almacen_id) DO UPDATE SET stock = stock + excluded.stock
+          `).run(data.id, newAlmacenId, stockActual)
+        }
+        syncProductStock(db, data.id)
+      }
+    }
+
     return { success: true }
   })
 
@@ -226,7 +276,7 @@ export function registerProductosHandlers(): void {
     return rows
   })
 
-  handleIpc('productos:ajustar', async (_event, data: { producto_id: number; stock_nuevo: number; justificacion: string; usuario_id: number }) => {
+  handleIpc('productos:ajustar', async (_event, data: { producto_id: number; stock_nuevo: number; justificacion: string; usuario_id: number; almacen_id?: number }) => {
     const fail = checkPermissionOrFail(data, 'productos:ajustar', 'inventario_adjust')
     if (fail) return fail
     const db = getDatabase()
@@ -239,6 +289,21 @@ export function registerProductosHandlers(): void {
       const diferencia = data.stock_nuevo - stockAnterior
 
       db!.prepare(`UPDATE productos SET stock = ?, actualizado_en = datetime('now') WHERE id = ?`).run(data.stock_nuevo, data.producto_id)
+
+      if (data.almacen_id) {
+        const actualAlmacen = db!.prepare('SELECT stock FROM producto_almacen WHERE producto_id = ? AND almacen_id = ?').get(data.producto_id, data.almacen_id) as any
+        const stockAlmacenAnterior = actualAlmacen?.stock || 0
+        const stockAlmacenNuevo = stockAlmacenAnterior + diferencia
+        if (stockAlmacenNuevo < 0) {
+          return { success: false, error: `Stock en almacén quedaría negativo (${stockAlmacenNuevo})` }
+        }
+        db!.prepare(`
+          INSERT INTO producto_almacen (producto_id, almacen_id, stock)
+          VALUES (?, ?, ?)
+          ON CONFLICT(producto_id, almacen_id) DO UPDATE SET stock = excluded.stock
+        `).run(data.producto_id, data.almacen_id, stockAlmacenNuevo)
+        syncProductStock(db!, data.producto_id)
+      }
 
       db!.prepare(`
         INSERT INTO ajustes_inventario (producto_id, usuario_id, stock_anterior, stock_nuevo, diferencia, justificacion)

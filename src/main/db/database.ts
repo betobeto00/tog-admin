@@ -986,6 +986,12 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
           ALTER TABLE nominas ADD COLUMN salario_base_activo INTEGER NOT NULL DEFAULT 0;
         `,
       },
+      {
+        nombre: '043_almacen_caja',
+        sql: `
+          ALTER TABLE caja ADD almacen_id INTEGER REFERENCES almacenes(id);
+        `,
+      },
     ]
 }
 // ============================================

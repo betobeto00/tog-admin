@@ -21,12 +21,14 @@ interface LineaComponente {
 interface Categoria { id: number; nombre: string; descripcion: string | null; activo: number }
 interface UnidadMedida { id: number; nombre: string; abreviatura: string | null; activo: number }
 interface Subcategoria { id: number; nombre: string; categoria_id: number; activo: number; categoria_nombre?: string }
+interface Almacen { id: number; nombre: string; direccion: string | null; activo: number }
 
 const emptyProduct = {
   nombre: '', codigo_barras: '', sku: '', descripcion: '',
   categoria_id: 0, subcategoria_id: 0, marca: '', tipo: 'producto' as 'producto' | 'servicio',
   precio_compra: 0, precio_venta: 0,
   stock: 0, stock_minimo: 5, unidad: 'unidad', imagen: null as string | null,
+  almacen_id: 0,
 }
 
 export default function InventarioPage() {
@@ -37,8 +39,10 @@ export default function InventarioPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [unidades, setUnidades] = useState<UnidadMedida[]>([])
   const [subcategorias, setSubcategorias] = useState<Subcategoria[]>([])
+  const [almacenes, setAlmacenes] = useState<Almacen[]>([])
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState<number>(0)
+  const [filterAlmacen, setFilterAlmacen] = useState<number>(0)
   const [showCat, setShowCat] = useState(false)
   const [showUnid, setShowUnid] = useState(false)
   const [showSub, setShowSub] = useState(false)
@@ -165,19 +169,21 @@ export default function InventarioPage() {
   const [showAjustes, setShowAjustes] = useState(false)
   const [ajustesHistorial, setAjustesHistorial] = useState<any[]>([])
 
-  useEffect(() => { loadData() }, [])
+  useEffect(() => { loadData() }, [filterAlmacen])
 
   const loadData = async () => {
-    const [prods, cats, unids, subs] = await Promise.all([
-      callApi<Producto[]>('productos:list'),
+    const [prods, cats, unids, subs, alms] = await Promise.all([
+      callApi<Producto[]>('productos:list', filterAlmacen ? { almacen_id: filterAlmacen } : undefined),
       callApi<Categoria[]>('categorias:list'),
       callApi<UnidadMedida[]>('unidades:list'),
       callApi<Subcategoria[]>('subcategorias:list'),
+      callApi<Almacen[]>('almacenes:list', { activoOnly: true }),
     ])
     setProductos(prods)
     setCategorias(cats)
     setUnidades(unids)
     setSubcategorias(subs)
+    setAlmacenes(alms)
   }
 
   // Filtrar productos
@@ -189,7 +195,7 @@ export default function InventarioPage() {
       p.sku?.toLowerCase().includes(term) ||
       p.marca?.toLowerCase().includes(term)
     const matchCat = !filterCat || p.categoria_id === filterCat
-    const matchStock = !filterSinStock || (p.stock <= p.stock_minimo)
+    const matchStock = !filterSinStock || ((p as any).stock_display ?? p.stock) <= p.stock_minimo
     return matchSearch && matchCat && matchStock
   })
 
@@ -246,6 +252,11 @@ export default function InventarioPage() {
     setEditing(p)
     setComponentes([])
     setComboMode(p.es_combo === 1)
+    let almacenId = 0
+    try {
+      const pa = await callApi<{ almacen_id: number }[]>('almacenes:stock', { producto_id: p.id })
+      if (pa && pa.length > 0) almacenId = pa[0].almacen_id
+    } catch {}
     setForm({
       nombre: p.nombre,
       codigo_barras: p.codigo_barras || '',
@@ -261,6 +272,7 @@ export default function InventarioPage() {
       stock_minimo: p.stock_minimo,
       unidad: p.unidad,
       imagen: p.imagen || null,
+      almacen_id: almacenId,
     })
     setBarcodeMode(false)
     // Cargar imagen desde filesystem (imagen_path), no desde base64 en DB
@@ -661,6 +673,16 @@ export default function InventarioPage() {
             <option key={c.id} value={c.id}>{c.nombre}</option>
           ))}
         </select>
+        <select
+          value={filterAlmacen}
+          onChange={(e) => setFilterAlmacen(Number(e.target.value))}
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500"
+        >
+          <option value={0}>{i18n.language === 'en' ? 'All warehouses' : 'Todos los almacenes'}</option>
+          {almacenes.map((a) => (
+            <option key={a.id} value={a.id}>{a.nombre}</option>
+          ))}
+        </select>
         <button
           onClick={() => setFilterSinStock(!filterSinStock)}
           className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
@@ -726,10 +748,10 @@ export default function InventarioPage() {
                   <td className="px-4 py-3 text-sm font-medium text-gray-900 text-right">{formatMoney(p.precio_venta)}</td>
                   <td className="px-4 py-3 text-center">
                     <span className={`inline-flex items-center gap-1 text-sm font-medium ${
-                      p.stock <= p.stock_minimo ? 'text-red-600' : 'text-gray-900'
+                      (p as any).stock_display <= p.stock_minimo ? 'text-red-600' : 'text-gray-900'
                     }`}>
-                      {p.stock <= p.stock_minimo && <AlertTriangle className="w-3.5 h-3.5" />}
-                      {p.stock}
+                      {(p as any).stock_display <= p.stock_minimo && <AlertTriangle className="w-3.5 h-3.5" />}
+                      {(p as any).stock_display}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500 text-center capitalize">{p.unidad}</td>
@@ -828,6 +850,18 @@ export default function InventarioPage() {
                 ))}
               </select>
             </div>
+            {form.tipo === 'producto' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Warehouse' : 'Almacén'}</label>
+                <select
+                  value={form.almacen_id}
+                  onChange={(e) => setForm({ ...form, almacen_id: Number(e.target.value) })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                  <option value={0}>{i18n.language === 'en' ? 'Select warehouse' : 'Seleccionar almacén'}</option>
+                  {almacenes.map((a) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Unit of Measure' : 'Unidad de Medida'}</label>
               <div className="flex gap-1">

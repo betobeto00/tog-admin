@@ -29,6 +29,7 @@ export const IPC_CHANNELS = [
   'almacenes:list',
   'almacenes:set-stock',
   'almacenes:stock',
+  'almacenes:transfer',
   'almacenes:update',
   'compras:create',
   'compras:list',

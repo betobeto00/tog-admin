@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@core/auth/store'
 import {
   Lock, Unlock, DollarSign, ArrowUpCircle, ArrowDownCircle,
-  Clock, AlertTriangle, CheckCircle, History, Calculator, Printer
+  Clock, AlertTriangle, CheckCircle, History, Calculator, Printer, Package
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import { formatDateTime } from '../lib/utils'
-import { formatMoney } from '../services/currency'
+import { formatMoney, getRate } from '../services/currency'
 import { callApi } from '../lib/api-client'
 
 interface CajaState {
@@ -22,7 +22,10 @@ interface HistorialCaja {
   fondo_inicial: number; total_ventas: number; total_entradas: number
   total_salidas: number; total_esperado: number; total_real: number
   diferencia: number; estado: string; usuario_nombre: string; notas: string | null
+  almacen_nombre: string | null
 }
+
+interface Almacen { id: number; nombre: string }
 
 export default function CajaPage() {
   const { t, i18n } = useTranslation()
@@ -36,12 +39,15 @@ export default function CajaPage() {
   const [aperturaOpen, setAperturaOpen] = useState(false)
   const [fondoInicial, setFondoInicial] = useState('')
   const [fondoDefault, setFondoDefault] = useState('')
+  const [almacenes, setAlmacenes] = useState<Almacen[]>([])
+  const [almacenSeleccionado, setAlmacenSeleccionado] = useState<number>(0)
 
   useEffect(() => {
     callApi<any[]>('config:get').then((cfg: any[]) => {
       const fd = cfg.find((c: any) => c.clave === 'fondo_inicial_default')
       if (fd?.valor) setFondoDefault(fd.valor)
     })
+    callApi<Almacen[]>('almacenes:list', { activoOnly: true }).then(setAlmacenes)
   }, [])
 
   // Movimiento
@@ -75,18 +81,23 @@ export default function CajaPage() {
 
   // ======== APERTURA ========
   const abrirCaja = async () => {
-    const fondo = parseFloat(fondoInicial)
-    if (isNaN(fondo) || fondo < 0) return
-    await callApi('caja:abrir', { usuario_id: usuario!.id, fondo_inicial: fondo })
+    const fondoLocal = parseFloat(fondoInicial)
+    if (isNaN(fondoLocal) || fondoLocal < 0) return
+    const rate = getRate() || 1
+    const fondo = fondoLocal / rate
+    await callApi('caja:abrir', { usuario_id: usuario!.id, fondo_inicial: fondo, almacen_id: almacenSeleccionado || undefined })
     setAperturaOpen(false)
     setFondoInicial('')
+    setAlmacenSeleccionado(0)
     await loadCaja()
   }
 
   // ======== MOVIMIENTO ========
   const registrarMovimiento = async () => {
-    const monto = parseFloat(movMonto)
-    if (isNaN(monto) || monto <= 0 || !movDesc.trim()) return
+    const montoLocal = parseFloat(movMonto)
+    if (isNaN(montoLocal) || montoLocal <= 0 || !movDesc.trim()) return
+    const rate = getRate() || 1
+    const monto = montoLocal / rate
     await callApi('caja:movimiento', { tipo: movTipo, monto, descripcion: movDesc })
     setMovOpen(false)
     setMovMonto('')
@@ -96,8 +107,10 @@ export default function CajaPage() {
 
   // ======== CIERRE ========
   const cerrarCaja = async () => {
-    const real = parseFloat(totalReal)
-    if (isNaN(real) || !caja) return
+    const realLocal = parseFloat(totalReal)
+    if (isNaN(realLocal) || !caja) return
+    const rate = getRate() || 1
+    const real = realLocal / rate
     // Backup automático antes de cerrar
     try { await callApi('caja:backup-auto') } catch {}
     await callApi('caja:cerrar', {
@@ -215,6 +228,12 @@ export default function CajaPage() {
         ) : (
           /* Caja abierta */
           <div className="space-y-4">
+            {(caja as any).almacen_nombre && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-700 flex items-center gap-2">
+                <Package className="w-4 h-4" />
+                {i18n.language === 'en' ? 'Active warehouse:' : 'Almacén activo:'} <strong>{(caja as any).almacen_nombre}</strong>
+              </div>
+            )}
             {/* Tarjetas de resumen */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
               <SummaryCard label={t('caja.openingBalance')} value={formatMoney(caja.fondo_inicial)} color="blue" />
@@ -270,6 +289,7 @@ export default function CajaPage() {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.opening')}</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.closing')}</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.cashier')}</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{i18n.language === 'en' ? 'Warehouse' : 'Almacén'}</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.fund')}</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.totalSales')}</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('caja.expected')}</th>
@@ -281,7 +301,7 @@ export default function CajaPage() {
             <tbody className="divide-y divide-gray-100">
               {historial.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-12 text-gray-400">
+                  <td colSpan={10} className="text-center py-12 text-gray-400">
                     <History className="w-12 h-12 mx-auto mb-2 opacity-50" />
                     <p>{t('caja.noHistoryDesc')}</p>
                   </td>
@@ -292,6 +312,7 @@ export default function CajaPage() {
                     <td className="px-4 py-3 text-sm">{formatDateTime(h.fecha_apertura)}</td>
                     <td className="px-4 py-3 text-sm">{h.fecha_cierre ? formatDateTime(h.fecha_cierre) : '—'}</td>
                     <td className="px-4 py-3 text-sm">{h.usuario_nombre}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{(h as any).almacen_nombre || '—'}</td>
                     <td className="px-4 py-3 text-sm text-right">{formatMoney(h.fondo_inicial)}</td>
                     <td className="px-4 py-3 text-sm text-right font-medium">{formatMoney(h.total_ventas)}</td>
                     <td className="px-4 py-3 text-sm text-right">{formatMoney(h.total_esperado)}</td>
@@ -329,6 +350,15 @@ export default function CajaPage() {
               onChange={(e) => setFondoInicial(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl text-2xl font-bold text-center focus:ring-2 focus:ring-blue-500"
               placeholder="0.00" autoFocus />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Active Warehouse' : 'Almacén activo'}</label>
+            <select value={almacenSeleccionado} onChange={(e) => setAlmacenSeleccionado(Number(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+              <option value={0}>{i18n.language === 'en' ? 'No warehouse (global stock)' : 'Sin almacén (stock global)'}</option>
+              {almacenes.map((a) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">{i18n.language === 'en' ? 'Sales during this session will deduct stock from this warehouse.' : 'Las ventas de esta sesión descontarán stock de este almacén.'}</p>
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <button onClick={() => setAperturaOpen(false)}
@@ -406,32 +436,38 @@ export default function CajaPage() {
                   placeholder="0.00" autoFocus />
               </div>
 
-              {totalReal && !isNaN(parseFloat(totalReal)) && (
-                <div className={`rounded-xl p-4 text-center ${
-                  parseFloat(totalReal) === totalEsperado
-                    ? 'bg-green-50'
-                    : parseFloat(totalReal) > totalEsperado
-                      ? 'bg-blue-50'
-                      : 'bg-red-50'
-                }`}>
-                  <p className={`text-sm ${
-                    parseFloat(totalReal) === totalEsperado ? 'text-green-600'
-                      : parseFloat(totalReal) > totalEsperado ? 'text-blue-600' : 'text-red-600'
+              {totalReal && !isNaN(parseFloat(totalReal)) && (() => {
+                const rate = getRate() || 1
+                const esperadoLocal = totalEsperado * rate
+                const realLocal = parseFloat(totalReal)
+                const diffLocal = realLocal - esperadoLocal
+                return (
+                  <div className={`rounded-xl p-4 text-center ${
+                    diffLocal === 0
+                      ? 'bg-green-50'
+                      : diffLocal > 0
+                        ? 'bg-blue-50'
+                        : 'bg-red-50'
                   }`}>
-                    {parseFloat(totalReal) === totalEsperado
-                      ? t('caja.balances')
-                      : parseFloat(totalReal) > totalEsperado
-                        ? `${t('caja.over')} ${formatMoney(parseFloat(totalReal) - totalEsperado)}`
-                        : `${t('caja.short')} ${formatMoney(totalEsperado - parseFloat(totalReal))}`}
-                  </p>
-                  <p className={`text-2xl font-bold mt-1 ${
-                    parseFloat(totalReal) === totalEsperado ? 'text-green-700'
-                      : parseFloat(totalReal) > totalEsperado ? 'text-blue-700' : 'text-red-700'
-                  }`}>
-                    {t('caja.difference')}: {parseFloat(totalReal) >= totalEsperado ? '+' : ''}{formatMoney(parseFloat(totalReal) - totalEsperado)}
-                  </p>
-                </div>
-              )}
+                    <p className={`text-sm ${
+                      diffLocal === 0 ? 'text-green-600'
+                        : diffLocal > 0 ? 'text-blue-600' : 'text-red-600'
+                    }`}>
+                      {diffLocal === 0
+                        ? t('caja.balances')
+                        : diffLocal > 0
+                          ? `${t('caja.over')} ${formatMoney(diffLocal / rate)}`
+                          : `${t('caja.short')} ${formatMoney(-diffLocal / rate)}`}
+                    </p>
+                    <p className={`text-2xl font-bold mt-1 ${
+                      diffLocal === 0 ? 'text-green-700'
+                        : diffLocal > 0 ? 'text-blue-700' : 'text-red-700'
+                    }`}>
+                      {t('caja.difference')}: {diffLocal >= 0 ? '+' : ''}{formatMoney(diffLocal / rate)}
+                    </p>
+                  </div>
+                )
+              })()}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.notes')} ({t('caja.closeOptional')})</label>
