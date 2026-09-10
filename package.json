@@ -1,6 +1,6 @@
 {
   "name": "tog-admin",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "description": "TOG Admin - Ecosistema modular de punto de venta y gestión para cualquier negocio, de la producción a la postventa",
   "main": "dist-electron/main/index.js",
   "author": "betobeto00",
