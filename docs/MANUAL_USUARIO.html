@@ -252,7 +252,7 @@
   <h1>TOG Admin</h1>
   <h2>Manual del Usuario</h2>
   <div class="badge">Sistema Modular de Punto de Venta y Gestión</div>
-  <div class="version">Versión 1.0.9 · Septiembre 2026</div>
+  <div class="version">Versión 1.2.0 · Septiembre 2026</div>
 </div>
 
 <div class="container">
@@ -332,11 +332,49 @@
   <h2>2. Primer Inicio</h2>
   <ol class="steps">
     <li>Abre <strong>TOG Admin</strong> desde el menú Inicio de Windows.</li>
-    <li>Copia tu <strong>ID de máquina</strong> (código tipo UUID) y envíaselo al proveedor.</li>
+    <li>Aparecerá la <strong>pantalla de activación de licencia</strong>. Selecciona uno de los métodos disponibles:</li>
+  </ol>
+
+  <h3>Método 1: Importar archivo de licencia</h3>
+  <p>Método offline. El proveedor te envía un archivo firmado.</p>
+  <ol class="steps">
+    <li>Copia tu <strong>ID de máquina</strong> (código de 16 caracteres que aparece en pantalla) y envíaselo al proveedor.</li>
     <li>El proveedor te enviará un archivo <code>license.key</code>.</li>
-    <li>Haz clic en <strong>Importar Licencia</strong> y selecciona el archivo.</li>
+    <li>Haz clic en <strong>"Importar Licencia"</strong> y selecciona el archivo.</li>
+  </ol>
+
+  <h3>Método 2: Sincronizar con tu cuenta OmniMargen</h3>
+  <p>Método online. Usa tu cuenta de omnimargen.site.</p>
+  <ol class="steps">
+    <li>Ingresa el <strong>email</strong> y <strong>contraseña</strong> de tu cuenta en omnimargen.site.</li>
+    <li>Haz clic en <strong>"Sincronizar con mi cuenta"</strong>.</li>
+    <li>La licencia se descarga y activa automáticamente.</li>
+  </ol>
+  <div class="callout info">
+    <strong>Requisito</strong>
+    Debes tener una cuenta en omnimargen.site con una empresa vinculada y una licencia activa.
+  </div>
+
+  <h3>Método 3: Sincronizar con el servidor (distribuidores)</h3>
+  <p>Método online para distribuidores con acceso directo al backend.</p>
+  <ol class="steps">
+    <li>Ingresa la <strong>URL del servidor</strong>, <strong>ID de empresa</strong> y <strong>API Key</strong>.</li>
+    <li>Haz clic en <strong>"Sincronizar licencia"</strong>.</li>
+  </ol>
+
+  <h3>Método 4: Conectar a una PC Base (red local)</h3>
+  <p>Si tu negocio usa varias PCs conectadas, esta PC puede conectarse a la PC Base que ya tiene licencia.</p>
+  <ol class="steps">
+    <li>Haz clic en <strong>"Conectar a una PC Base"</strong>.</li>
+    <li>Ingresa la <strong>IP de la PC Base</strong>, el <strong>código de enlace</strong> y un <strong>nombre para esta PC</strong>.</li>
+  </ol>
+  <p>Ver详细 instrucciones en la sección <a href="#redlocal">23. Red Local</a>.</p>
+
+  <h3>Iniciar sesión</h3>
+  <ol class="steps">
     <li>Inicia sesión con <code>admin</code> / <code>admin123</code>. El sistema te obligará a cambiar la contraseña.</li>
   </ol>
+
   <div class="callout warn">
     <strong>Sin licencia válida</strong>
     La aplicación no te dejará iniciar sesión. Conserva tu archivo <code>license.key</code> en un lugar seguro.
@@ -610,11 +648,33 @@
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <section class="chapter" id="licencia">
   <h2>19. Licencia</h2>
-  <p>Ve a <strong>Configuración → Sistema</strong> para ver el estado de tu licencia: cliente, fecha de expiración, días restantes e ID de máquina.</p>
-  <p>Para renovar, solicita una nueva licencia al proveedor e importa el archivo <code>license.key</code>.</p>
+  <p>Tu licencia controla qué módulos tienes activos y cuándo expiran. Puedes ver el estado actual en <strong>Configuración → Sistema</strong>.</p>
+
+  <h3>Información de la licencia</h3>
+  <ul>
+    <li><strong>Cliente</strong> — nombre de la empresa o persona titular.</li>
+    <li><strong>Expira</strong> — fecha de vencimiento de la licencia.</li>
+    <li><strong>Días restantes</strong> — cuántos días faltan para que venza.</li>
+    <li><strong>ID de máquina</strong> — identificador único de la PC (si la licencia está vinculada a una máquina específica).</li>
+    <li><strong>Módulos</strong> — módulos activos según tu compra (Comercializador, Distribuidor, Restaurant, RRHH, Contabilidad).</li>
+  </ul>
+
+  <h3>Activar o renovar licencia</h3>
+  <p>Puedes activar o renovar tu licencia de tres formas:</p>
+  <ul>
+    <li><strong>Importar archivo</strong>: solicita el archivo <code>license.key</code> al proveedor y selecciónalo con "Importar Licencia".</li>
+    <li><strong>Sincronizar con tu cuenta</strong>: ingresa tu email y contraseña de omnimargen.site y presiona "Sincronizar con mi cuenta". La licencia se descarga automáticamente.</li>
+    <li><strong>Sincronizar con el servidor</strong>: ingresa URL, ID de empresa y API Key, y presiona "Sincronizar licencia".</li>
+  </ul>
+
+  <div class="callout info">
+    <strong>Renovación automática</strong>
+    Cuando tu licencia está por vencer (≤30 días), aparecerá un aviso amarillo con un botón "Renovar licencia". Si usas sincronización online, el proveedor emite la renovación en TOG Platform y tú solo presionas Sincronizar.
+  </div>
+
   <div class="callout warn">
     <strong>Cada licencia está asociada a una máquina</strong>
-    Si cambias de PC, necesitarás una licencia nueva.
+    Si cambias de PC, necesitarás una licencia nueva. Si usas Red Local, la licencia solo va en la PC Base.
   </div>
 </section>
 
@@ -754,7 +814,7 @@
     </div>
     <div class="card">
       <h4>¿Puedo usar en varias PCs?</h4>
-      <p>No con la misma licencia. Cada PC necesita su propia licencia.</p>
+      <p>Sí, si tu licencia incluye <strong>Red Local</strong> (max_pcs ≥ 2). La PC Base tiene la licencia y las PCs Hijas se conectan a ella sin licencia propia. Ver <a href="#redlocal">Red Local</a>.</p>
     </div>
     <div class="card">
       <h4>¿Qué pasa si se va la luz?</h4>
@@ -785,14 +845,14 @@
   <p>Si encuentras un error, el sistema genera archivos <code>.txt</code> con el detalle técnico. Envíalos al soporte junto con una descripción del problema.</p>
 
   <div class="callout info">
-    <strong>TOG Admin v1.0.9</strong> — Ecosistema modular de Punto de Venta y Gestión
+    <strong>TOG Admin v1.2.0</strong> — Ecosistema modular de Punto de Venta y Gestión
   </div>
 </section>
 
 <!-- FOOTER -->
 <div class="footer">
   <p>&copy; 2026 TOG Admin. Todos los derechos reservados.</p>
-  <p>Manual del Usuario &middot; Versión 1.0.9 &middot; Septiembre 2026</p>
+  <p>Manual del Usuario &middot; Versión 1.2.0 &middot; Septiembre 2026</p>
 </div>
 
 </div><!-- /container -->
