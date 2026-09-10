@@ -53,6 +53,7 @@
     "invalidInput": "Invalid input data",
     "unauthorized": "Unauthorized",
     "notFound": "Resource not found",
+    "wrongCredentials": "Invalid username or password",
     "stockInsufficient": "Insufficient stock",
     "cashNotOpen": "Cash register is not open",
     "userExists": "User already exists",

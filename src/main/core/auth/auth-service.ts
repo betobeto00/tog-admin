@@ -45,13 +45,13 @@ export async function login(input: LoginInput, parId = 'base'): Promise<LoginRes
   const user = db.prepare('SELECT * FROM usuarios WHERE usuario = ? AND activo = 1').get(usuario) as any
   if (!user) {
     recordFailedAttempt(usuario)
-    return { success: false, error: t('errors.notFound') }
+    return { success: false, error: t('errors.wrongCredentials') }
   }
 
   const validPassword = bcrypt.compareSync(contrasena, user.contrasena)
   if (!validPassword) {
     recordFailedAttempt(usuario)
-    return { success: false, error: t('errors.wrongPassword') }
+    return { success: false, error: t('errors.wrongCredentials') }
   }
 
   clearLoginAttempts(usuario)

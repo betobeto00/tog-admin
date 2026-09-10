@@ -53,6 +53,7 @@
     "invalidInput": "Datos de entrada inválidos",
     "unauthorized": "No autorizado",
     "notFound": "Recurso no encontrado",
+    "wrongCredentials": "Usuario o contraseña incorrectos",
     "stockInsufficient": "Stock insuficiente",
     "cashNotOpen": "La caja no está abierta",
     "userExists": "El usuario ya existe",
