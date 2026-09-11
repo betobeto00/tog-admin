@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { createRedServer, generarCodigoEnlace, type RedServer } from './red-server'
+import { createRedServer, generarCodigoEnlace, sanitizeCrashFilename, resetVincularRateLimit, type RedServer } from './red-server'
 
 type Db = ReturnType<typeof crearDb>
 
@@ -86,6 +86,7 @@ describe('red-server (PC Base)', () => {
   }
 
   beforeEach(async () => {
+    resetVincularRateLimit()
     db = crearDb()
     server = createRedServer({
       getDb: () => db,
@@ -111,7 +112,7 @@ describe('red-server (PC Base)', () => {
     expect(res.status).toBe(201)
     expect(res.json.success).toBe(true)
     expect(res.json.par_id).toBeTruthy()
-    expect(res.json.cert_hash).toBeTruthy()
+    expect(res.json.nombre).toBe('Caja 1')
 
     const enlazadas = db.prepare('SELECT * FROM pcs_enlazadas').all() as any[]
     expect(enlazadas).toHaveLength(1)
@@ -134,20 +135,35 @@ describe('red-server (PC Base)', () => {
     expect(res.json.error).toContain('expirado')
   })
 
-  it('vincular: rechaza código inexistente y respeta tope max_pcs', async () => {
-    const inexistente = await post('/api/red/vincular', { codigo: 'ZZZZ', nombre: 'Caja' })
-    expect(inexistente.status).toBe(404)
+  it('vincular: rechaza código inexistente', async () => {
+    const res = await post('/api/red/vincular', { codigo: 'ZZZZ', nombre: 'Caja' })
+    expect(res.status).toBe(404)
+  })
 
-    // Tope: enlazar 5 PCs (max_pcs = 5) y el sexto debe rechazarse
-    for (let i = 0; i < 5; i++) {
+  it('vincular: respeta tope max_pcs', async () => {
+    await server.stop()
+    const maxPcs = 3
+    server = createRedServer({
+      getDb: () => db,
+      getHandler: (c) => {
+        const fn = handlerFake.bind(null, c)
+        return c.startsWith('no:') ? undefined : fn
+      },
+      getMaxPcs: () => maxPcs,
+      port: 0,
+    })
+    const puerto = await server.start()
+    base = `http://127.0.0.1:${puerto}`
+
+    for (let i = 0; i < maxPcs; i++) {
       const { codigo } = generarCodigoEnlace(db)
       const r = await post('/api/red/vincular', { codigo, nombre: `Caja ${i}` })
       expect(r.status).toBe(201)
     }
-    const { codigo: sexto } = generarCodigoEnlace(db)
-    const r6 = await post('/api/red/vincular', { codigo: sexto, nombre: 'Caja 6' })
-    expect(r6.status).toBe(403)
-    expect(r6.json.error).toContain('Límite')
+    const { codigo: extra } = generarCodigoEnlace(db)
+    const rExtra = await post('/api/red/vincular', { codigo: extra, nombre: 'Caja extra' })
+    expect(rExtra.status).toBe(403)
+    expect(rExtra.json.error).toContain('Límite')
   })
 
   it('rpc: rechaza par sin credenciales válidas', async () => {
@@ -158,7 +174,8 @@ describe('red-server (PC Base)', () => {
   it('rpc: despacha canales preauth sin sesión activa', async () => {
     const { codigo } = generarCodigoEnlace(db)
     const vin = await post('/api/red/vincular', { codigo, nombre: 'Caja 1' })
-    const { par_id, cert_hash } = vin.json
+    const { par_id } = vin.json
+    const { cert_hash } = db.prepare('SELECT cert_hash FROM pcs_enlazadas WHERE par_id = ?').get(par_id) as { cert_hash: string }
 
     const res = await post('/api/red/rpc', { canal: 'app:version', args: [], par_id, cert_hash })
     expect(res.status).toBe(200)
@@ -168,7 +185,8 @@ describe('red-server (PC Base)', () => {
   it('rpc: exige sesión activa para canales de negocio', async () => {
     const { codigo } = generarCodigoEnlace(db)
     const vin = await post('/api/red/vincular', { codigo, nombre: 'Caja 1' })
-    const { par_id, cert_hash } = vin.json
+    const { par_id } = vin.json
+    const { cert_hash } = db.prepare('SELECT cert_hash FROM pcs_enlazadas WHERE par_id = ?').get(par_id) as { cert_hash: string }
 
     const res = await post('/api/red/rpc', { canal: 'productos:list', args: [], par_id, cert_hash })
     expect(res.status).toBe(401)
@@ -178,7 +196,8 @@ describe('red-server (PC Base)', () => {
   it('rpc: login desde hija habilita canales de negocio', async () => {
     const { codigo } = generarCodigoEnlace(db)
     const vin = await post('/api/red/vincular', { codigo, nombre: 'Caja 1' })
-    const { par_id, cert_hash } = vin.json
+    const { par_id } = vin.json
+    const { cert_hash } = db.prepare('SELECT cert_hash FROM pcs_enlazadas WHERE par_id = ?').get(par_id) as { cert_hash: string }
 
     const login = await post('/api/red/rpc', {
       canal: 'auth:login',
@@ -198,7 +217,8 @@ describe('red-server (PC Base)', () => {
   it('rpc: canal desconocido devuelve 404', async () => {
     const { codigo } = generarCodigoEnlace(db)
     const vin = await post('/api/red/vincular', { codigo, nombre: 'Caja 1' })
-    const { par_id, cert_hash } = vin.json
+    const { par_id } = vin.json
+    const { cert_hash } = db.prepare('SELECT cert_hash FROM pcs_enlazadas WHERE par_id = ?').get(par_id) as { cert_hash: string }
     await post('/api/red/rpc', { canal: 'auth:login', args: [{ usuario: 'admin', contrasena: 'x' }], par_id, cert_hash })
 
     const res = await post('/api/red/rpc', { canal: 'no:existe', args: [], par_id, cert_hash })
@@ -208,13 +228,73 @@ describe('red-server (PC Base)', () => {
   it('logout: libera las sesiones del par', async () => {
     const { codigo } = generarCodigoEnlace(db)
     const vin = await post('/api/red/vincular', { codigo, nombre: 'Caja 1' })
-    const { par_id, cert_hash } = vin.json
+    const { par_id } = vin.json
+    const { cert_hash } = db.prepare('SELECT cert_hash FROM pcs_enlazadas WHERE par_id = ?').get(par_id) as { cert_hash: string }
     await post('/api/red/rpc', { canal: 'auth:login', args: [{ usuario: 'admin', contrasena: 'x' }], par_id, cert_hash })
     expect(parTieneSesion(db, par_id)).toBe(true)
 
     const logout = await post('/api/red/logout', { par_id, cert_hash })
     expect(logout.status).toBe(200)
     expect(parTieneSesion(db, par_id)).toBe(false)
+  })
+
+  it('body overflow: rechaza cuerpo mayor a 1MB con 413', async () => {
+    const largeBody = 'x'.repeat(1024 * 1024 + 1)
+    const res = await fetch(base + '/api/red/vincular', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: largeBody,
+    })
+    expect(res.status).toBe(413)
+    const json = await res.json()
+    expect(json.success).toBe(false)
+    expect(json.error).toContain('1MB')
+  })
+
+  it('rate limiting: bloquea después de 5 intentos a /api/red/vincular', async () => {
+    for (let i = 0; i < 5; i++) {
+      const { codigo } = generarCodigoEnlace(db)
+      const res = await post('/api/red/vincular', { codigo, nombre: `PC ${i}` })
+      expect(res.status).toBe(201)
+    }
+    const { codigo } = generarCodigoEnlace(db)
+    const res = await post('/api/red/vincular', { codigo, nombre: 'PC 6' })
+    expect(res.status).toBe(429)
+    expect(res.json.error).toContain('Demasiados intentos')
+  })
+
+  it('rate limiting: no aplica a otros endpoints', async () => {
+    for (let i = 0; i < 10; i++) {
+      const res = await post('/api/red/heartbeat', { par_id: 'fake', cert_hash: 'fake' })
+      expect(res.status).toBe(401)
+    }
+  })
+})
+
+describe('sanitizeCrashFilename', () => {
+  it('acepta nombres válidos', () => {
+    expect(sanitizeCrashFilename('crash-2026-09-11-120000-abcd.txt')).toBe(true)
+    expect(sanitizeCrashFilename('test_file-1.txt')).toBe(true)
+    expect(sanitizeCrashFilename('A.txt')).toBe(true)
+  })
+
+  it('rechaza path traversal con ..', () => {
+    expect(sanitizeCrashFilename('../../etc/passwd')).toBe(false)
+    expect(sanitizeCrashFilename('..\\windows\\system32')).toBe(false)
+    expect(sanitizeCrashFilename('crash/../etc/shadow')).toBe(false)
+  })
+
+  it('rechaza slashes', () => {
+    expect(sanitizeCrashFilename('foo/bar')).toBe(false)
+    expect(sanitizeCrashFilename('foo\\bar')).toBe(false)
+    expect(sanitizeCrashFilename('/etc/passwd')).toBe(false)
+  })
+
+  it('rechaza caracteres especiales', () => {
+    expect(sanitizeCrashFilename('crash@2026.txt')).toBe(false)
+    expect(sanitizeCrashFilename('crash 2026.txt')).toBe(false)
+    expect(sanitizeCrashFilename('crash.txt; rm -rf /')).toBe(false)
+    expect(sanitizeCrashFilename('')).toBe(false)
   })
 })
 

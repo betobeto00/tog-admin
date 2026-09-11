@@ -207,7 +207,6 @@ export default function LoginPage() {
 
           {/* Footer */}
           <div className="mt-6 text-center text-xs text-gray-400">
-            <p>admin / admin123</p>
           </div>
 
           {/* Update check + feedback */}

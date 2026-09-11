@@ -143,14 +143,15 @@ export async function rpcABase(canal: string, args: unknown[]): Promise<any> {
     if (r.status >= 400) {
       const err = r.json?.error || `Error de red (HTTP ${r.status})`
       if (r.status === 401) {
-        throw new Error(`Sin autorización en la PC Base: ${err}`)
+        desvincularDeBase()
+        throw new Error(err || 'Sesión expirada o credenciales inválidas. Se desconectó de la PC Base.')
       }
       throw new Error(err)
     }
     return r.json?.response
   } catch (err) {
     if (err instanceof Error && err.message.startsWith('Timeout contacting')) {
-      throw new Error(`La PC Base no respondió (${config.baseUrl}). Verificá que esté encendida y en la misma red.`)
+      throw new Error(`La PC Base no respondió. Verificá que esté encendida y en la misma red.`)
     }
     throw err
   }

@@ -22,6 +22,8 @@
     "typecheck:all": "npm run typecheck && npm run typecheck:main",
     "test": "vitest run",
     "test:watch": "vitest",
+    "security:audit": "npm audit --omit=dev",
+    "security:audit:all": "npm audit",
     "db:migrate": "tsx src/main/db/migrate.ts"
   },
   "dependencies": {

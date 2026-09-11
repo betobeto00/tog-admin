@@ -992,6 +992,35 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
           ALTER TABLE caja ADD almacen_id INTEGER REFERENCES almacenes(id);
         `,
       },
+      {
+        nombre: '044_security_default_passwords',
+        sql: `
+          -- Flag to track if initial password has been shown to user
+          ALTER TABLE usuarios ADD COLUMN initial_password_shown INTEGER NOT NULL DEFAULT 0;
+          
+          -- Create table to store initial admin password (cleared after first login)
+          CREATE TABLE IF NOT EXISTS admin_initial_password (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            password_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            shown_at TEXT
+          );
+        `,
+      },
+      {
+        nombre: '045_login_attempts',
+        sql: `
+          CREATE TABLE IF NOT EXISTS login_attempts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario TEXT NOT NULL,
+            ip TEXT,
+            exitoso INTEGER NOT NULL DEFAULT 0,
+            creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+          );
+          CREATE INDEX IF NOT EXISTS idx_login_attempts_usuario ON login_attempts(usuario);
+          CREATE INDEX IF NOT EXISTS idx_login_attempts_creado ON login_attempts(creado_en);
+        `,
+      },
     ]
 }
 // ============================================
@@ -1003,28 +1032,35 @@ function seedDatabase(db: Database.Database): void {
 
   if (!existeAdmin) {
     const seedInTransaction = db.transaction(() => {
-      // Usuario admin por defecto (contraseña: admin123)
-      // Se fuerza cambio de contraseña en el primer login
-      const hash = bcrypt.hashSync('admin123', 10)
+      // Generate random admin password (12 chars: uppercase + lowercase + digits)
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+      let adminPassword = ''
+      for (let i = 0; i < 12; i++) {
+        adminPassword += chars.charAt(Math.floor(Math.random() * chars.length))
+      }
+      
+      // Store initial password for first login display
+      const initialPasswordPath = require('path').join(
+        require('electron').app.getPath('userData'),
+        'admin-initial-password.txt'
+      )
+      require('fs').writeFileSync(initialPasswordPath, adminPassword, 'utf8')
+      
+      // Hash the password for storage
+      const hash = bcrypt.hashSync(adminPassword, 10)
       db!.prepare(`
         INSERT INTO usuarios (usuario, contrasena, nombre, rol, debe_cambiar_contrasena)
         VALUES (?, ?, ?, ?, 1)
       `).run('admin', hash, 'Administrador', 'admin')
-
-      // Empleada de prueba: solo puede ver inventario y procesar compras
-      // (contraseña: empleado123)
-      const hashEmpleado = bcrypt.hashSync('empleado123', 10)
-      const permisosEmpleado = JSON.stringify([
-        'pos_access', 'pos_discount', 'pos_edit_price', 'pos_quick_sale',
-        'caja_access', 'caja_open', 'caja_close', 'caja_movement',
-        'inventario_access', 'inventario_create', 'inventario_edit',
-        'compras_access', 'compras_create',
-        'quotes_access', 'quotes_create',
-      ])
+      
+      // Store initial password for first login display
       db!.prepare(`
-        INSERT INTO usuarios (usuario, contrasena, nombre, rol, permisos)
-        VALUES (?, ?, ?, ?, ?)
-      `).run('maria', hashEmpleado, 'María (Prueba)', 'cajero', permisosEmpleado)
+        INSERT INTO admin_initial_password (id, password_hash) VALUES (1, ?)
+      `).run(hash)
+      
+      logger.info('db', `Admin password generated. Check: ${initialPasswordPath}`)
+
+      // Note: 'maria' test user removed for security (Phase 3)
 
       // Nota: categorías NO se seedean — el cliente crea las suyas
       // Solo se insertan unidades de medida genéricas

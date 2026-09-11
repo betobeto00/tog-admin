@@ -221,10 +221,20 @@ export function listCrashReports(): Array<{ id: string; filename: string; path: 
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
 }
 
+const SAFE_FILENAME_RE = /^[a-zA-Z0-9_-]+$/
+
+function isValidCrashFilename(filename: string): boolean {
+  if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    return false
+  }
+  return SAFE_FILENAME_RE.test(filename)
+}
+
 /**
  * Obtiene el contenido de un reporte específico
  */
 export function readCrashReport(filename: string): string | null {
+  if (!isValidCrashFilename(filename)) return null
   const dir = getCrashReportsDir()
   const filePath = path.join(dir, filename)
   if (!fs.existsSync(filePath)) return null
@@ -235,6 +245,7 @@ export function readCrashReport(filename: string): string | null {
  * Elimina un reporte específico
  */
 export function deleteCrashReport(filename: string): boolean {
+  if (!isValidCrashFilename(filename)) return false
   const dir = getCrashReportsDir()
   const filePath = path.join(dir, filename)
   if (!fs.existsSync(filePath)) return false

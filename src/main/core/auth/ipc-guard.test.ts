@@ -3,12 +3,13 @@ import { isTrustedSender } from './ipc-guard'
 
 const MAIN_URL = 'file:///C:/app/dist/index.html'
 
-function makeEvent(url: string | undefined, sameFrame = true): any {
+function makeEvent(url: string | undefined, { sameFrame = true, contextIsolation = true } = {}): any {
   const frame = url === undefined ? null : { url }
   return {
     senderFrame: frame,
     sender: {
       mainFrame: sameFrame ? frame : { url: 'file:///C:/app/evil-frame.html' },
+      webPreferences: { contextIsolation },
     },
   }
 }
@@ -27,7 +28,7 @@ describe('isTrustedSender', () => {
   })
 
   it('rechaza subframes (iframe)', () => {
-    expect(isTrustedSender(makeEvent(MAIN_URL, false))).toBe(false)
+    expect(isTrustedSender(makeEvent(MAIN_URL, { sameFrame: false }))).toBe(false)
   })
 
   it('rechaza senderFrame nulo o sin URL', () => {
@@ -37,5 +38,20 @@ describe('isTrustedSender', () => {
 
   it('rechaza URLs inválidas', () => {
     expect(isTrustedSender(makeEvent('not a url'))).toBe(false)
+  })
+
+  it('rechaza cuando contextIsolation está desactivado', () => {
+    expect(isTrustedSender(makeEvent(MAIN_URL, { contextIsolation: false }))).toBe(false)
+  })
+
+  it('rechaza cuando webPreferences es undefined', () => {
+    const event = {
+      senderFrame: { url: MAIN_URL },
+      sender: {
+        mainFrame: { url: MAIN_URL },
+        webPreferences: undefined,
+      },
+    }
+    expect(isTrustedSender(event)).toBe(false)
   })
 })

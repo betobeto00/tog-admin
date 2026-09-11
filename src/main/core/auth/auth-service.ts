@@ -3,18 +3,53 @@ import { getDatabase } from '../../db/database'
 import { t } from '../../i18n'
 import { registrarSesion } from '../../services/red-session'
 
-const MAX_LOGIN_ATTEMPTS = 5
-const LOGIN_LOCKOUT_MS = 15 * 60 * 1000
+const LOCKOUT_THRESHOLDS = [
+  { maxAttempts: 5, lockoutMs: 5 * 60 * 1000 },
+  { maxAttempts: 10, lockoutMs: 15 * 60 * 1000 },
+  { maxAttempts: 30, lockoutMs: 60 * 60 * 1000 },
+]
 
-const loginAttempts = new Map<string, { count: number; lastAttempt: number }>()
+const CLEANUP_AGE_MS = 24 * 60 * 60 * 1000
 
-function recordFailedAttempt(usuario: string): void {
-  const prev = loginAttempts.get(usuario) || { count: 0, lastAttempt: 0 }
-  loginAttempts.set(usuario, { count: prev.count + 1, lastAttempt: Date.now() })
+function getLockoutMs(attempts: number): number {
+  for (const tier of LOCKOUT_THRESHOLDS) {
+    if (attempts >= tier.maxAttempts) return tier.lockoutMs
+  }
+  return 0
 }
 
-export function clearLoginAttempts(usuario: string): void {
-  loginAttempts.delete(usuario)
+function recordFailedAttempt(usuario: string, ip?: string): void {
+  const db = getDatabase()
+  db.prepare('INSERT INTO login_attempts (usuario, ip, exitoso) VALUES (?, ?, 0)').run(usuario, ip || null)
+}
+
+function clearLoginAttempts(usuario: string): void {
+  const db = getDatabase()
+  db.prepare('DELETE FROM login_attempts WHERE usuario = ? AND exitoso = 0').run(usuario)
+}
+
+function getFailedAttemptCount(usuario: string): number {
+  const db = getDatabase()
+  const row = db.prepare(
+    "SELECT COUNT(*) AS c FROM login_attempts WHERE usuario = ? AND exitoso = 0 AND creado_en > datetime('now', '-1 day')",
+  ).get(usuario) as { c: number }
+  return row.c
+}
+
+function getLastFailedAttempt(usuario: string): number {
+  const db = getDatabase()
+  const row = db.prepare(
+    "SELECT MAX(creado_en) AS last FROM login_attempts WHERE usuario = ? AND exitoso = 0",
+  ).get(usuario) as { last: string | null }
+  if (!row.last) return 0
+  return new Date(row.last + 'Z').getTime()
+}
+
+function cleanupOldAttempts(): void {
+  const db = getDatabase()
+  db.prepare(
+    "DELETE FROM login_attempts WHERE creado_en < datetime('now', '-1 day')",
+  ).run()
 }
 
 export interface LoginInput {
@@ -28,29 +63,31 @@ export interface LoginResult {
   error?: string
 }
 
-/**
- * Login con sesión única: al autenticar se registra la sesión del usuario en
- * el par (PC) que hizo login. Si el usuario ya tiene sesión activa en OTRO
- * par, el login se rechaza. El par 'base' es la propia PC Base.
- */
-export async function login(input: LoginInput, parId = 'base'): Promise<LoginResult> {
+export async function login(input: LoginInput, parId = 'base', ip?: string): Promise<LoginResult> {
   const { usuario, contrasena } = input
-  const attempts = loginAttempts.get(usuario)
-  if (attempts && attempts.count >= MAX_LOGIN_ATTEMPTS && Date.now() - attempts.lastAttempt < LOGIN_LOCKOUT_MS) {
-    const remaining = Math.ceil((LOGIN_LOCKOUT_MS - (Date.now() - attempts.lastAttempt)) / 60000)
-    return { success: false, error: `Demasiados intentos fallidos. Intenta de nuevo en ${remaining} minutos.` }
+
+  cleanupOldAttempts()
+
+  const failedCount = getFailedAttemptCount(usuario)
+  if (failedCount > 0) {
+    const lastAttempt = getLastFailedAttempt(usuario)
+    const lockoutMs = getLockoutMs(failedCount)
+    if (lockoutMs > 0 && Date.now() - lastAttempt < lockoutMs) {
+      const remaining = Math.ceil((lockoutMs - (Date.now() - lastAttempt)) / 60000)
+      return { success: false, error: `Demasiados intentos fallidos. Intenta de nuevo en ${remaining} minutos.` }
+    }
   }
 
   const db = getDatabase()
   const user = db.prepare('SELECT * FROM usuarios WHERE usuario = ? AND activo = 1').get(usuario) as any
   if (!user) {
-    recordFailedAttempt(usuario)
+    recordFailedAttempt(usuario, ip)
     return { success: false, error: t('errors.wrongCredentials') }
   }
 
   const validPassword = bcrypt.compareSync(contrasena, user.contrasena)
   if (!validPassword) {
-    recordFailedAttempt(usuario)
+    recordFailedAttempt(usuario, ip)
     return { success: false, error: t('errors.wrongCredentials') }
   }
 

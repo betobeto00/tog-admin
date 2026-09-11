@@ -23,7 +23,7 @@ describe('usuarioCreateSchema', () => {
   it('accepts valid user data', () => {
     const result = usuarioCreateSchema.safeParse({
       usuario: 'admin',
-      contrasena: '123456',
+      contrasena: '12345678',
       nombre: 'Administrador',
       rol: 'admin',
     })
@@ -33,7 +33,7 @@ describe('usuarioCreateSchema', () => {
   it('rejects short username', () => {
     const result = usuarioCreateSchema.safeParse({
       usuario: 'ab',
-      contrasena: '123456',
+      contrasena: '12345678',
       nombre: 'Test',
     })
     expect(result.success).toBe(false)
@@ -42,16 +42,25 @@ describe('usuarioCreateSchema', () => {
   it('rejects invalid characters in username', () => {
     const result = usuarioCreateSchema.safeParse({
       usuario: 'admin user',
-      contrasena: '123456',
+      contrasena: '12345678',
       nombre: 'Test',
     })
     expect(result.success).toBe(false)
   })
 
-  it('rejects short password', () => {
+  it('rejects short password (< 8 chars)', () => {
     const result = usuarioCreateSchema.safeParse({
       usuario: 'admin',
-      contrasena: '12345',
+      contrasena: '1234567',
+      nombre: 'Test',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects password exceeding 128 chars', () => {
+    const result = usuarioCreateSchema.safeParse({
+      usuario: 'admin',
+      contrasena: 'a'.repeat(129),
       nombre: 'Test',
     })
     expect(result.success).toBe(false)
@@ -60,7 +69,7 @@ describe('usuarioCreateSchema', () => {
   it('defaults role to cajero', () => {
     const result = usuarioCreateSchema.safeParse({
       usuario: 'admin',
-      contrasena: '123456',
+      contrasena: '12345678',
       nombre: 'Test',
     })
     expect(result.success).toBe(true)
@@ -202,17 +211,22 @@ describe('movimientoCajaSchema', () => {
 
 describe('loginSchema', () => {
   it('accepts valid login', () => {
-    const result = loginSchema.safeParse({ usuario: 'admin', contrasena: '123456' })
+    const result = loginSchema.safeParse({ usuario: 'admin', contrasena: '12345678' })
     expect(result.success).toBe(true)
   })
 
   it('rejects empty username', () => {
-    const result = loginSchema.safeParse({ usuario: '', contrasena: '123456' })
+    const result = loginSchema.safeParse({ usuario: '', contrasena: '12345678' })
     expect(result.success).toBe(false)
   })
 
   it('rejects empty password', () => {
     const result = loginSchema.safeParse({ usuario: 'admin', contrasena: '' })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects password exceeding 128 chars', () => {
+    const result = loginSchema.safeParse({ usuario: 'admin', contrasena: 'a'.repeat(129) })
     expect(result.success).toBe(false)
   })
 })
@@ -221,17 +235,26 @@ describe('changePasswordSchema', () => {
   it('accepts valid password change', () => {
     const result = changePasswordSchema.safeParse({
       usuario_id: 1,
-      contrasena_actual: 'old123',
-      contrasena_nueva: 'new123456',
+      contrasena_actual: 'oldpass123',
+      contrasena_nueva: 'newpass123',
     })
     expect(result.success).toBe(true)
   })
 
-  it('rejects short new password', () => {
+  it('rejects short new password (< 8 chars)', () => {
     const result = changePasswordSchema.safeParse({
       usuario_id: 1,
-      contrasena_actual: 'old123',
-      contrasena_nueva: '12345',
+      contrasena_actual: 'oldpass123',
+      contrasena_nueva: '1234567',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects new password exceeding 128 chars', () => {
+    const result = changePasswordSchema.safeParse({
+      usuario_id: 1,
+      contrasena_actual: 'oldpass123',
+      contrasena_nueva: 'a'.repeat(129),
     })
     expect(result.success).toBe(false)
   })

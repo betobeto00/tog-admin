@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage } from 'electron'
+import { app, BrowserWindow, Tray, Menu, nativeImage, session } from 'electron'
 import path from 'path'
 import { loadEnv } from './core/env'
 import { initializeDatabase } from './db/database'
@@ -30,6 +30,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
       webSecurity: !isDev,
       allowRunningInsecureContent: isDev,
     },
@@ -182,6 +183,17 @@ app.whenReady().then(() => {
     // Registrar handlers IPC
     registerIpcHandlers()
     logger.info('app', `${i18nT('logs.ipcRegistered')}`)
+
+    // CSP headers a nivel Electron (refuerzo al meta tag en index.html)
+    const PROD_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'"
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [PROD_CSP],
+        },
+      })
+    })
 
     // Modo PC Base: arrancar el servidor de red local para las PCs hijas
     startRedServerIfBase().then((ok) => {

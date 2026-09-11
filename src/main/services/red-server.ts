@@ -12,6 +12,34 @@ import type { TlsMaterial } from './red-cert'
 export const RED_SERVER_PORT = 3002
 const CODIGO_TTL_MS = 5 * 60 * 1000
 
+const RATE_LIMIT_WINDOW_MS = 60_000
+const RATE_LIMIT_MAX = 5
+const vincularAttempts = new Map<string, { count: number; windowStart: number }>()
+
+export function resetVincularRateLimit(): void {
+  vincularAttempts.clear()
+}
+
+function checkVincularRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const entry = vincularAttempts.get(ip)
+  if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+    vincularAttempts.set(ip, { count: 1, windowStart: now })
+    return true
+  }
+  entry.count++
+  return entry.count <= RATE_LIMIT_MAX
+}
+
+const SAFE_FILENAME_RE = /^[a-zA-Z0-9._-]+$/
+
+export function sanitizeCrashFilename(filename: string): boolean {
+  if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    return false
+  }
+  return SAFE_FILENAME_RE.test(filename)
+}
+
 export interface RedServerDeps {
   getDb: () => DbLike
   getHandler: (canal: string) => ((...args: any[]) => any) | undefined
@@ -48,7 +76,20 @@ export async function startRedServerIfBase(): Promise<boolean> {
       const { getOrCreateCert } = await import('./red-cert')
       tls = await getOrCreateCert()
     } catch (certErr: any) {
-      logger.warn('red', `No se pudo cargar/generar cert TLS (${certErr?.message}). Cayendo a HTTP para no bloquear dev.`)
+      let isProduction = false
+      try {
+        const electron = require('electron')
+        isProduction = electron.app.isPackaged
+      } catch {}
+      if (isProduction) {
+        logger.error('red', `FATAL: No se pudo cargar/generar cert TLS en producción: ${certErr?.message}`)
+        throw new Error(`Servidor red requiere certificado TLS en producción: ${certErr?.message}`)
+      }
+      if (!process.env.RED_ALLOW_HTTP) {
+        logger.error('red', `No hay cert TLS y RED_ALLOW_HTTP no está definido. Definí RED_ALLOW_HTTP=true para permitir HTTP en desarrollo.`)
+        throw new Error('Servidor red requiere TLS. Setear RED_ALLOW_HTTP=true para permitir HTTP en desarrollo.')
+      }
+      logger.warn('red', `Modo desarrollo: HTTP plano habilitado (RED_ALLOW_HTTP=true). NUNCA usar en producción.`)
     }
     runningServer = createRedServer({
       getDb: getDatabase,
@@ -75,11 +116,26 @@ export function isRedServerRunning(): boolean {
   return runningServer !== null
 }
 
-function readBody(req: http.IncomingMessage): Promise<any> {
+const BODY_SIZE_LIMIT = 1024 * 1024 // 1MB
+
+function readBody(req: http.IncomingMessage, res: http.ServerResponse): Promise<any> {
   return new Promise((resolve) => {
+    let size = 0
     let data = ''
-    req.on('data', (chunk) => (data += chunk))
+    let limitReached = false
+    req.on('data', (chunk: Buffer) => {
+      if (limitReached) return
+      size += chunk.length
+      if (size > BODY_SIZE_LIMIT) {
+        limitReached = true
+        json(res, 413, { success: false, error: 'Cuerpo de solicitud excede el límite de 1MB' })
+        resolve(null)
+        return
+      }
+      data += chunk
+    })
     req.on('end', () => {
+      if (limitReached) return
       try {
         resolve(data ? JSON.parse(data) : {})
       } catch {
@@ -109,6 +165,17 @@ export function createRedServer(deps: RedServerDeps): RedServer {
   const port = deps.port ?? RED_SERVER_PORT
   const tls = deps.tls ?? null
 
+  if (!tls) {
+    try {
+      const electron = require('electron')
+      if (electron.app.isPackaged) {
+        throw new Error('Servidor red requiere certificado TLS en producción')
+      }
+    } catch (e: any) {
+      if (e.message?.includes('requiere certificado')) throw e
+    }
+  }
+
   const handle = async (req: http.IncomingMessage, res: http.ServerResponse): Promise<void> => {
     const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)
     const path = url.pathname
@@ -120,7 +187,14 @@ export function createRedServer(deps: RedServerDeps): RedServer {
       }
 
       if (path === '/api/red/vincular') {
-        const body = await readBody(req)
+        const body = await readBody(req, res)
+        if (body === null) return
+
+        const clienteIp = (req.socket.remoteAddress || '').replace(/^::ffff:/, '')
+        if (!checkVincularRateLimit(clienteIp)) {
+          return json(res, 429, { success: false, error: 'Demasiados intentos. Intentá de nuevo en un minuto.' })
+        }
+
         const codigo = typeof body?.codigo === 'string' ? body.codigo.trim().toUpperCase() : ''
         const nombre = typeof body?.nombre === 'string' ? body.nombre.trim().slice(0, 80) : ''
         if (!codigo || !nombre) {
@@ -147,24 +221,27 @@ export function createRedServer(deps: RedServerDeps): RedServer {
 
         const parId = generarToken(8)
         const certHash = generarToken(16)
-        const clienteIp = (req.socket.remoteAddress || '').replace(/^::ffff:/, '')
         db.prepare(
           'INSERT INTO pcs_enlazadas (par_id, nombre, ip, cert_hash, last_seen, last_heartbeat) VALUES (?, ?, ?, ?, datetime(\'now\'), datetime(\'now\'))',
         ).run(parId, nombre, clienteIp, certHash)
         db.prepare('UPDATE codigos_enlace SET usado = 1, usado_en = datetime(\'now\') WHERE id = ?').run(row.id)
         logger.info('red', `PC hija enlazada: ${nombre} (${clienteIp}) par_id=${parId.slice(0, 8)}…`)
-        return json(res, 201, {
+        const response: Record<string, unknown> = {
           success: true,
           par_id: parId,
           cert_hash: certHash,
           nombre,
-          cert_pem: tls?.certPem ?? null,
-          cert_fingerprint: tls?.fingerprintSha256 ?? null,
-        })
+        }
+        if (tls) {
+          response.cert_pem = tls.certPem
+          response.cert_fingerprint = tls.fingerprintSha256
+        }
+        return json(res, 201, response)
       }
 
       if (path === '/api/red/heartbeat') {
-        const body = await readBody(req)
+        const body = await readBody(req, res)
+        if (body === null) return
         const db = deps.getDb()
         if (!validarPar(db, body?.par_id, body?.cert_hash)) {
           return json(res, 401, { success: false, error: 'Credenciales de par inválidas' })
@@ -173,7 +250,8 @@ export function createRedServer(deps: RedServerDeps): RedServer {
       }
 
       if (path === '/api/red/logout') {
-        const body = await readBody(req)
+        const body = await readBody(req, res)
+        if (body === null) return
         const db = deps.getDb()
         if (!validarPar(db, body?.par_id, body?.cert_hash)) {
           return json(res, 401, { success: false, error: 'Credenciales de par inválidas' })
@@ -183,7 +261,8 @@ export function createRedServer(deps: RedServerDeps): RedServer {
       }
 
       if (path === '/api/red/rpc') {
-        const body = await readBody(req)
+        const body = await readBody(req, res)
+        if (body === null) return
         const db = deps.getDb()
         if (!validarPar(db, body?.par_id, body?.cert_hash)) {
           return json(res, 401, { success: false, error: 'Credenciales de par inválidas' })
@@ -199,7 +278,7 @@ export function createRedServer(deps: RedServerDeps): RedServer {
 
         const handler = deps.getHandler(canal)
         if (!handler) {
-          return json(res, 404, { success: false, error: `Canal desconocido: ${canal}` })
+          return json(res, 404, { success: false, error: 'Canal no disponible' })
         }
 
         const argsConPar =
@@ -207,13 +286,21 @@ export function createRedServer(deps: RedServerDeps): RedServer {
             ? [{ ...(args[0] as object), __par_id: body.par_id }, ...args.slice(1)]
             : args
 
-        return json(res, 200, { success: true, response: await handler(null, ...argsConPar) })
+        let handlerResponse: unknown
+        try {
+          handlerResponse = await handler(null, ...argsConPar)
+        } catch (handlerErr: any) {
+          logger.error('red', `Error en handler RPC [${canal}]:`, handlerErr)
+          return json(res, 500, { success: false, error: 'Error al procesar solicitud' })
+        }
+
+        return json(res, 200, { success: true, response: handlerResponse })
       }
 
       return json(res, 404, { success: false, error: 'Ruta no encontrada' })
     } catch (err: any) {
       logger.error('red', 'Error en servidor red:', err)
-      return json(res, 500, { success: false, error: err?.message || 'Error interno' })
+      return json(res, 500, { success: false, error: 'Error interno del servidor' })
     }
   }
 

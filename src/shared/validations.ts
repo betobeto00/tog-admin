@@ -6,7 +6,7 @@ import { z } from 'zod'
 
 export const usuarioCreateSchema = z.object({
   usuario: z.string().min(3, 'Mínimo 3 caracteres').max(50).regex(/^[a-zA-Z0-9_]+$/, 'Solo letras, números y guión bajo'),
-  contrasena: z.string().min(6, 'Mínimo 6 caracteres'),
+  contrasena: z.string().min(8, 'Mínimo 8 caracteres').max(128, 'Máximo 128 caracteres'),
   nombre: z.string().min(1, 'Nombre requerido').max(100),
   rol: z.enum(['admin', 'cajero']).default('cajero'),
 })
@@ -219,14 +219,14 @@ export const configSetSchema = z.object({
 // ============================================
 
 export const loginSchema = z.object({
-  usuario: z.string().min(1, 'Usuario requerido'),
-  contrasena: z.string().min(1, 'Contraseña requerida'),
+  usuario: z.string().min(1, 'Usuario requerido').max(50),
+  contrasena: z.string().min(1, 'Contraseña requerida').max(128, 'Contraseña demasiado larga'),
 })
 
 export const changePasswordSchema = z.object({
   usuario_id: z.number().int().positive(),
   contrasena_actual: z.string().min(1),
-  contrasena_nueva: z.string().min(6, 'Mínimo 6 caracteres'),
+  contrasena_nueva: z.string().min(8, 'Mínimo 8 caracteres').max(128, 'Máximo 128 caracteres'),
 })
 
 // ============================================

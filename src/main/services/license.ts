@@ -26,6 +26,10 @@ interface LicenseState {
   lastCheckTimestamp: number    // Timestamp del último check
 }
 
+interface SignedLicenseState extends LicenseState {
+  hmac: string
+}
+
 interface LicenseValidation {
   valid: boolean
   license: LicenseData | null
@@ -33,7 +37,6 @@ interface LicenseValidation {
   daysRemaining: number | null
 }
 
-// Ruta del archivo de licencia
 function getLicensePath(): string {
   if (app.isPackaged) {
     return path.join(app.getPath('userData'), 'license.key')
@@ -41,7 +44,6 @@ function getLicensePath(): string {
   return path.join(process.cwd(), 'license.key')
 }
 
-// Ruta de la DB para guardar estado de licencia
 function getLicenseDbPath(): string {
   if (app.isPackaged) {
     return path.join(app.getPath('userData'), 'license.json')
@@ -49,13 +51,41 @@ function getLicenseDbPath(): string {
   return path.join(process.cwd(), 'data', 'license.json')
 }
 
-/**
- * Valida el archivo de licencia
- */
+function getHmacKey(): string {
+  const interfaces = os.networkInterfaces()
+  let mac = ''
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name] || []) {
+      if (iface.mac && iface.mac !== '00:00:00:00:00:00') {
+        mac = iface.mac
+        break
+      }
+    }
+    if (mac) break
+  }
+  return crypto.createHash('sha256').update(mac || 'unknown-license-state').digest('hex')
+}
+
+function signState(state: LicenseState): string {
+  const payload = JSON.stringify(state)
+  return crypto.createHmac('sha256', getHmacKey()).update(payload).digest('hex')
+}
+
+function verifyStateHmac(signed: SignedLicenseState): boolean {
+  const { hmac, ...state } = signed
+  return hmac === signState(state)
+}
+
+function isLicenseExpired(license: LicenseData): boolean {
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+  const fechaExpiracion = new Date(license.expira + 'T23:59:59')
+  return hoy > fechaExpiracion
+}
+
 export function validateLicense(): LicenseValidation {
   const licensePath = getLicensePath()
 
-  // No hay archivo de licencia
   if (!fs.existsSync(licensePath)) {
     return {
       valid: false,
@@ -69,7 +99,6 @@ export function validateLicense(): LicenseValidation {
     const raw = fs.readFileSync(licensePath, 'utf8')
     const license: LicenseData = JSON.parse(raw)
 
-    // Verificar campos requeridos
     if (!license.cliente || !license.expira || !license.firma || !license.id) {
       return {
         valid: false,
@@ -79,7 +108,6 @@ export function validateLicense(): LicenseValidation {
       }
     }
 
-    // 🔒 Anti-tampering: detectar manipulación del reloj del sistema
     const dateCheck = detectDateManipulation()
     if (dateCheck.tampered) {
       return {
@@ -90,7 +118,6 @@ export function validateLicense(): LicenseValidation {
       }
     }
 
-    // Verificar firma RSA
     const firmaValida = verifyLicenseSignature(license)
 
     if (!firmaValida) {
@@ -102,12 +129,10 @@ export function validateLicense(): LicenseValidation {
       }
     }
 
-    // Verificar expiración
-    const hoy = new Date()
-    hoy.setHours(0, 0, 0, 0)
-    const fechaExpiracion = new Date(license.expira + 'T23:59:59')
-    
-    if (hoy > fechaExpiracion) {
+    if (isLicenseExpired(license)) {
+      const hoy = new Date()
+      hoy.setHours(0, 0, 0, 0)
+      const fechaExpiracion = new Date(license.expira + 'T23:59:59')
       const diasPasados = Math.floor((hoy.getTime() - fechaExpiracion.getTime()) / (1000 * 60 * 60 * 24))
       return {
         valid: false,
@@ -117,10 +142,11 @@ export function validateLicense(): LicenseValidation {
       }
     }
 
-    // Calcular días restantes
+    const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0)
+    const fechaExpiracion = new Date(license.expira + 'T23:59:59')
     const diasRestantes = Math.ceil((fechaExpiracion.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
 
-    // Verificar máquina (opcional)
     if (license.machineId) {
       const currentMachineId = getMachineId()
       if (currentMachineId !== license.machineId) {
@@ -149,33 +175,30 @@ export function validateLicense(): LicenseValidation {
   }
 }
 
-/**
- * Lee el estado local de la licencia (anti-tampering)
- */
 function readLicenseState(): LicenseState {
   const statePath = getLicenseDbPath()
   try {
     if (fs.existsSync(statePath)) {
       const raw = fs.readFileSync(statePath, 'utf8')
-      return JSON.parse(raw)
+      const parsed = JSON.parse(raw) as SignedLicenseState
+      if (!verifyStateHmac(parsed)) {
+        return { lastKnownDate: null, totalDaysUsed: 0, lastCheckTimestamp: 0 }
+      }
+      const { hmac: _, ...state } = parsed
+      return state
     }
   } catch {}
   return { lastKnownDate: null, totalDaysUsed: 0, lastCheckTimestamp: 0 }
 }
 
-/**
- * Guarda el estado local de la licencia
- */
 function writeLicenseState(state: LicenseState): void {
   const statePath = getLicenseDbPath()
   const dir = path.dirname(statePath)
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-  fs.writeFileSync(statePath, JSON.stringify(state, null, 2))
+  const signed: SignedLicenseState = { ...state, hmac: signState(state) }
+  fs.writeFileSync(statePath, JSON.stringify(signed, null, 2))
 }
 
-/**
- * Protección anti-tampering: detecta si el usuario retrocedió la fecha del sistema
- */
 function detectDateManipulation(): { tampered: boolean; message: string } {
   const state = readLicenseState()
   const now = new Date()
@@ -203,9 +226,6 @@ function detectDateManipulation(): { tampered: boolean; message: string } {
   return { tampered: false, message: '' }
 }
 
-/**
- * Obtiene un ID único de la máquina
- */
 export function getMachineId(): string {
   const interfaces = os.networkInterfaces()
   let mac = ''
@@ -218,36 +238,31 @@ export function getMachineId(): string {
     }
     if (mac) break
   }
-  // Hash del MAC address para ID estable
   return crypto.createHash('sha256').update(mac || 'unknown').digest('hex').slice(0, 16)
 }
 
-/**
- * Guarda la licencia desde el renderer (importar archivo)
- */
 export function saveLicense(fileContent: string): { success: boolean; error?: string } {
   try {
     const license: LicenseData = JSON.parse(fileContent)
-    
-    // Validar que sea una licencia válida antes de guardar
+
     if (!license.cliente || !license.expira || !license.firma || !license.id) {
       return { success: false, error: t('errors.licenseNotValid') }
     }
 
-    // Verificar firma
     const firmaValida = verifyLicenseSignature(license)
-
     if (!firmaValida) {
       return { success: false, error: t('errors.licenseSignatureInvalid') }
     }
 
-    // Guardar
+    if (isLicenseExpired(license)) {
+      return { success: false, error: 'No se puede importar una licencia expirada' }
+    }
+
     const licensePath = getLicensePath()
     const dir = path.dirname(licensePath)
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-    
+
     fs.writeFileSync(licensePath, JSON.stringify(license, null, 2))
-    // Resetear estado de tracking para la nueva licencia
     resetLicenseState()
     return { success: true }
   } catch (err: any) {
@@ -255,9 +270,6 @@ export function saveLicense(fileContent: string): { success: boolean; error?: st
   }
 }
 
-/**
- * Obtiene el estado actual de la licencia para el renderer
- */
 export function getLicenseStatus() {
   const validation = validateLicense()
   const state = readLicenseState()
@@ -270,11 +282,8 @@ export function getLicenseStatus() {
     error: validation.error,
     machineId: getMachineId(),
     totalDaysUsed: state.totalDaysUsed || 0,
-  /** Módulos activos declarados por la licencia (vacío = solo el módulo base) */
   modulos: normalizeModules(license?.modules) as ModuleId[],
-  /** Máximo de PCs en red local (Base + hijas). Default 1 = solo la Base. */
   maxPcs: readMaxPcs(license),
-    /** true si la licencia declara el campo modules (v2) */
     declaraModulos: Array.isArray(license?.modules),
   }
 }
@@ -285,16 +294,10 @@ function readMaxPcs(license: LicenseData | null): number {
   return 1
 }
 
-/**
- * Máximo de PCs que puede servir esta licencia en red local (Base + hijas).
- */
 export function getLicenseMaxPcs(): number {
   return readMaxPcs(validateLicense().license)
 }
 
-/**
- * Módulos activos según la licencia vigente (el módulo base siempre está activo).
- */
 export function getActiveModules(): ModuleId[] {
   const validation = validateLicense()
   const modulos = normalizeModules(validation.license?.modules)
@@ -304,9 +307,6 @@ export function getActiveModules(): ModuleId[] {
   return modulos
 }
 
-/**
- * Resetea el estado de tracking (al importar nueva licencia)
- */
 export function resetLicenseState(): void {
   writeLicenseState({ lastKnownDate: null, totalDaysUsed: 0, lastCheckTimestamp: 0 })
 }

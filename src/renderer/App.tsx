@@ -1,6 +1,7 @@
 import { Suspense, useState, useEffect } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@core/auth/store'
+import { PageErrorBoundary } from './components/PageErrorBoundary'
 
 // Imports estáticos — sin lazy loading para compatibilidad con Electron file://
 import LoginPage from './pages/LoginPage'
@@ -92,12 +93,12 @@ export default function App() {
           }
         >
           <Route index element={<DashboardPage />} />
-          <Route path="pos" element={<POSPage />} />
+          <Route path="pos" element={<PageErrorBoundary pageName="Punto de Venta"><POSPage /></PageErrorBoundary>} />
           <Route path="inventario" element={<InventarioPage />} />
           <Route path="almacenes" element={<AlmacenesPage />} />
           <Route path="ventas" element={<VentasPage />} />
           <Route path="creditos" element={<CreditosPage />} />
-          <Route path="caja" element={<CajaPage />} />
+          <Route path="caja" element={<PageErrorBoundary pageName="Caja"><CajaPage /></PageErrorBoundary>} />
           <Route path="compras" element={<ComprasPage />} />
           <Route path="proveedores" element={<ProveedoresPage />} />
           <Route path="clientes" element={<ClientesPage />} />
