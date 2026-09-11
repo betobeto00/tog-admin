@@ -23,7 +23,7 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │              SQLite Database                         │    │
 │  │         (tog-admin.db — archivo local)               │    │
-│  │         42 migraciones · 40+ tablas · 40+ índices     │    │
+│  │         43 migraciones · 40+ tablas · 40+ índices     │    │
 │  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -93,7 +93,7 @@ Router (HashRouter)
 - **Un solo archivo:** `tog-admin.db` en `%APPDATA%/tog-admin/`
 - **Sin servidor:** No necesita MySQL ni nada externo
 - **Respaldo:** Copiar el archivo `.db` = respaldo completo
-- **Migraciones:** Sistema de versionado de esquema (42 migraciones, 001–042)
+- **Migraciones:** Sistema de versionado de esquema (43 migraciones, 001–043)
 - **WAL mode:** Permite lectura mientras escribe
 
 ### 4. Comunicación IPC
@@ -148,7 +148,7 @@ Renderer (React)                    Main (Node.js)
 
 ---
 
-## Modelo de Datos (31 Migraciones)
+## Modelo de Datos (43 Migraciones)
 
 ### Migraciones
 
@@ -185,6 +185,18 @@ Renderer (React)                    Main (Node.js)
 | 029 | currency_name | `configuracion.currency_name` (USD/Bs/EUR… para tickets) |
 | 030 | producto_imagen_path | `productos.imagen_path` (ruta a filesystem; imagen vive en `%APPDATA%/tog-admin/imagenes/`) |
 | 031 | red_local | `pcs_enlazadas`, `sesiones_activas`, `codigos_enlace` + 2 índices (interconexión PC Base + hijas) |
+| 032 | red_local_v2 | `pcs_enlazadas.last_heartbeat`, `sesiones_activas.sesion_token` (heartbeat + token de sesión) |
+| 033 | heartbeat_pcs | `sesiones_activas.opened_at` (timestamp de apertura de sesión) |
+| 034 | contable | `asientos_contables`, `asiento_detalle` (libro diario contable) |
+| 035 | rrhh | `empleados`, `asistencia`, `nominas`, `nomina_detalle` (recursos humanos) |
+| 036 | productor | `cultivos`, `siembras`, `cosechas`, `costos_campo` (módulo productor) |
+| 037 | postventa | `tickets_soporte`, `devoluciones`, `garantias` (módulo postventa) |
+| 038 | productos_costo_combo | `producto_componentes.costo_override` (costo real de componentes en combos) |
+| 039 | cargos | `cargos` (catálogo de cargos para RRHH) |
+| 040 | empleado_cargo | `empleados.cargo_id` (FK a cargos) |
+| 041 | empleado_extendido | `empleados.experiencia`, `años_servicio`, `nivel_academico` (datos extendidos) |
+| 042 | nominas_flexible | `nomina_conceptos` (asignaciones/deducciones por nómina) |
+| 043 | almacen_caja | `caja.almacen_id` (caja vinculada a almacén) |
 
 ### Tablas Principales
 
@@ -224,12 +236,16 @@ Renderer (React)                    Main (Node.js)
 
 Todos los índices están optimizados para los patrones de consulta típicos del POS.
 
-> **Migraciones 024–031 (resumen):** Restaurant (024), Reportes Visuales (025),
+> **Migraciones 024–043 (resumen):** Restaurant (024), Reportes Visuales (025),
 > Cliente opcional en POS (026), Nota de entrega como comprobante (027),
 > Almacenes con stock por depósito + listas de precio con overrides y
 > asignación por cliente (028), `currency_name` para tickets (029),
 > `imagen_path` apuntando a filesystem (030), e interconexión de red local
-> `pcs_enlazadas` / `sesiones_activas` / `codigos_enlace` (031).
+> `pcs_enlazadas` / `sesiones_activas` / `codigos_enlace` (031),
+> heartbeat + token de sesión (032–033), Contabilidad (034), RRHH (035),
+> Productor (036), Postventa (037), costo real combos (038),
+> cargos (039–040), empleado extendido (041), nóminas flexible (042),
+> almacén-caja (043).
 
 ---
 
@@ -385,7 +401,7 @@ Estado en memoria (`symbol`, `rate`, `name`) inicializado por `loadCurrency()` d
 | Validación IPC | 24 schemas Zod en handlers críticos |
 | Licencias | RSA-2048 con validación offline |
 | Error handling | ErrorBoundary global + crash reports + logging diagnóstico |
-| Internacionalización | i18n con 2 idiomas (ES/EN), ~1,329 keys por idioma en el renderer (+97 en main) |
+| Internacionalización | i18n con 2 idiomas (ES/EN), ~1,862 keys por idioma en el renderer (+98 en main) |
 | Backup automático | Al cerrar caja se crea backup de la DB |
 | Permisos | 57 permisos en 11 categorías (Ventas, Caja, Inventario, Compras, Cotizaciones, Reportes, Distribuidor, Restaurant, Contabilidad, Recursos Humanos, Administración), control granular por usuario (incluye `red_manage` para gestión de PC Base) |
 | Sesión única en red local | Un usuario solo puede estar activo en una PC del grupo a la vez (`services/red-session.ts`) |

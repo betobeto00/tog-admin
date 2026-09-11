@@ -37,13 +37,13 @@ actualiza aquí y en la doc canónica correspondiente:
 | Métrica | Valor real | Fuente |
 |---|---|---|
 | Permisos | **57 en 11 categorías** | `src/shared/permissions.ts` (`PERMISSIONS`, `PERMISSION_CATEGORIES`) |
-| Tests | **332 tests en 28 archivos** | `npm test` (Vitest) |
-| Migraciones DB | **001–042** | `src/main/db/database.ts` |
+| Tests | **337 tests en 28 archivos** | `npm test` (Vitest) |
+| Migraciones DB | **001–043** | `src/main/db/database.ts` |
 | Páginas renderer | **26** | `src/renderer/pages/*.tsx` |
 | Módulos main | **15** | `src/main/modules/` |
 | Servicios main | **14** | `src/main/services/` (sin contar `.test.ts`) |
 | i18n renderer | **~1,862 keys/idioma** | `src/renderer/i18n/locales/{es,en}/translation.json` |
-| i18n main | **~97 keys** | `src/main/i18n/locales/{es,en}.json` |
+| i18n main | **~98 keys** | `src/main/i18n/locales/{es,en}.json` |
 
 ## Reglas para no volver a dispersar
 

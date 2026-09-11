@@ -43,13 +43,13 @@ Desktop app construida con Electron + React + TypeScript + SQLite. Una PC, una c
 - 🐛 **Crash reports** — automatic error reports with system info
 - 🔑 **License sync** — pre-auth channel `license:sync` (works from the lock screen): URL + empresa ID + api key → download → RSA re-validation → save
 - 🔐 **Validación de origen IPC** — `handleIpc` (`core/auth/ipc-guard.ts`): solo main-frame `file://` (producción) o `localhost:5173` (dev); un origen ajeno lanza error y no ejecuta el handler
-- ✅ **265 automated tests** — validations, services, IPC handlers, React components, sesión única, servidor HTTP de red local
+- ✅ **337 automated tests** — validations, services, IPC handlers, React components, sesión única, servidor HTTP de red local
 
 ### UI/UX
 - 🎨 **Hero background** — imagen de fondo en pantalla de login
 - 🏷️ **Logo real** — logo de la empresa en Login, Sidebar e instalador
 - 🖼️ **Icono transparente** — icono sin fondo para el instalador
-- 🌐 **i18n (Internationalization)** — English/Spanish with ~1,329 translation keys per language
+- 🌐 **i18n (Internationalization)** — English/Spanish with ~1,862 translation keys per language
 - 📋 **Release Notes** — historial de versiones visible desde el login
 - 🖧 **PC Hija setup screen** — al instalar el `.exe` sin licencia, la pantalla de bloqueo ofrece "Conectar a una PC Base" con input de IP + código + nombre
 
@@ -80,7 +80,7 @@ npm install
 # Ejecutar en modo desarrollo
 npm run dev
 
-# Ejecutar tests (Vitest: 332 tests en 28 archivos)
+# Ejecutar tests (Vitest: 337 tests en 28 archivos)
 npm test
 
 # Tests en watch mode

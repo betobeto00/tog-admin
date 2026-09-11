@@ -248,8 +248,8 @@
 |---|---------|-----------|--------|-------------|
 | INF1 | Auto-update (electron-updater) | ðŸŸ¡ | âœ… | Actualizaciones vÃ­a GitHub Releases |
 | INF2 | NSIS installer | ðŸŸ¡ | âœ… | Instalador Windows con acceso directo |
-| INF3 | i18n (ES/EN) | ðŸŸ¡ | âœ… | ~1,862 keys por idioma (ES/EN, renderer) + ~97 en main |
-| INF4 | Tests automatizados | ðŸŸ¡ | âœ… | 332 tests en 28 archivos (Vitest: validaciones, servicios, handlers IPC, componentes) |
+| INF3 | i18n (ES/EN) | ðŸŸ¡ | âœ… | ~1,862 keys por idioma (ES/EN, renderer) + ~98 en main |
+| INF4 | Tests automatizados | ðŸŸ¡ | âœ… | 337 tests en 28 archivos (Vitest: validaciones, servicios, handlers IPC, componentes) |
 | INF5 | Build portable | ðŸŸ¢ | âœ… | VersiÃ³n sin instalador |
 | INF6 | Instalador X32 | ðŸŸ¡ | â³ | Instalador para arquitectura de 32 bits |
 | INF7 | Logging estructurado (winston) | ðŸŸ¡ | â³ | Logging centralizado en main process |
