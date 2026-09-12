@@ -19,7 +19,13 @@ export function isTrustedSender(event: IpcMainInvokeEvent): boolean {
   const prefs = (webContents as any).webPreferences
   if (prefs?.contextIsolation !== true) return false
 
-  const url = webContents.getURL()
+  // getURL() puede no estar disponible en algunos contextos sandboxed
+  let url: string
+  try {
+    url = typeof webContents.getURL === 'function' ? webContents.getURL() : ''
+  } catch {
+    url = ''
+  }
   if (!url) return false
   if (url.startsWith('file://')) return true
   try {
