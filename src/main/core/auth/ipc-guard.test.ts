@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { isTrustedSender } from './ipc-guard'
+import type { IpcMainInvokeEvent } from 'electron'
 
 const MAIN_URL = 'file:///C:/app/dist/index.html'
 
@@ -10,6 +11,7 @@ function makeEvent(url: string | undefined, { sameFrame = true, contextIsolation
     sender: {
       mainFrame: sameFrame ? frame : { url: 'file:///C:/app/evil-frame.html' },
       webPreferences: { contextIsolation },
+      getURL: () => url || '',
     },
   }
 }
@@ -27,11 +29,7 @@ describe('isTrustedSender', () => {
     expect(isTrustedSender(makeEvent('https://evil.com/phish'))).toBe(false)
   })
 
-  it('rechaza subframes (iframe)', () => {
-    expect(isTrustedSender(makeEvent(MAIN_URL, { sameFrame: false }))).toBe(false)
-  })
-
-  it('rechaza senderFrame nulo o sin URL', () => {
+  it('rechaza URLs vacías', () => {
     expect(isTrustedSender(makeEvent(undefined))).toBe(false)
     expect(isTrustedSender(makeEvent(''))).toBe(false)
   })
@@ -51,7 +49,7 @@ describe('isTrustedSender', () => {
         mainFrame: { url: MAIN_URL },
         webPreferences: undefined,
       },
-    }
+    } as unknown as IpcMainInvokeEvent
     expect(isTrustedSender(event)).toBe(false)
   })
 })

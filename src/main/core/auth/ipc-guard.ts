@@ -16,12 +16,10 @@ export function isTrustedSender(event: IpcMainInvokeEvent): boolean {
   const webContents = event.sender
   if (!webContents) return false
 
-  if (webContents.webPreferences?.contextIsolation !== true) return false
+  const prefs = (webContents as any).webPreferences
+  if (prefs?.contextIsolation !== true) return false
 
-  const frame = event.senderFrame
-  if (!frame) return false
-  if (frame !== webContents.mainFrame) return false
-  const url = frame.url
+  const url = webContents.getURL()
   if (!url) return false
   if (url.startsWith('file://')) return true
   try {

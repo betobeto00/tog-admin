@@ -5,7 +5,6 @@ import { callApi } from '../lib/api-client'
 
 type SyncResult = { success: true; cliente: string; expira: string; modulos: string[] } | { success: false; error: string }
 
-const LS_URL = 'tog_platform_sync_url'
 const LS_EMPRESA = 'tog_platform_sync_empresa'
 const LS_APIKEY = 'tog_platform_sync_apikey'
 
@@ -41,19 +40,18 @@ interface LicenseSyncFormProps {
  */
 export default function LicenseSyncForm({ onSynced, compact }: LicenseSyncFormProps) {
   const toast = useToast()
-  const [url, setUrl] = useState(loadPref(LS_URL) || DEFAULT_PLATFORM_URL)
+  const [url] = useState(DEFAULT_PLATFORM_URL)
   const [empresaId, setEmpresaId] = useState(loadPref(LS_EMPRESA))
   const [apiKey, setApiKey] = useState(loadPref(LS_APIKEY))
   const [syncing, setSyncing] = useState(false)
 
   const handleSync = async () => {
-    if (!url.trim() || !empresaId.trim() || !apiKey.trim()) {
-      toast.error('Completa la URL del servidor, el ID de empresa y la API Key.')
+    if (!empresaId.trim() || !apiKey.trim()) {
+      toast.error('Completa el ID de empresa y la API Key.')
       return
     }
     setSyncing(true)
     try {
-      savePref(LS_URL, url.trim())
       savePref(LS_EMPRESA, empresaId.trim())
       savePref(LS_APIKEY, apiKey.trim())
       const result = await callApi<SyncResult>('license:sync', {
@@ -87,17 +85,7 @@ export default function LicenseSyncForm({ onSynced, compact }: LicenseSyncFormPr
           <p className="text-sm font-semibold text-gray-800">Sincronizar con el servidor (TOG Platform)</p>
         </div>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">URL del servidor</label>
-          <input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder={DEFAULT_PLATFORM_URL}
-            className={inputClass}
-          />
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">ID de empresa</label>
           <input
@@ -134,16 +122,14 @@ export default function LicenseSyncForm({ onSynced, compact }: LicenseSyncFormPr
         </p>
       </div>
 
-      <AccountSyncSection url={url} onSynced={onSynced} compact={compact} />
+      <AccountSyncSection onSynced={onSynced} compact={compact} />
     </div>
   )
 }
 
 function AccountSyncSection({
-  url,
   onSynced,
 }: {
-  url: string
   onSynced?: () => void
   compact?: boolean
 }) {
@@ -160,7 +146,7 @@ function AccountSyncSection({
     setSyncing(true)
     try {
       const result = await callApi<SyncResult>('license:sync-account', {
-        url: url.trim(),
+        url: DEFAULT_PLATFORM_URL,
         email: email.trim(),
         password,
       })

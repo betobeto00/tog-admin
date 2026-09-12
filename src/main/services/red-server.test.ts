@@ -246,7 +246,7 @@ describe('red-server (PC Base)', () => {
       body: largeBody,
     })
     expect(res.status).toBe(413)
-    const json = await res.json()
+    const json = await res.json() as { success: boolean; error: string }
     expect(json.success).toBe(false)
     expect(json.error).toContain('1MB')
   })
