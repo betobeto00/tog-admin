@@ -23,9 +23,11 @@
 
 Registros, no fuentes de verdad. No se actualizan; se archivan.
 
-`ROADMAP.md` · `ROADMAP-INTEGRACION.md` · `FASE-5-PRODUCTOS.md` · `KNOWLEDGE.md` · `CONVERSACION-2025-09-01.md` · `AUDITORIA_COMPLETA_TOG_ADMIN_V3.md` · `ANALISIS_PERFORMANCE_UNA_PC.md` · `INFORME-ERP.md` · `benchmarkin-Integra-POS.md` · `Caso-Venezuela.md` · `auto-license-stripe.md` · `FACTURACION-STRIPE.md` · `ARQUITECTURA-MODULAR.md` · `PRODUCTION_BUILD_REPORT.md` · `DATA_MODEL.md` · `MONEDA.md` · `Sistema-COD-BARRAS.md` · `DISENO-MODULO-RESTAURANTE.md` · `TECH_STACK.md` · `NEXT-SESSION.md`
+`ROADMAP.md` · `ROADMAP-INTEGRACION.md` · `FASE-5-PRODUCTOS.md` · `KNOWLEDGE.md` · `CONVERSACION-2025-09-01.md` · `AUDITORIA_COMPLETA_TOG_ADMIN_V3.md` · `ANALISIS_PERFORMANCE_UNA_PC.md` · `INFORME-ERP.md` · `benchmarkin-Integra-POS.md` · `Caso-Venezuela.md` · `ARQUITECTURA-MODULAR.md` · `PRODUCTION_BUILD_REPORT.md` · `DATA_MODEL.md` · `MONEDA.md` · `Sistema-COD-BARRAS.md` · `DISENO-MODULO-RESTAURANTE.md` · `TECH_STACK.md` · `NEXT-SESSION.md`
 
-> Notas: el diseño Stripe canónico vive en `tog-platform/docs/FACTURACION-STRIPE.md`.
+> Notas: el diseño de cobro online (Crixto) vive en `tog-platform/docs/FACTURACION-CRIXTO.md`.
+> **Stripe fue descartado**: las bitácoras archivadas que lo mencionan son históricas,
+> no describen el sistema actual.
 > El estado de red local (TLS + heartbeat) vive en `ARCHITECTURE.md` y
 > `tog-platform/docs/INTERCONEXION-RED.md`.
 
@@ -49,5 +51,5 @@ actualiza aquí y en la doc canónica correspondiente:
 
 1. Un cambio de números clave se refleja **solo** en el doc canónico del tema (y en este índice si aplica).
 2. Antes de crear un doc nuevo: ¿puede vivir dentro de uno existente? Si no, crearlo en la raíz de `docs/` solo si es canon; si es histórico/plan, va directo a `docs/historia/`.
-3. Duplicados cross-repo: el canónico es el de `tog-platform` para catálogo de módulos, Stripe y arquitectura modular; tog-admin mantiene espejos cortos que apuntan allá.
+3. Duplicados cross-repo: el canónico es el de `tog-platform` para catálogo de módulos, cobro online y arquitectura modular; tog-admin mantiene espejos cortos que apuntan allá.
 4. Un doc grande con ciclo propio (ej. `MANUAL_USUARIO.html`) se mantiene con su propio criterio o se archiva; no se edita a medias.

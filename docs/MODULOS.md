@@ -1,6 +1,6 @@
 # TOG Platform — Catálogo de Módulos y Activación por Licencia
 
-> Documento de **visión de producto**. Define los módulos que componen TOG Platform, cómo se activan por licencia y cómo se relacionan entre sí. La implementación técnica vive en `ARCHITECTURE.md` (este repo) y el flujo de pago en `FACTURACION-STRIPE.md`.
+> Documento de **visión de producto**. Define los módulos que componen TOG Platform, cómo se activan por licencia y cómo se relacionan entre sí. La implementación técnica vive en `ARCHITECTURE.md` (este repo) y el flujo de pago en `tog-platform/docs/FACTURACION-CRIXTO.md`.
 >
 > 📌 **Este archivo es un espejo** del mismo documento en el repo hermano `tog-platform/docs/MODULOS.md`, donde el catálogo se mantiene al día junto al backend. Al editar, actualiza ambos.
 
@@ -63,7 +63,7 @@ Una licencia es un JSON firmado RSA (la clave pública ya está embebida en `lic
 > ⚠️ **Estado real (2-Sep-2026):** este JSON es la **visión** (identidad de empresa = `pais` ISO 3166-1 alpha-2 + `documento` de registro libre — RIF, EIN, RFC, CNPJ…). En código hoy:
 > - La licencia **v2** que la app guarda/valida tiene el formato de `LICENCIAMIENTO.md` (`cliente`, `expira`, `modules`, `firma`…); `src/shared/modules.ts` es el catálogo y Config → Sistema → Módulos de TOG Platform lo muestra.
 > - El **backend TOG Platform** (`tog-platform` repo) da de alta empresas por `pais + documento` y emite licencias firmadas con la misma clave pública que la app valida. El gating **sí existe**: rutas e IPC del Distribuidor se ocultan si el módulo no viene en la licencia (`useActiveModules`) o sin permiso (`usePermissions`).
-> - El botón **“Sincronizar”** (canal pre-auth `license:sync`, Config y pantalla de bloqueo) descarga la licencia activa del backend y la re-valida por firma antes de guardar. El flujo de pago online (Stripe) está **EN ESPERA** (ver `FACTURACION-STRIPE.md`).
+> - El botón **“Sincronizar”** (canal pre-auth `license:sync`, Config y pantalla de bloqueo) descarga la licencia activa del backend y la re-valida por firma antes de guardar. El cobro online con **Crixto** está operativo (ver `tog-platform/docs/FACTURACION-CRIXTO.md`).
 
 El **Core** siempre está implícito. Si el cliente desactiva "Comercializador", el módulo sigue instalado pero el Sidebar y los handlers se ocultan.
 
@@ -87,7 +87,7 @@ Las ediciones son **bundles comerciales**. Internamente, la licencia sigue siend
 1. **Offline** — tú generas la clave firmada (`scripts/generate-license.js`, formato de `LICENCIAMIENTO.md`) y la envías por correo/WhatsApp; el cliente la importa desde la pantalla de bloqueo o desde Configuración.
 2. **Online (Sincronizar)** — das de alta la empresa y emites su licencia en el backend TOG Platform; el cliente presiona **Config → Licencia → Sincronizar** (URL + ID de empresa + API Key) y la app la descarga y valida. Verificado end-to-end por `scripts/qa-sync.ts`.
 
-**En espera (online automático con pago)**: Roberto paga con tarjeta vía Stripe Checkout; el webhook reactiva/renueva la licencia automáticamente. El código existe y está testeado en `tog-platform`, pero **pausado** hasta que un cliente quiera pagar online (decisión anti-overengineering). Detalle en `FACTURACION-STRIPE.md`.
+**Online automático (operativo)**: el cliente paga con **Crixto** (pago móvil, transferencia o Zelle) desde el carrito de la landing; el backend confirma el pago con firma HMAC anti-replay, valida el monto y emite la licencia firmada. Detalle en `tog-platform/docs/FACTURACION-CRIXTO.md`.
 
 ### 3.4 Offline-first, online-cuando-puede
 
@@ -129,7 +129,7 @@ Tres features ya implementadas como **extensión del Core Comercializador** (no 
 Sin reinstalar. Sin descargar otro `.exe`. Sin técnico en sitio.
 
 ```
-1. Roberto paga (Stripe Checkout o transferencia manual)
+1. Roberto paga (Crixto o transferencia manual)
          ↓
 2. Tu backend actualiza su registro de empresa y firma nueva licencia
          ↓
@@ -214,13 +214,13 @@ Estos números son una **referencia para el roadmap**, no la tabla de precios fi
 - [x] Config → Licencia muestra catálogo y estado de módulos.
 - [x] Backend TOG Platform (SQLite, repo `tog-platform`) con CRUD de empresas (pais + documento) y emisión de licencias firmadas.
 
-### Corto plazo (mes 2–6): Distribuidor + Stripe
+### Corto plazo (mes 2–6): Distribuidor + pago online con Crixto
 - [x] Módulo Distribuidor: tablas `clientes`, `pedidos`, `pedido_detalles`, `remitos`, `listas_precio` (migraciones 015/016).
 - [x] CRUD de clientes y pedidos (numeración secuencial, estados: pendiente/despachado/entregado/anulado) con tests.
 - [x] Venta a crédito/fiado en Comercializador: método de pago `fiado` en el POS + página **Créditos** con saldos y abonos (migraciones 020–022; validación de `limite_credito` del cliente cuando la licencia incluye Distribuidor).
 - [ ] Remitos y listas de precio con UI; rutas/flotas/despachos.
-- [x] Integración Stripe Checkout + webhooks (implementada y testeada en `tog-platform`) — ⏸️ **EN ESPERA** de cliente que pague online.
-- [ ] Renovación automática online (idem, EN ESPERA).
+- [x] Cobro online con Crixto (implementado y testeado en `tog-platform`) → licencia automática.
+- [ ] Renovación recurrente automática (Crixto no ofrece cobro recurrente; hoy se renueva por vencimiento).
 
 ### Medio plazo (mes 6–12): Productor + Procesador
 - [ ] Módulo Productor: siembras, cosechas, costos de campo.
@@ -251,8 +251,7 @@ Estos números son una **referencia para el roadmap**, no la tabla de precios fi
 ## 9. Documentos relacionados
 
 - `ARQUITECTURA-MODULAR.md` — cómo se monta el `ModuleLoader`, el contrato Core↔módulos, el sistema de permisos por módulo.
-- `FACTURACION-STRIPE.md` — sincronización licencia↔pago, webhooks, modelo offline-first (estado: EN ESPERA).
+- `tog-platform/docs/FACTURACION-CRIXTO.md` — cobro online y seguridad de pagos (canónico, vive en tog-platform).
 - `QA-SYNC.md` — QA end-to-end del flujo “Sincronizar licencia” (automatizado + checklist manual).
 - `LICENCIAMIENTO.md` — formato real de la licencia v2 y guía offline.
-- `auto-license-stripe.md` — borrador original del flujo Stripe (referencia).
 - `INFORME-ERP.md` — auditoría arquitectónica del estado actual de TOG Admin.

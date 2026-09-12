@@ -12,7 +12,7 @@
 
 ## Lo que NO se prioriza (EN ESPERA — decisión anti-overengineering)
 
-- ❌ Stripe Checkout + webhooks + grace period: implementado y testeado en `tog-platform`; queda pausado hasta que un cliente pague online.
+- ❌ ~~Stripe Checkout + webhooks~~: **descartado**. El cobro online se hace con Crixto y ya está operativo (`tog-platform/docs/FACTURACION-CRIXTO.md`).
 - ❌ Nube / multi-tenant: se mantiene SQLite local; `IDataSource` se materializa cuando haga falta.
 - ❌ Multi-sucursal real (Fase 7): depende de la decisión Postgres.
 

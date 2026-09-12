@@ -1,5 +1,9 @@
 # Bitácora de Conversación — 2025-09-01
 
+> ⚠️ **BITÁCORA HISTÓRICA.** Menciona **Stripe** como posible proveedor de pago:
+> fue **descartado y eliminado**. Hoy el único proveedor es **Crixto**
+> (`tog-platform/docs/FACTURACION-CRIXTO.md`).
+
 > Documento que captura el hilo completo de la sesión: estado de Git, limpieza de secretos, visión de producto TOG Platform, decisiones de licenciamiento, arquitectura modular, integración Stripe y plan de acción.
 
 ---

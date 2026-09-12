@@ -45,7 +45,8 @@ async function main(): Promise<void> {
   process.env.TOG_PLATFORM_DATA = path.join(tmpDir, 'data')
   process.env.LICENSE_PRIVATE_KEY_PATH = PRIVATE_KEY
   process.env.ADMIN_API_KEY = 'qa-admin-key'
-  process.env.STRIPE_SECRET_KEY = '' // QA sin Stripe
+  process.env.JWT_SECRET = 'qa-jwt-secret'
+  process.env.PAYMENT_HMAC_SECRET = 'qa-hmac-secret'
 
   const { startServer } = await import(pathToFileURL(path.join(PLATFORM, 'src', 'server.js')).href)
   const server = startServer({ port: 0 })
