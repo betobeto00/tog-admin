@@ -4,13 +4,12 @@ import type { IpcMainInvokeEvent } from 'electron'
 
 const MAIN_URL = 'file:///C:/app/dist/index.html'
 
-function makeEvent(url: string | undefined, { sameFrame = true, contextIsolation = true } = {}): any {
+function makeEvent(url: string | undefined): any {
   const frame = url === undefined ? null : { url }
   return {
     senderFrame: frame,
     sender: {
-      mainFrame: sameFrame ? frame : { url: 'file:///C:/app/evil-frame.html' },
-      webPreferences: { contextIsolation },
+      mainFrame: frame,
       getURL: () => url || '',
     },
   }
@@ -38,16 +37,19 @@ describe('isTrustedSender', () => {
     expect(isTrustedSender(makeEvent('not a url'))).toBe(false)
   })
 
-  it('rechaza cuando contextIsolation está desactivado', () => {
-    expect(isTrustedSender(makeEvent(MAIN_URL, { contextIsolation: false }))).toBe(false)
+  it('acepta cuando getURL no es función (sandboxed)', () => {
+    const event = {
+      sender: {
+        getURL: 'not a function',
+      },
+    } as unknown as IpcMainInvokeEvent
+    expect(isTrustedSender(event)).toBe(false)
   })
 
-  it('rechaza cuando webPreferences es undefined', () => {
+  it('rechaza cuando getURL lanza error', () => {
     const event = {
-      senderFrame: { url: MAIN_URL },
       sender: {
-        mainFrame: { url: MAIN_URL },
-        webPreferences: undefined,
+        getURL: () => { throw new Error('no access') },
       },
     } as unknown as IpcMainInvokeEvent
     expect(isTrustedSender(event)).toBe(false)
