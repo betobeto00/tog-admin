@@ -14,10 +14,16 @@ export function hasIpcListener(channel: string): boolean {
 
 export function isTrustedSender(event: IpcMainInvokeEvent): boolean {
   const webContents = event.sender
-  if (!webContents) return false
+  if (!webContents) {
+    console.error('[IPC Guard] no webContents')
+    return false
+  }
 
   const prefs = (webContents as any).webPreferences
-  if (prefs?.contextIsolation !== true) return false
+  if (prefs?.contextIsolation !== true) {
+    console.error('[IPC Guard] contextIsolation !== true, prefs:', JSON.stringify(prefs))
+    return false
+  }
 
   // getURL() puede no estar disponible en algunos contextos sandboxed
   let url: string
@@ -26,7 +32,10 @@ export function isTrustedSender(event: IpcMainInvokeEvent): boolean {
   } catch {
     url = ''
   }
-  if (!url) return false
+  if (!url) {
+    console.error('[IPC Guard] empty URL, webContents.getURL type:', typeof webContents.getURL)
+    return false
+  }
   if (url.startsWith('file://')) return true
   try {
     return DEV_ALLOWED_ORIGINS.has(new URL(url).origin)

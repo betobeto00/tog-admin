@@ -45,7 +45,8 @@ export default function LicenseGate({ children }: { children: React.ReactNode })
       }
       const s = await callApi<LicenseStatus>('license:status')
       setStatus(s)
-    } catch (err) {
+    } catch (err: any) {
+      console.error('[LicenseGate] checkLicense error:', err?.message || err)
       setStatus({
         valid: false,
         cliente: null,
