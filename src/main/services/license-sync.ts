@@ -8,6 +8,7 @@ export interface LicenseSyncArgs {
   url: string
   empresaId: string | number
   apiKey: string
+  deviceFingerprint?: string
 }
 
 interface FetchResponseLike {
@@ -24,12 +25,13 @@ export interface LicenseSyncDeps {
 
 export type LicenseSyncResult =
   | { success: true; cliente: string; expira: string; modulos: string[] }
-  | { success: false; error: string }
+  | { success: false; error: string; deviceMismatch?: boolean; empresaId?: string | number; apiKey?: string }
 
 export interface LicenseAccountSyncArgs {
   url: string
   email: string
   password: string
+  deviceFingerprint?: string
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000
@@ -41,6 +43,7 @@ export async function syncLicenseFromServer(
   const url = (args?.url || '').trim().replace(/\/+$/, '')
   const empresaId = String(args?.empresaId ?? '').trim()
   const apiKey = (args?.apiKey || '').trim()
+  const deviceFingerprint = args?.deviceFingerprint || ''
 
   if (!/^https?:\/\/.+/i.test(url)) {
     return { success: false, error: 'La URL del servidor debe comenzar con http:// o https://' }
@@ -58,8 +61,10 @@ export async function syncLicenseFromServer(
 
   let response: FetchResponseLike
   try {
+    const headers: Record<string, string> = { 'x-api-key': apiKey, Accept: 'application/json' }
+    if (deviceFingerprint) headers['x-device-fingerprint'] = deviceFingerprint
     response = await fetchImpl!(`${url}/api/empresas/${empresaId}/licencia`, {
-      headers: { 'x-api-key': apiKey, Accept: 'application/json' },
+      headers,
       signal: controller.signal,
     })
   } catch (err: any) {
@@ -83,12 +88,16 @@ export async function syncLicenseFromServer(
 
   if (!response.ok) {
     const serverError = body?.error
+    const isDeviceMismatch = response.status === 403 && body?.code === 'DEVICE_MISMATCH'
     return {
       success: false,
       error:
         typeof serverError === 'string' && serverError
           ? serverError
           : `El servidor respondió con estado ${response.status}`,
+      deviceMismatch: isDeviceMismatch || undefined,
+      empresaId: isDeviceMismatch ? empresaId : undefined,
+      apiKey: isDeviceMismatch ? apiKey : undefined,
     }
   }
 
@@ -199,7 +208,7 @@ export async function syncLicenseWithAccount(
   }
 
   const licenciaResult = await syncLicenseFromServer(
-    { url, empresaId: empresa.id, apiKey: empresa.api_key },
+    { url, empresaId: empresa.id, apiKey: empresa.api_key, deviceFingerprint: args?.deviceFingerprint },
     deps,
   )
   return licenciaResult
