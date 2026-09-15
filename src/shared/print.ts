@@ -236,6 +236,122 @@ export function construirLineasTicket(doc: DocumentoVenta, ancho: AnchoTicket = 
   return lineas
 }
 
+/* ---------- Ticket de apuesta hípica (FASE 7b) ---------- */
+
+export interface SeleccionApuesta {
+  caballo: string
+  numero?: number | null
+  odd?: number | null
+  posicion_predicha?: number | null
+  resultado_posicion?: number | null
+  ganador?: boolean
+}
+
+export interface DocumentoApuesta {
+  empresa: DatosEmpresa
+  numero_ticket: string
+  fecha: string
+  cajero?: string
+  hipodromo: string
+  numero_carrera: number
+  carrera_fecha?: string
+  tipo_apuesta: string
+  selecciones: SeleccionApuesta[]
+  monto: number
+  odd_total: number
+  payout_potencial: number
+  estado: string
+  ganancia?: number | null
+  moneda?: string
+  cobrada?: boolean
+  reimpresion?: boolean
+  notas?: string
+  pie?: string
+}
+
+export const ETIQUETAS_TIPO_APUESTA: Record<string, string> = {
+  win: 'WIN (ganador)',
+  place: 'PLACE (puesto)',
+  each_way: 'EACH-WAY (gana o puesto)',
+  exacta: 'EXACTA (1o y 2o)',
+  trifecta: 'TRIFECTA (1o, 2o y 3o)',
+}
+
+export const ETIQUETAS_ESTADO_APUESTA: Record<string, string> = {
+  pendiente: 'PENDIENTE',
+  ganada: 'GANADA',
+  perdida: 'PERDIDA',
+  anulada: 'ANULADA',
+}
+
+/** Convierte una apuesta en las líneas del ticket térmico. Función pura. */
+export function construirLineasTicketApuesta(doc: DocumentoApuesta, ancho: AnchoTicket = 80): LineaTicket[] {
+  const cols = COLUMNAS_POR_ANCHO[ancho] ?? COLUMNAS_POR_ANCHO[80]
+  const moneda = doc.moneda || ''
+  const lineas: LineaTicket[] = []
+
+  const centrada = (texto: string, extra: Partial<LineaTicket> = {}) => {
+    if (!texto) return
+    for (const linea of envolver(texto, cols)) lineas.push({ texto: centrar(linea, cols), centrada: true, ...extra })
+  }
+  const fila = (texto: string, extra: Partial<LineaTicket> = {}) => {
+    if (!texto) return
+    lineas.push({ texto, ...extra })
+  }
+  const parrafo = (texto: string, extra: Partial<LineaTicket> = {}) => {
+    for (const l of envolver(texto, cols)) lineas.push({ texto: l, ...extra })
+  }
+  const monto = (m: unknown) => formatearMonto(m, moneda)
+
+  centrada(doc.empresa?.razon_social || '', { negrita: true })
+  centrada(doc.empresa?.rif ? `RIF: ${doc.empresa.rif}` : '')
+  centrada(doc.empresa?.telefono ? `Tel: ${doc.empresa.telefono}` : '')
+  fila('')
+
+  centrada(doc.reimpresion ? 'REIMPRESION' : 'TICKET DE APUESTA', { negrita: true, doble: true })
+  fila(columnas(`Ticket: ${doc.numero_ticket}`, formatearFecha(doc.fecha), cols))
+  if (doc.cajero) parrafo(`Cajero: ${doc.cajero}`)
+  fila(divisoria(cols))
+
+  parrafo(`Carrera: ${doc.hipodromo} #${doc.numero_carrera}${doc.carrera_fecha ? ` - ${formatearFecha(doc.carrera_fecha)}` : ''}`)
+  fila(`Tipo: ${ETIQUETAS_TIPO_APUESTA[doc.tipo_apuesta] || doc.tipo_apuesta}`)
+  fila(divisoria(cols))
+
+  fila('SELECCIONES', { negrita: true })
+  for (const s of doc.selecciones || []) {
+    const numero = s.numero != null ? `${s.numero} ` : ''
+    const odd = s.odd != null ? ` x${Number(s.odd).toFixed(2)}` : ''
+    fila(columnas(`${numero}${s.caballo}`, odd.trim(), cols))
+    const detalles: string[] = []
+    if (s.posicion_predicha != null) detalles.push(`Pos. predicha: ${s.posicion_predicha}o`)
+    if (s.resultado_posicion != null) detalles.push(`Resultado: ${s.resultado_posicion}o${s.ganador ? ' OK' : ''}`)
+    // Una línea por dato: en 58mm los dos juntos no entran.
+    for (const detalle of detalles) fila(`    ${detalle}`)
+  }
+
+  fila(divisoria(cols))
+  fila(columnas('Monto apostado', monto(doc.monto), cols))
+  fila(columnas('Odd total', Number(doc.odd_total || 0).toFixed(2), cols))
+  fila(columnas('Pago potencial', monto(doc.payout_potencial), cols))
+  if (doc.estado === 'ganada' && doc.ganancia != null) {
+    fila(columnas('GANANCIA', monto(doc.ganancia), cols), { negrita: true, doble: true })
+    if (doc.cobrada) fila('PAGADA')
+  }
+  fila(columnas('Estado', ETIQUETAS_ESTADO_APUESTA[doc.estado] || doc.estado, cols), { negrita: true })
+
+  if (doc.notas) {
+    fila(divisoria(cols))
+    parrafo(doc.notas)
+  }
+  centrada('Conserve este ticket para cobrar', { negrita: true })
+  if (doc.pie) {
+    fila('')
+    parrafo(doc.pie)
+  }
+
+  return lineas
+}
+
 /** Documento de prueba para configurar la impresora. */
 export function documentoDePrueba(empresa: DatosEmpresa, extras: Partial<DocumentoVenta> = {}): DocumentoVenta {
   return {

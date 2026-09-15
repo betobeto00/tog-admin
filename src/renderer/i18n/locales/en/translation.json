@@ -374,7 +374,8 @@
       "carreras": "Races",
       "caballos": "Horses",
       "propietarios": "Owners",
-      "resultados": "Results"
+      "resultados": "Results",
+      "apuestas": "Bets"
     },
     "estado": {
       "programada": "Scheduled",
@@ -423,6 +424,8 @@
     "colPosition": "Position",
     "colTime": "Time",
     "colDividend": "Dividend",
+    "colRace": "Race",
+    "colResult": "Result",
     "colMicrochip": "Microchip",
     "fromApi": "(API)",
     "manageEntries": "Entries & results",
@@ -441,7 +444,53 @@
     "import": "Import",
     "importHelp": "URL returning JSON with races (array, or { carreras: [...] }). Existing races are skipped. If the API is down, manual entry still works.",
     "imported": "{{count}} race(s) imported",
-    "importResult": "Result: {{saved}} saved, {{skipped}} skipped"
+    "importResult": "Result: {{saved}} saved, {{skipped}} skipped",
+    "apuestas": {
+      "newBet": "New bet",
+      "statPending": "Pending bets",
+      "statToday": "Bets today",
+      "statWon": "Won bets",
+      "statTotal": "Total staked",
+      "colTicket": "Ticket",
+      "colType": "Type",
+      "colSelections": "Sel.",
+      "colAmount": "Amount",
+      "colOdds": "Odds",
+      "colPayout": "Pot. payout",
+      "colWinnings": "Winnings",
+      "colPosition": "Pos.",
+      "colResult": "Result",
+      "noApuestas": "No bets recorded",
+      "created": "Bet {{ticket}} recorded",
+      "selectRace": "Choose race",
+      "odds": "Total odds",
+      "potentialPayout": "Potential payout",
+      "selections": "Selections",
+      "addSelection": "Add selection",
+      "ticketDetail": "Bet details",
+      "print": "Print ticket",
+      "printed": "Ticket sent to printer",
+      "void": "Void",
+      "voided": "Bet voided",
+      "confirmVoid": "Void bet {{ticket}}? This cannot be undone.",
+      "settle": "Settle",
+      "settled": "Settlement: {{ganadas}} won, {{perdidas}} lost",
+      "settleNothing": "No pending bets to settle",
+      "confirmSettle": "Settle the pending bets of this race using the loaded results.",
+      "estado": {
+        "pendiente": "Pending",
+        "ganada": "Won",
+        "perdida": "Lost",
+        "anulada": "Voided"
+      },
+      "tipo": {
+        "win": "Win",
+        "place": "Place",
+        "each_way": "Each-way",
+        "exacta": "Exacta",
+        "trifecta": "Trifecta"
+      }
+    }
   },
   "rrhh": {
     "title": "Human Resources",

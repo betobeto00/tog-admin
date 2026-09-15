@@ -10,7 +10,7 @@
  */
 
 import { getDatabase } from '../../db/database'
-import { leerConfig } from '../../services/fiscal'
+import { guardarConfig, leerConfig } from '../../services/fiscal'
 
 const CLAVE_ODDS_KEY = 'odds_api_key'
 const CLAVE_ODDS_BASE = 'odds_api_base'
@@ -43,7 +43,6 @@ function obtenerConfig(db: ReturnType<typeof getDatabase>) {
 }
 
 export function guardarConfigOdds(db: ReturnType<typeof getDatabase>, apiKey: string, apiBase: string) {
-  const { guardarConfig } = require('../../services/fiscal')
   if (apiKey) guardarConfig(db, CLAVE_ODDS_KEY, apiKey)
   if (apiBase) guardarConfig(db, CLAVE_ODDS_BASE, apiBase)
 }

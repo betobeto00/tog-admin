@@ -10,11 +10,19 @@
 import { handleIpc } from '../../core/auth/ipc-guard'
 import { checkPermissionOrFail } from '../../core/auth'
 import { getDatabase } from '../../db/database'
-import { construirLineasTicket, documentoDePrueba, type DocumentoVenta, type AnchoTicket } from '@shared/print'
+import {
+  construirLineasTicket,
+  construirLineasTicketApuesta,
+  documentoDePrueba,
+  type DocumentoVenta,
+  type DocumentoApuesta,
+  type AnchoTicket,
+  type LineaTicket,
+} from '@shared/print'
 import { construirEscPos } from './escpos'
 import { enviarEscPos, listarPuertosSerie } from '../../services/printer'
 import { getDatosFiscales, guardarConfig, CLAVES_FISCALES, siguienteNumeroControl } from '../../services/fiscal'
-import { documentoDeVenta, documentoUltimaVenta } from './documentos'
+import { documentoDeVenta, documentoUltimaVenta, documentoDeApuesta } from './documentos'
 
 const CAMPOS_CONFIG = {
   razon_social: CLAVES_FISCALES.razon_social,
@@ -29,11 +37,10 @@ const CAMPOS_CONFIG = {
   copias: CLAVES_FISCALES.copias,
 } as const
 
-/** Imprime el documento por el puerto configurado (con copias). */
-async function imprimirDocumento(doc: DocumentoVenta) {
+/** Imprime las líneas por el puerto configurado (con copias). */
+async function imprimirLineas(lineas: LineaTicket[]) {
   const db = getDatabase()
   const fiscal = getDatosFiscales(db)
-  const lineas = construirLineasTicket(doc, fiscal.ancho_ticket as AnchoTicket)
   const bytes = construirEscPos(lineas, { abrirCajon: fiscal.abrir_cajon })
 
   let ultimo: { success: boolean; bytes?: number; error?: string } = { success: true, bytes: 0 }
@@ -42,6 +49,18 @@ async function imprimirDocumento(doc: DocumentoVenta) {
     if (!ultimo.success) return ultimo
   }
   return ultimo
+}
+
+/** Imprime el documento de venta por el puerto configurado (con copias). */
+async function imprimirDocumento(doc: DocumentoVenta) {
+  const fiscal = getDatosFiscales(getDatabase())
+  return imprimirLineas(construirLineasTicket(doc, fiscal.ancho_ticket as AnchoTicket))
+}
+
+/** Imprime el ticket de una apuesta hípica (FASE 7b). */
+async function imprimirApuesta(doc: DocumentoApuesta) {
+  const fiscal = getDatosFiscales(getDatabase())
+  return imprimirLineas(construirLineasTicketApuesta(doc, fiscal.ancho_ticket as AnchoTicket))
 }
 
 export function registerPrintHandlers(): void {
@@ -94,6 +113,19 @@ export function registerPrintHandlers(): void {
     const doc = data?.venta_id ? documentoDeVenta(Number(data.venta_id), db) : documentoUltimaVenta(db)
     if (!doc) return { success: false, error: 'No hay ventas para imprimir' }
     const resultado = await imprimirDocumento(doc)
+    return { ...resultado, documento: doc }
+  })
+
+  // Ticket de una apuesta hípica (o su reimpresión)
+  handleIpc('print:ticket-apuesta', async (_event, data?: any) => {
+    const fail = checkPermissionOrFail(data, 'print:ticket-apuesta', 'print_ticket')
+    if (fail) return fail
+    const apuestaId = Number(data?.apuesta_id)
+    if (!Number.isInteger(apuestaId) || apuestaId <= 0) return { success: false, error: 'Falta la apuesta' }
+    const doc = documentoDeApuesta(apuestaId, getDatabase())
+    if (!doc) return { success: false, error: 'Apuesta no encontrada' }
+    doc.reimpresion = data?.reimprimir === true
+    const resultado = await imprimirApuesta(doc)
     return { ...resultado, documento: doc }
   })
 

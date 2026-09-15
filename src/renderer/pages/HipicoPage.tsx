@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CloudDownload, Flag, Plus, Trophy } from 'lucide-react'
+import { CloudDownload, Flag, Plus, Printer, Trophy } from 'lucide-react'
 import { useToast } from '../components/ui/Toast'
 import { usePermissions } from '../hooks/usePermissions'
 import { callApi } from '../lib/api-client'
 import { formatMoney } from '../services/currency'
 
-type Tab = 'carreras' | 'caballos' | 'propietarios' | 'resultados'
+type Tab = 'carreras' | 'caballos' | 'propietarios' | 'resultados' | 'apuestas'
 
 interface Propietario {
   id: number
@@ -82,6 +82,51 @@ interface Stats {
   top_ganadores: Array<{ id: number; nombre: string; victorias: number }>
 }
 
+interface Apuesta {
+  id: number
+  numero_ticket: string
+  carrera_id: number
+  tipo_apuesta: string
+  monto: number
+  odd_total: number
+  payout_potencial: number
+  estado: string
+  ganancia: number | null
+  notas: string | null
+  creado_en: string
+  cerrada_en: string | null
+  hipodromo: string
+  fecha: string
+  numero_carrera: number
+  selecciones: number
+}
+
+interface ApuestaDetalle {
+  apuesta: Apuesta & { carrera_estado: string }
+  selections: Array<{
+    id: number
+    apuesta_id: number
+    carrera_id: number
+    caballo_nombre: string
+    caballo_numero: number | null
+    posicion_predicha: number | null
+    odd_individual: number | null
+    resultado_posicion: number | null
+    ganador: number
+  }>
+}
+
+interface ApuestasStats {
+  pendientes: number
+  pendientes_monto: number
+  hoy: number
+  hoy_monto: number
+  ganadas: number
+  total_ganado: number
+  total_apuestas: number
+  total_monto: number
+}
+
 const ESTADOS = ['programada', 'en_curso', 'finalizada', 'cancelada']
 const SEXOS = ['macho', 'hembra']
 
@@ -103,8 +148,16 @@ export default function HipicoPage() {
   const [modalPropietario, setModalPropietario] = useState(false)
   const [modalInscripciones, setModalInscripciones] = useState<Carrera | null>(null)
   const [modalImportar, setModalImportar] = useState(false)
+  const [modalApuesta, setModalApuesta] = useState(false)
+  const [modalDetalleApuesta, setModalDetalleApuesta] = useState<ApuestaDetalle | null>(null)
+
+  const [apuestas, setApuestas] = useState<Apuesta[]>([])
+  const [apuestasStats, setApuestasStats] = useState<ApuestasStats | null>(null)
+  const [filtroApuestaEstado, setFiltroApuestaEstado] = useState('')
 
   const puedeEditar = has('hipico_edit')
+  const puedeApuestas = has('hipico_apuestas')
+  const puedeApuestasAdmin = has('hipico_apuestas_admin')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -121,16 +174,28 @@ export default function HipicoPage() {
       setCaballos(cb || [])
       setPropietarios(pr || [])
       setResultados(rs || [])
+      if (puedeApuestas) {
+        const [ap, apSt] = await Promise.all([
+          callApi<Apuesta[]>('hipico:apuestas-list', filtroApuestaEstado ? { estado: filtroApuestaEstado } : {}),
+          callApi<ApuestasStats>('hipico:apuestas-stats', {}),
+        ])
+        setApuestas(ap || [])
+        setApuestasStats(apSt)
+      }
     } catch (err: any) {
       toast.error(err?.message || t('common.error'))
     } finally {
       setLoading(false)
     }
-  }, [filtroEstado, t, toast])
+  }, [filtroEstado, filtroApuestaEstado, puedeApuestas, t, toast])
 
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    if (tab === 'apuestas' && !puedeApuestas) setTab('carreras')
+  }, [tab, puedeApuestas])
 
   const estadoBadge = (estado: string) => {
     const styles: Record<string, string> = {
@@ -144,6 +209,49 @@ export default function HipicoPage() {
         {t(`hipico.estado.${estado}`, { defaultValue: estado })}
       </span>
     )
+  }
+
+  const verDetalle = async (apuesta: Apuesta) => {
+    try {
+      const detalle = await callApi<ApuestaDetalle>('hipico:apuesta-detail', { apuesta_id: apuesta.id })
+      if (detalle) setModalDetalleApuesta(detalle)
+    } catch (err: any) {
+      toast.error(err?.message || t('common.error'))
+    }
+  }
+
+  const imprimirApuesta = async (apuesta: Apuesta, reimprimir = false) => {
+    try {
+      await callApi('print:ticket-apuesta', { apuesta_id: apuesta.id, reimprimir })
+      toast.success(t('hipico.apuestas.printed'))
+    } catch (err: any) {
+      toast.error(err?.message || t('common.error'))
+    }
+  }
+
+  const anularApuesta = async (apuesta: Apuesta) => {
+    if (!window.confirm(t('hipico.apuestas.confirmVoid', { ticket: apuesta.numero_ticket }))) return
+    try {
+      await callApi('hipico:apuesta-anular', { apuesta_id: apuesta.id })
+      toast.success(t('hipico.apuestas.voided'))
+      await load()
+    } catch (err: any) {
+      toast.error(err?.message || t('common.error'))
+    }
+  }
+
+  const liquidarCarrera = async (apuesta: Apuesta) => {
+    if (!window.confirm(t('hipico.apuestas.confirmSettle'))) return
+    try {
+      const res = await callApi<{ liquidadas: number; ganadas: number; perdidas: number }>('hipico:apuestas-liquidar', {
+        carrera_id: apuesta.carrera_id,
+      })
+      if (!res?.liquidadas) toast.info(t('hipico.apuestas.settleNothing'))
+      else toast.success(t('hipico.apuestas.settled', { ganadas: res.ganadas, perdidas: res.perdidas }))
+      await load()
+    } catch (err: any) {
+      toast.error(err?.message || t('common.error'))
+    }
   }
 
   return (
@@ -185,6 +293,14 @@ export default function HipicoPage() {
                 <Plus className="w-4 h-4" /> {t('hipico.newPropietario')}
               </button>
             )}
+            {tab === 'apuestas' && puedeApuestas && (
+              <button
+                onClick={() => setModalApuesta(true)}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700"
+              >
+                <Plus className="w-4 h-4" /> {t('hipico.apuestas.newBet')}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -210,7 +326,7 @@ export default function HipicoPage() {
       )}
 
       <div className="flex gap-2 border-b border-gray-200">
-        {(['carreras', 'caballos', 'propietarios', 'resultados'] as Tab[]).map((id) => (
+        {(['carreras', 'caballos', 'propietarios', 'resultados', ...(puedeApuestas ? ['apuestas' as Tab] : [])] as Tab[]).map((id) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -363,6 +479,106 @@ export default function HipicoPage() {
             </tbody>
           </table>
         </div>
+      ) : tab === 'apuestas' ? (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card icon={Trophy} label={t('hipico.apuestas.statPending')} value={`${apuestasStats?.pendientes ?? 0} (${formatMoney(apuestasStats?.pendientes_monto ?? 0)})`} color="blue" />
+            <Card icon={Flag} label={t('hipico.apuestas.statToday')} value={`${apuestasStats?.hoy ?? 0} (${formatMoney(apuestasStats?.hoy_monto ?? 0)})`} color="green" />
+            <Card icon={Trophy} label={t('hipico.apuestas.statWon')} value={`${apuestasStats?.ganadas ?? 0} (${formatMoney(apuestasStats?.total_ganado ?? 0)})`} color="amber" />
+            <Card icon={Flag} label={t('hipico.apuestas.statTotal')} value={`${apuestasStats?.total_apuestas ?? 0} (${formatMoney(apuestasStats?.total_monto ?? 0)})`} color="purple" />
+          </div>
+
+          <select
+            value={filtroApuestaEstado}
+            onChange={(e) => setFiltroApuestaEstado(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          >
+            <option value="">{t('hipico.allStatuses')}</option>
+            <option value="pendiente">{t('hipico.apuestas.estado.pendiente')}</option>
+            <option value="ganada">{t('hipico.apuestas.estado.ganada')}</option>
+            <option value="perdida">{t('hipico.apuestas.estado.perdida')}</option>
+            <option value="anulada">{t('hipico.apuestas.estado.anulada')}</option>
+          </select>
+
+          <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <Th>{t('hipico.apuestas.colTicket')}</Th>
+                  <Th>{t('hipico.colDate')}</Th>
+                  <Th>{t('hipico.colRacetrack')}</Th>
+                  <Th right>{t('hipico.colRaceNumber')}</Th>
+                  <Th>{t('hipico.apuestas.colType')}</Th>
+                  <Th right>{t('hipico.apuestas.colSelections')}</Th>
+                  <Th right>{t('hipico.apuestas.colAmount')}</Th>
+                  <Th right>{t('hipico.apuestas.colOdds')}</Th>
+                  <Th right>{t('hipico.apuestas.colPayout')}</Th>
+                  <Th>{t('contable.colStatus')}</Th>
+                  <Th right>{t('common.actions')}</Th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {apuestas.length === 0 ? (
+                  <tr>
+                    <td colSpan={11} className="text-center py-10 text-gray-400">
+                      {t('hipico.apuestas.noApuestas')}
+                    </td>
+                  </tr>
+                ) : (
+                  apuestas.map((a) => (
+                    <tr key={a.id} className="hover:bg-gray-50">
+                      <td className="px-3 py-2 font-mono text-xs">{a.numero_ticket}</td>
+                      <td className="px-3 py-2">{a.creado_en?.slice(0, 10)}</td>
+                      <td className="px-3 py-2">{a.hipodromo}</td>
+                      <td className="px-3 py-2 text-right">#{a.numero_carrera}</td>
+                      <td className="px-3 py-2">
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                          {t(`hipico.apuestas.tipo.${a.tipo_apuesta}`, { defaultValue: a.tipo_apuesta })}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-right">{a.selecciones}</td>
+                      <td className="px-3 py-2 text-right">{formatMoney(a.monto)}</td>
+                      <td className="px-3 py-2 text-right">{a.odd_total?.toFixed(2)}</td>
+                      <td className="px-3 py-2 text-right">{formatMoney(a.payout_potencial)}</td>
+                      <td className="px-3 py-2">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          a.estado === 'ganada' ? 'bg-green-100 text-green-700' :
+                          a.estado === 'perdida' ? 'bg-red-100 text-red-700' :
+                          a.estado === 'anulada' ? 'bg-gray-100 text-gray-500' :
+                          'bg-blue-100 text-blue-700'
+                        }`}>
+                          {t(`hipico.apuestas.estado.${a.estado}`, { defaultValue: a.estado })}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex justify-end gap-3 text-sm">
+                          <button onClick={() => verDetalle(a)} className="text-amber-600 hover:underline">
+                            {t('common.view')}
+                          </button>
+                          {puedeApuestas && (
+                            <button onClick={() => imprimirApuesta(a, a.estado !== 'pendiente')} className="text-gray-600 hover:underline">
+                              {t('common.print')}
+                            </button>
+                          )}
+                          {puedeApuestasAdmin && a.estado === 'pendiente' && (
+                            <>
+                              <button onClick={() => liquidarCarrera(a)} className="text-blue-600 hover:underline">
+                                {t('hipico.apuestas.settle')}
+                              </button>
+                              <button onClick={() => anularApuesta(a)} className="text-red-600 hover:underline">
+                                {t('hipico.apuestas.void')}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
           <table className="w-full text-sm">
@@ -423,6 +639,24 @@ export default function HipicoPage() {
         />
       )}
       {modalImportar && <ModalImportar onClose={() => setModalImportar(false)} onSaved={async () => { setModalImportar(false); await load() }} />}
+      {modalApuesta && (
+        <ModalApuesta
+          carreras={carreras}
+          onClose={() => setModalApuesta(false)}
+          onSaved={async () => { setModalApuesta(false); await load() }}
+        />
+      )}
+      {modalDetalleApuesta && (
+        <ModalDetalleApuesta
+          detalle={modalDetalleApuesta}
+          onPrint={
+            puedeApuestas
+              ? () => imprimirApuesta(modalDetalleApuesta.apuesta, modalDetalleApuesta.apuesta.estado !== 'pendiente')
+              : undefined
+          }
+          onClose={() => setModalDetalleApuesta(null)}
+        />
+      )}
     </div>
   )
 }
@@ -825,6 +1059,273 @@ function ModalImportar({ onClose, onSaved }: { onClose: () => void; onSaved: () 
       {guardadas !== null && (
         <p className="text-sm text-green-700">{t('hipico.importResult', { saved: guardadas, skipped: descartadas })}</p>
       )}
+    </Modal>
+  )
+}
+
+const TIPOS_APUESTA = ['win', 'place', 'each_way', 'exacta', 'trifecta']
+
+function ModalApuesta({ carreras, onClose, onSaved }: { carreras: Carrera[]; onClose: () => void; onSaved: () => void }) {
+  const { t } = useTranslation()
+  const toast = useToast()
+  const [carreraId, setCarreraId] = useState<number | ''>('')
+  const [tipo, setTipo] = useState('win')
+  const [monto, setMonto] = useState('')
+  const [notas, setNotas] = useState('')
+  const [selections, setSelections] = useState<Array<{
+    caballo_nombre: string
+    caballo_numero: string
+    posicion_predicha: string
+    odd_individual: string
+  }>>([{ caballo_nombre: '', caballo_numero: '', posicion_predicha: '', odd_individual: '' }])
+  const [saving, setSaving] = useState(false)
+
+  const addSelection = () => {
+    setSelections([...selections, { caballo_nombre: '', caballo_numero: '', posicion_predicha: '', odd_individual: '' }])
+  }
+
+  const removeSelection = (idx: number) => {
+    setSelections(selections.filter((_, i) => i !== idx))
+  }
+
+  const updateSelection = (idx: number, field: string, value: string) => {
+    const updated = [...selections]
+    updated[idx] = { ...updated[idx], [field]: value }
+    setSelections(updated)
+  }
+
+  const oddTotal = selections.reduce((acc, s) => {
+    const odd = parseFloat(s.odd_individual)
+    return isNaN(odd) ? acc : acc * odd
+  }, 1)
+
+  const payoutPotencial = (parseFloat(monto) || 0) * oddTotal
+
+  const guardar = async () => {
+    if (!carreraId) return
+    setSaving(true)
+    try {
+      const res = await callApi<{ success: boolean; error?: string; numero_ticket?: string }>('hipico:apuesta-crear', {
+        carrera_id: carreraId,
+        tipo_apuesta: tipo,
+        monto: parseFloat(monto),
+        notas: notas || undefined,
+        selections: selections.map((s) => ({
+          caballo_nombre: s.caballo_nombre,
+          caballo_numero: s.caballo_numero ? parseInt(s.caballo_numero) : null,
+          posicion_predicha: s.posicion_predicha ? parseInt(s.posicion_predicha) : null,
+          odd_individual: s.odd_individual ? parseFloat(s.odd_individual) : null,
+        })),
+      })
+      if (!res?.success) throw new Error(res?.error || t('common.error'))
+      toast.success(t('hipico.apuestas.created', { ticket: res.numero_ticket }))
+      onSaved()
+    } catch (err: any) {
+      toast.error(err?.message || t('common.error'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal
+      title={t('hipico.apuestas.newBet')}
+      onClose={onClose}
+      onSave={guardar}
+      saving={saving}
+      disabled={!carreraId || !monto || parseFloat(monto) <= 0}
+      wide
+    >
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">{t('hipico.colRace')}</label>
+            <select value={carreraId} onChange={(e) => setCarreraId(e.target.value ? Number(e.target.value) : '')} className={inputCls}>
+              <option value="">{t('hipico.apuestas.selectRace')}</option>
+              {carreras.filter((c) => c.estado !== 'finalizada' && c.estado !== 'cancelada').map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.fecha?.slice(0, 10)} — {c.hipodromo} #{c.numero_carrera}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">{t('hipico.apuestas.colType')}</label>
+            <select value={tipo} onChange={(e) => setTipo(e.target.value)} className={inputCls}>
+              {TIPOS_APUESTA.map((tp) => (
+                <option key={tp} value={tp}>{t(`hipico.apuestas.tipo.${tp}`, { defaultValue: tp })}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">{t('hipico.apuestas.colAmount')}</label>
+            <input type="number" min="0" step="0.01" value={monto} onChange={(e) => setMonto(e.target.value)} placeholder="0.00" className={inputCls} />
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-gray-500">{t('hipico.apuestas.odds')}</p>
+            <p className="text-lg font-bold text-amber-600">{oddTotal.toFixed(2)}</p>
+            <p className="text-xs text-gray-500">{t('hipico.apuestas.potentialPayout')}</p>
+            <p className="text-sm font-semibold">{formatMoney(payoutPotencial)}</p>
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-medium text-gray-700">{t('hipico.apuestas.selections')}</label>
+            <button onClick={addSelection} className="text-xs text-amber-600 hover:underline">+ {t('hipico.apuestas.addSelection')}</button>
+          </div>
+          <div className="space-y-2">
+            {selections.map((s, idx) => (
+              <div key={idx} className="flex gap-2 items-center">
+                <input
+                  value={s.caballo_nombre}
+                  onChange={(e) => updateSelection(idx, 'caballo_nombre', e.target.value)}
+                  placeholder={t('hipico.colHorse')}
+                  className={`flex-1 ${inputCls}`}
+                />
+                <input
+                  value={s.caballo_numero}
+                  onChange={(e) => updateSelection(idx, 'caballo_numero', e.target.value)}
+                  placeholder={t('hipico.colStartNumber')}
+                  className={`w-16 ${inputCls}`}
+                />
+                <input
+                  value={s.odd_individual}
+                  onChange={(e) => updateSelection(idx, 'odd_individual', e.target.value)}
+                  placeholder={t('hipico.apuestas.colOdds')}
+                  className={`w-20 ${inputCls}`}
+                />
+                {(tipo === 'exacta' || tipo === 'trifecta') && (
+                  <input
+                    value={s.posicion_predicha}
+                    onChange={(e) => updateSelection(idx, 'posicion_predicha', e.target.value)}
+                    placeholder={t('hipico.apuestas.colPosition')}
+                    className={`w-16 ${inputCls}`}
+                  />
+                )}
+                {selections.length > 1 && (
+                  <button onClick={() => removeSelection(idx)} className="text-red-500 hover:text-red-700 text-sm">✕</button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">{t('common.notes')}</label>
+          <input value={notas} onChange={(e) => setNotas(e.target.value)} placeholder={t('common.notes')} className={inputCls} />
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+function ModalDetalleApuesta({
+  detalle,
+  onPrint,
+  onClose,
+}: {
+  detalle: ApuestaDetalle
+  onPrint?: () => void
+  onClose: () => void
+}) {
+  const { t } = useTranslation()
+  const { apuesta, selections } = detalle
+
+  return (
+    <Modal title={t('hipico.apuestas.ticketDetail')} onClose={onClose} onSave={onClose} saving={false} saveLabel={t('common.close')} wide>
+      <div className="space-y-3">
+        {onPrint && (
+          <button
+            onClick={onPrint}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-gray-700 rounded-lg hover:bg-gray-800"
+          >
+            <Printer className="w-4 h-4" /> {t('hipico.apuestas.print')}
+          </button>
+        )}
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <span className="text-gray-500">{t('hipico.apuestas.colTicket')}:</span>
+            <span className="ml-2 font-mono font-bold">{apuesta.numero_ticket}</span>
+          </div>
+          <div>
+            <span className="text-gray-500">{t('hipico.apuestas.colType')}:</span>
+            <span className="ml-2">{t(`hipico.apuestas.tipo.${apuesta.tipo_apuesta}`, { defaultValue: apuesta.tipo_apuesta })}</span>
+          </div>
+          <div>
+            <span className="text-gray-500">{t('hipico.colRace')}:</span>
+            <span className="ml-2">{apuesta.hipodromo} #{apuesta.numero_carrera}</span>
+          </div>
+          <div>
+            <span className="text-gray-500">{t('contable.colStatus')}:</span>
+            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+              apuesta.estado === 'ganada' ? 'bg-green-100 text-green-700' :
+              apuesta.estado === 'perdida' ? 'bg-red-100 text-red-700' :
+              apuesta.estado === 'anulada' ? 'bg-gray-100 text-gray-500' :
+              'bg-blue-100 text-blue-700'
+            }`}>
+              {t(`hipico.apuestas.estado.${apuesta.estado}`, { defaultValue: apuesta.estado })}
+            </span>
+          </div>
+          <div>
+            <span className="text-gray-500">{t('hipico.apuestas.colAmount')}:</span>
+            <span className="ml-2 font-semibold">{formatMoney(apuesta.monto)}</span>
+          </div>
+          <div>
+            <span className="text-gray-500">{t('hipico.apuestas.odds')}:</span>
+            <span className="ml-2 font-semibold">{apuesta.odd_total?.toFixed(2)}</span>
+          </div>
+          <div>
+            <span className="text-gray-500">{t('hipico.apuestas.colPayout')}:</span>
+            <span className="ml-2 font-semibold">{formatMoney(apuesta.payout_potencial)}</span>
+          </div>
+          {apuesta.ganancia != null && (
+            <div>
+              <span className="text-gray-500">{t('hipico.apuestas.colWinnings')}:</span>
+              <span className="ml-2 font-semibold text-green-600">{formatMoney(apuesta.ganancia)}</span>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <h3 className="text-sm font-semibold mb-2">{t('hipico.apuestas.selections')}</h3>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <Th>{t('hipico.colHorse')}</Th>
+                <Th right>{t('hipico.colStartNumber')}</Th>
+                <Th right>{t('hipico.apuestas.colOdds')}</Th>
+                <Th right>{t('hipico.apuestas.colPosition')}</Th>
+                <Th right>{t('hipico.apuestas.colResult')}</Th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {selections.map((s) => (
+                <tr key={s.id}>
+                  <td className="px-3 py-2 font-medium">{s.caballo_nombre}</td>
+                  <td className="px-3 py-2 text-right">{s.caballo_numero ?? '—'}</td>
+                  <td className="px-3 py-2 text-right">{s.odd_individual?.toFixed(2) ?? '—'}</td>
+                  <td className="px-3 py-2 text-right">{s.posicion_predicha ?? '—'}</td>
+                  <td className="px-3 py-2 text-right">
+                    {s.resultado_posicion != null ? (
+                      <span className={s.ganador ? 'text-green-600 font-semibold' : 'text-red-600'}>
+                        {s.resultado_posicion}º
+                      </span>
+                    ) : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {apuesta.notas && (
+          <p className="text-xs text-gray-500">{t('common.notes')}: {apuesta.notas}</p>
+        )}
+      </div>
     </Modal>
   )
 }

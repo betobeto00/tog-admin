@@ -375,7 +375,8 @@
       "carreras": "Carreras",
       "caballos": "Caballos",
       "propietarios": "Propietarios",
-      "resultados": "Resultados"
+      "resultados": "Resultados",
+      "apuestas": "Apuestas"
     },
     "estado": {
       "programada": "Programada",
@@ -424,6 +425,8 @@
     "colPosition": "Posición",
     "colTime": "Tiempo",
     "colDividend": "Dividendo",
+    "colRace": "Carrera",
+    "colResult": "Resultado",
     "colMicrochip": "Microchip",
     "fromApi": "(API)",
     "manageEntries": "Inscripciones y resultados",
@@ -442,7 +445,53 @@
     "import": "Importar",
     "importHelp": "URL que devuelva un JSON con las carreras (array, o { carreras: [...] }). Las carreras ya existentes se omiten. Si la API no responde, la carga manual sigue funcionando.",
     "imported": "{{count}} carrera(s) importada(s)",
-    "importResult": "Resultado: {{saved}} guardada(s), {{skipped}} descartada(s)"
+    "importResult": "Resultado: {{saved}} guardada(s), {{skipped}} descartada(s)",
+    "apuestas": {
+      "newBet": "Nueva apuesta",
+      "statPending": "Apuestas pendientes",
+      "statToday": "Apuestas hoy",
+      "statWon": "Apuestas ganadas",
+      "statTotal": "Total apostado",
+      "colTicket": "Ticket",
+      "colType": "Tipo",
+      "colSelections": "Sel.",
+      "colAmount": "Monto",
+      "colOdds": "Odd",
+      "colPayout": "Pago pot.",
+      "colWinnings": "Ganancia",
+      "colPosition": "Pos.",
+      "colResult": "Resultado",
+      "noApuestas": "No hay apuestas registradas",
+      "created": "Apuesta {{ticket}} registrada",
+      "selectRace": "Elegir carrera",
+      "odds": "Odd total",
+      "potentialPayout": "Pago potencial",
+      "selections": "Selecciones",
+      "addSelection": "Agregar selección",
+      "ticketDetail": "Detalle de la apuesta",
+      "print": "Imprimir ticket",
+      "printed": "Ticket enviado a la impresora",
+      "void": "Anular",
+      "voided": "Apuesta anulada",
+      "confirmVoid": "¿Anular la apuesta {{ticket}}? Esta acción no se puede deshacer.",
+      "settle": "Liquidar",
+      "settled": "Liquidación: {{ganadas}} ganada(s), {{perdidas}} perdida(s)",
+      "settleNothing": "No había apuestas pendientes para liquidar",
+      "confirmSettle": "Liquidar las apuestas pendientes de esta carrera con los resultados cargados.",
+      "estado": {
+        "pendiente": "Pendiente",
+        "ganada": "Ganada",
+        "perdida": "Perdida",
+        "anulada": "Anulada"
+      },
+      "tipo": {
+        "win": "Ganador",
+        "place": "Puesto",
+        "each_way": "Ganador o puesto",
+        "exacta": "Exacta",
+        "trifecta": "Trifecta"
+      }
+    }
   },
   "rrhh": {
     "title": "Recursos Humanos",

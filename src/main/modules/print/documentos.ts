@@ -3,7 +3,7 @@
  * El layout vive en src/shared/print.ts; acá solo se arma la información.
  */
 
-import type { DocumentoVenta, ItemDocumento } from '@shared/print'
+import type { DocumentoVenta, DocumentoApuesta, ItemDocumento } from '@shared/print'
 import { getDatosFiscales, desgloseFiscal } from '../../services/fiscal'
 
 type DbLike = { prepare: (sql: string) => any }
@@ -103,6 +103,58 @@ export function documentoDeVenta(ventaId: number, db: DbLike): DocumentoVenta | 
     cajero,
     cliente,
   })
+}
+
+/** Documento del ticket de apuesta hípica (FASE 7b). Devuelve null si no existe. */
+export function documentoDeApuesta(apuestaId: number, db: DbLike): DocumentoApuesta | null {
+  const apuesta = db
+    .prepare(
+      `SELECT a.*, c.hipodromo, c.fecha as carrera_fecha, c.numero_carrera
+         FROM hipico_apuestas a
+         JOIN hipico_carreras c ON a.carrera_id = c.id
+        WHERE a.id = ?`,
+    )
+    .get(apuestaId) as any
+  if (!apuesta) return null
+
+  const selecciones = db
+    .prepare('SELECT * FROM hipico_apuesta_selections WHERE apuesta_id = ? ORDER BY id')
+    .all(apuestaId) as any[]
+  const base = getDatosFiscales(db)
+  const moneda = (db.prepare("SELECT valor FROM configuracion WHERE clave = 'currency_name'").get() as any)?.valor || ''
+
+  return {
+    empresa: {
+      razon_social: base.razon_social || '',
+      rif: base.rif,
+      direccion: base.direccion,
+      telefono: base.telefono,
+      email: base.email,
+    },
+    numero_ticket: String(apuesta.numero_ticket),
+    fecha: apuesta.creado_en,
+    hipodromo: String(apuesta.hipodromo),
+    numero_carrera: Number(apuesta.numero_carrera) || 0,
+    carrera_fecha: apuesta.carrera_fecha,
+    tipo_apuesta: String(apuesta.tipo_apuesta),
+    selecciones: selecciones.map((s) => ({
+      caballo: String(s.caballo_nombre),
+      numero: s.caballo_numero ?? null,
+      odd: s.odd_individual ?? null,
+      posicion_predicha: s.posicion_predicha ?? null,
+      resultado_posicion: s.resultado_posicion ?? null,
+      ganador: !!s.ganador,
+    })),
+    monto: Number(apuesta.monto) || 0,
+    odd_total: Number(apuesta.odd_total) || 0,
+    payout_potencial: Number(apuesta.payout_potencial) || 0,
+    estado: String(apuesta.estado),
+    ganancia: apuesta.ganancia ?? null,
+    moneda,
+    cobrada: !!apuesta.cobrada_en,
+    notas: apuesta.notas || undefined,
+    pie: base.pie_ticket || undefined,
+  }
 }
 
 /** Última venta registrada (para el botón "imprimir último ticket"). */

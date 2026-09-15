@@ -10,7 +10,7 @@
  */
 
 import { getDatabase } from '../../db/database'
-import { leerConfig } from '../../services/fiscal'
+import { guardarConfig, leerConfig } from '../../services/fiscal'
 
 const CLAVE_API_KEY = 'racing_api_key'
 const CLAVE_API_BASE = 'racing_api_base'
@@ -35,7 +35,6 @@ function obtenerConfig(db: ReturnType<typeof getDatabase>) {
 }
 
 export function guardarConfigApi(db: ReturnType<typeof getDatabase>, apiKey: string, apiBase: string) {
-  const { guardarConfig } = require('../../services/fiscal')
   if (apiKey) guardarConfig(db, CLAVE_API_KEY, apiKey)
   if (apiBase) guardarConfig(db, CLAVE_API_BASE, apiBase)
 }

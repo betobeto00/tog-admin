@@ -1,6 +1,7 @@
 import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
+import { liquidarApuestasDeCarrera } from './apuestas'
 
 export function registerResultadosHandlers(): void {
   handleIpc('hipico:resultados-list', async (_event, data: any) => {
@@ -80,11 +81,13 @@ export function registerResultadosHandlers(): void {
             AND NOT EXISTS (SELECT 1 FROM hipico_resultados r WHERE r.inscripcion_id = i.id)`,
       )
       .get(insc.carrera_id) as any
+    let liquidacion: ReturnType<typeof liquidarApuestasDeCarrera> | null = null
     if ((pendientes?.total || 0) === 0 && insc.estado !== 'finalizada') {
       db.prepare("UPDATE hipico_carreras SET estado = 'finalizada' WHERE id = ?").run(insc.carrera_id)
+      liquidacion = liquidarApuestasDeCarrera(insc.carrera_id, db)
     }
 
-    return { success: true, carrera_finalizada: (pendientes?.total || 0) === 0 }
+    return { success: true, carrera_finalizada: (pendientes?.total || 0) === 0, liquidacion }
   })
 
   handleIpc('hipico:resultado-delete', async (_event, data: { id: number; usuario_id: number }) => {
