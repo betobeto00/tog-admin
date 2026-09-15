@@ -209,6 +209,15 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.invoke('metodos-pago:procesar-tarjeta', payload),
   },
 
+  // Impresión (ticket térmico ESC/POS + datos fiscales)
+  print: {
+    getConfig: () => ipcRenderer.invoke('print:config'),
+    setConfig: (data: unknown) => ipcRenderer.invoke('print:set-config', data),
+    puertos: () => ipcRenderer.invoke('print:puertos'),
+    ticket: (payload?: { venta_id?: number; usuario_id?: number }) => ipcRenderer.invoke('print:ticket', payload),
+    test: () => ipcRenderer.invoke('print:test'),
+  },
+
   // Licencia
   license: {
     status: () => ipcRenderer.invoke('license:status'),

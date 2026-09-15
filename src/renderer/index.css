@@ -89,3 +89,28 @@
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
   background-color: #6b7280;
 }
+
+/* Impresión: al imprimir desde la app solo se ve el área marcada como
+   `.print-area` (A4Layout). El resto de la UI queda oculto pero conserva
+   el layout, así los márgenes no se rompen. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 12mm;
+    box-shadow: none;
+    border: none;
+  }
+  @page {
+    size: A4;
+    margin: 0;
+  }
+}

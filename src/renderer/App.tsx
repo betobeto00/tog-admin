@@ -26,12 +26,14 @@ import CocinaPage from './pages/CocinaPage'
 import ReportesPage from './pages/ReportesPage'
 import ReportesVisualesPage from './pages/ReportesVisualesPage'
 import ConfigPage from './pages/ConfigPage'
+import ImpresionPage from './pages/ImpresionPage'
 import QuotesPage from './pages/QuotesPage'
 import HelpPage from './pages/HelpPage'
 import ContabilidadPage from './pages/ContabilidadPage'
 import RrhhPage from './pages/RrhhPage'
 import ProductorPage from './pages/ProductorPage'
 import PostventaPage from './pages/PostventaPage'
+import HipicoPage from './pages/HipicoPage'
 import Tutorial, { hasTutorialCompleted } from './components/Tutorial'
 import LicenseGate from './components/LicenseGate'
 import { loadCurrency } from './services/currency'
@@ -114,7 +116,9 @@ export default function App() {
           <Route path="rrhh" element={<RrhhPage />} />
           <Route path="produccion" element={<ProductorPage />} />
           <Route path="postventa" element={<PostventaPage />} />
+          <Route path="hipico" element={<HipicoPage />} />
           <Route path="configuracion" element={<ConfigPage />} />
+          <Route path="impresion" element={<ImpresionPage />} />
           <Route path="ayuda" element={<HelpPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

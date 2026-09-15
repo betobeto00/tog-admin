@@ -4,7 +4,7 @@
  * Ver docs/MODULOS.md para la visión de producto.
  */
 
-export type ModuleId = 'comercializador' | 'distribuidor' | 'restaurant' | 'productor' | 'procesador' | 'postventa' | 'administracion' | 'omniserv'
+export type ModuleId = 'comercializador' | 'distribuidor' | 'restaurant' | 'productor' | 'procesador' | 'postventa' | 'administracion' | 'hipico' | 'omniserv'
 
 export interface ModuleInfo {
   id: ModuleId
@@ -69,6 +69,13 @@ export const ADDON_MODULES: ModuleInfo[] = [
     requiere: ['comercializador'],
     base: false,
   },
+  {
+    id: 'hipico',
+    nombre: 'Hípico',
+    descripcion: 'Propietarios, caballos, carreras, inscripciones y resultados. Importa el programa desde una API pública o se carga a mano.',
+    requiere: ['comercializador'],
+    base: false,
+  },
 ]
 
 /** Catálogo completo en orden de la cadena: Productor → Procesador → Comercializador → Distribuidor (+ Postventa) */
@@ -80,6 +87,7 @@ export const MODULE_CATALOG: ModuleInfo[] = [
   ADDON_MODULES.find((m) => m.id === 'restaurant')!,
   ADDON_MODULES.find((m) => m.id === 'postventa')!,
   ADDON_MODULES.find((m) => m.id === 'administracion')!,
+  ADDON_MODULES.find((m) => m.id === 'hipico')!,
 ]
 
 const VALID_IDS = new Set<string>(MODULE_CATALOG.map((m) => m.id))

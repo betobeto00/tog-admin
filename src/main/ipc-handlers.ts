@@ -11,6 +11,8 @@ import { registerRrhhHandlers } from './modules/rrhh'
 import { registerProductorHandlers } from './modules/productor'
 import { registerPostventaHandlers } from './modules/postventa'
 import { registerCajaExtraHandlers } from './modules/caja-extra'
+import { registerHipicoHandlers } from './modules/hipico'
+import { registerPrintModule } from './modules/print'
 import { registerAppHandlers, registerI18nHandlers, registerFeedbackHandlers } from './modules/shared'
 import { registerCrashReportHandlers } from './modules/crash-report'
 import { registerUpdaterHandlers } from './services/updater'
@@ -85,6 +87,8 @@ export function registerIpcHandlers(): void {
   registerProductorHandlers()
   registerPostventaHandlers()
   registerCajaExtraHandlers()
+  registerHipicoHandlers()
+  registerPrintModule()
   registerAppHandlers()
   registerI18nHandlers()
   registerFeedbackHandlers()

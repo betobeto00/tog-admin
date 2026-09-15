@@ -9,6 +9,8 @@ export interface LicenseSyncArgs {
   empresaId: string | number
   apiKey: string
   deviceFingerprint?: string
+  /** ID del vendedor que trajo al cliente (OMV-XXXXX). Opcional. */
+  vendedorId?: string
 }
 
 interface FetchResponseLike {
@@ -23,15 +25,27 @@ export interface LicenseSyncDeps {
   saveImpl?: (rawLicenseJson: string) => { success: boolean; error?: string }
 }
 
+export type VendedorVinculacion = {
+  vinculado: boolean
+  id_vendedor?: string
+  nombre?: string
+  error?: string
+}
+
 export type LicenseSyncResult =
-  | { success: true; cliente: string; expira: string; modulos: string[] }
+  | { success: true; cliente: string; expira: string; modulos: string[]; vendedor?: VendedorVinculacion }
   | { success: false; error: string; deviceMismatch?: boolean; empresaId?: string | number; apiKey?: string }
+
+/** Mismo formato que genera la landing page en /soy-vendedor. */
+export const ID_VENDEDOR_REGEX = /^OMV-[A-Z0-9]{5}$/
 
 export interface LicenseAccountSyncArgs {
   url: string
   email: string
   password: string
   deviceFingerprint?: string
+  /** ID del vendedor que trajo al cliente (OMV-XXXXX). Opcional. */
+  vendedorId?: string
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000
@@ -114,11 +128,70 @@ export async function syncLicenseFromServer(
     }
   }
 
+  // FASE 5: si el cliente trajo el ID del vendedor, se vincula la empresa con
+  // ese vendedor (comisión para él). Nunca invalida la licencia ya descargada:
+  // si falla, el usuario ve un aviso pero queda activado.
+  const vendedor = await vincularVendedor(
+    fetchImpl,
+    url,
+    { empresaId: Number(empresaId), apiKey, vendedorId: args?.vendedorId },
+    deps.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+  )
+
   return {
     success: true,
     cliente: licencia.cliente ?? '',
     expira: licencia.expira ?? '',
     modulos: normalizeModules(licencia.modules),
+    vendedor,
+  }
+}
+
+/**
+ * Vincula la empresa recién sincronizada con el vendedor que la trajo.
+ * Devuelve undefined si no se pidió vinculación (sin `vendedorId`).
+ */
+async function vincularVendedor(
+  fetchImpl: LicenseSyncDeps['fetchImpl'],
+  url: string,
+  { empresaId, apiKey, vendedorId }: { empresaId: number; apiKey: string; vendedorId?: string },
+  timeoutMs: number,
+): Promise<VendedorVinculacion | undefined> {
+  const id = (vendedorId || '').trim().toUpperCase()
+  if (!id) return undefined
+  if (!ID_VENDEDOR_REGEX.test(id)) {
+    return { vinculado: false, id_vendedor: id, error: 'El ID de vendedor debe tener el formato OMV-XXXXX' }
+  }
+  if (!Number.isInteger(empresaId) || empresaId <= 0) {
+    return { vinculado: false, id_vendedor: id, error: 'No se pudo vincular el vendedor: empresa inválida' }
+  }
+
+  try {
+    const response = await requestJsonSafe(
+      fetchImpl,
+      `${url}/api/empresas/${empresaId}/vendedor`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+        body: JSON.stringify({ id_vendedor: id }),
+      },
+      timeoutMs,
+    )
+    const body: any = await response.json().catch(() => ({}))
+    if (!response.ok || body?.success === false) {
+      return {
+        vinculado: false,
+        id_vendedor: id,
+        error: typeof body?.error === 'string' ? body.error : `No se pudo vincular el vendedor (estado ${response.status})`,
+      }
+    }
+    return { vinculado: true, id_vendedor: body?.vendedor?.id_vendedor || id, nombre: body?.vendedor?.nombre }
+  } catch (err: any) {
+    return {
+      vinculado: false,
+      id_vendedor: id,
+      error: err?.name === 'AbortError' ? 'Se agotó el tiempo al vincular el vendedor' : `No se pudo vincular el vendedor: ${err?.message || err}`,
+    }
   }
 }
 
@@ -208,7 +281,13 @@ export async function syncLicenseWithAccount(
   }
 
   const licenciaResult = await syncLicenseFromServer(
-    { url, empresaId: empresa.id, apiKey: empresa.api_key, deviceFingerprint: args?.deviceFingerprint },
+    {
+      url,
+      empresaId: empresa.id,
+      apiKey: empresa.api_key,
+      deviceFingerprint: args?.deviceFingerprint,
+      vendedorId: args?.vendedorId,
+    },
     deps,
   )
   return licenciaResult

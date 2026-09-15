@@ -93,6 +93,7 @@ const { db, handles, state } = vi.hoisted(() => {
       notas TEXT,
       cliente_id INTEGER,
       tipo_comprobante TEXT NOT NULL DEFAULT 'factura',
+      numero_control TEXT,
       creado_en TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE TABLE venta_detalles (
@@ -143,7 +144,8 @@ const { db, handles, state } = vi.hoisted(() => {
     CREATE TABLE configuracion (
       clave TEXT PRIMARY KEY,
       valor TEXT NOT NULL,
-      descripcion TEXT
+      descripcion TEXT,
+      actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE TABLE producto_componentes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

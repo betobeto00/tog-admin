@@ -13,6 +13,26 @@
 
 // Todos los permisos disponibles
 export const PERMISSIONS = {
+  // === IMPRESIÓN Y DATOS FISCALES ===
+  print_access: {
+    label: { es: 'Imprimir Comprobantes', en: 'Print Receipts' },
+    category: { es: 'Impresión', en: 'Printing' },
+    description: { es: 'Imprimir tickets y documentos A4', en: 'Print thermal tickets and A4 documents' },
+  },
+  print_config: {
+    label: { es: 'Configurar Impresora y Datos Fiscales', en: 'Configure Printer and Tax Data' },
+    category: { es: 'Impresión', en: 'Printing' },
+    description: {
+      es: 'Puerto de la ticketera, ancho de papel, RIF, razón social y N° de control',
+      en: 'Ticket printer port, paper width, tax ID, business name and control number',
+    },
+  },
+  print_ticket: {
+    label: { es: 'Reimprimir Tickets de Ventas', en: 'Reprint Sale Tickets' },
+    category: { es: 'Impresión', en: 'Printing' },
+    description: { es: 'Reimprimir el ticket de una venta ya registrada', en: 'Reprint a receipt for an existing sale' },
+  },
+
   // === VENTAS / POS ===
   pos_access: {
     label: { es: 'Usar Punto de Venta', en: 'Use Point of Sale' },
@@ -331,6 +351,28 @@ export const PERMISSIONS = {
     category: { es: 'Postventa', en: 'After-Sales' },
     description: { es: 'Crear tickets, registrar devoluciones y resolver garantías', en: 'Create tickets, record returns and resolve warranties' },
   },
+
+  // === HÍPICO ===
+  hipico_view: {
+    label: { es: 'Ver Hípico', en: 'View Racing' },
+    category: { es: 'Hípico', en: 'Racing' },
+    description: { es: 'Ver propietarios, caballos, carreras y resultados', en: 'View owners, horses, races and results' },
+  },
+  hipico_edit: {
+    label: { es: 'Gestionar Hípico', en: 'Manage Racing' },
+    category: { es: 'Hípico', en: 'Racing' },
+    description: { es: 'Cargar caballos, inscribir en carreras, cargar resultados e importar de la API', en: 'Add horses, enter races, record results and import from the API' },
+  },
+  hipico_apuestas: {
+    label: { es: 'Vender Apuestas', en: 'Sell Bets' },
+    category: { es: 'Hípico', en: 'Racing' },
+    description: { es: 'Crear tickets de apuesta, ver odds, liquidar apuestas', en: 'Create bet tickets, view odds, settle bets' },
+  },
+  hipico_apuestas_admin: {
+    label: { es: 'Administrar Apuestas', en: 'Admin Bets' },
+    category: { es: 'Hípico', en: 'Racing' },
+    description: { es: 'Anular apuestas, configurar APIs, sincronizar odds', en: 'Void bets, configure APIs, sync odds' },
+  },
 } as const
 
 export type PermissionKey = keyof typeof PERMISSIONS
@@ -351,10 +393,13 @@ export const ROLE_DEFAULTS: Record<string, PermissionKey[]> = {
     'quotes_access',
     'quotes_create',
     'quotes_edit',
+    'print_access',
     'usuarios_change_own_password',
   ],
   cajero: [
     'pos_access',
+    'print_access',
+    'print_ticket',
     'pos_discount',
     'pos_edit_price',
     'pos_quick_sale',
@@ -390,6 +435,8 @@ export const PERMISSION_CATEGORIES = [
   { key: 'Contabilidad', icon: '📊', color: 'indigo' },
   { key: 'Recursos Humanos', icon: '👥', color: 'purple' },
   { key: 'Administración', icon: '⚙️', color: 'red' },
+  { key: 'Impresión', icon: '🖨️', color: 'slate' },
+  { key: 'Hípico', icon: '🐎', color: 'amber' },
 ] as const
 
 /**

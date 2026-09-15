@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Vinculación con el vendedor (FASE 5)**: campo opcional "ID de Vendedor" (OMV-XXXXX) en
+  `LicenseSyncForm`, enviado a tog-platform tras descargar la licencia
+  (`POST /api/empresas/:id/vendedor`). Si la vinculación falla, la licencia queda activa
+  y se muestra un aviso.
+- Tests de vinculación en `src/main/services/license-sync.test.ts` (formato inválido,
+  vendedor inexistente, idempotencia y reenvío de `deviceFingerprint`)
+
+### Fixed
+- `license:sync` / `license:sync-account`: el handler IPC descartaba `deviceFingerprint`,
+  así que el binding de dispositivo nunca llegaba al backend en el flujo de cuenta
+
+### Added
 - Modules documentation (docs/MODULOS.md) updated with Crixto as operational payment provider
 - Module roadmap updated: Crixto integration marked complete, conciliation added
 - Developer guide (docs/GUIA_DESARROLLADOR.md) and architecture docs updated

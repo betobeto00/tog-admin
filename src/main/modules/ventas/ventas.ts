@@ -5,6 +5,7 @@ import { getActiveModules } from '../../services/license'
 import { ventaCreateSchema } from '../../../shared/validations'
 import { esCombo, explotar, agruparHojas } from '../inventario/combos'
 import { registrarAsientosVenta, revertirAsientosVenta } from '../administracion/asientos'
+import { siguienteNumeroControl } from '../../services/fiscal'
 
 /**
  * Crea una venta completa (validación, stock, combos, crédito/fiado y caja).
@@ -88,10 +89,15 @@ export function createVenta(data: any): any {
     ).get(hoy) as any
     const numeroVenta = (lastVenta?.max_num || 0) + 1
 
+    // N° de control fiscal (SENIAT): solo las facturas lo llevan, y se reserva
+    // dentro de esta transacción para que no haya dos con el mismo número.
+    const esFactura = data.tipo_comprobante !== 'nota_entrega'
+    const numeroControl = esFactura ? siguienteNumeroControl(db!) : null
+
     const result = db!.prepare(`
       INSERT INTO ventas (numero_venta, usuario_id, subtotal, impuesto, descuento, total,
-        metodo_pago, monto_pagado, cambio, notas, cliente_id, tipo_comprobante)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        metodo_pago, monto_pagado, cambio, notas, cliente_id, tipo_comprobante, numero_control)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       numeroVenta,
       data.usuario_id,
@@ -104,7 +110,8 @@ export function createVenta(data: any): any {
       data.cambio,
       data.notas || null,
       data.cliente_id || null,
-      data.tipo_comprobante === 'nota_entrega' ? 'nota_entrega' : 'factura',
+      esFactura ? 'factura' : 'nota_entrega',
+      numeroControl,
     )
 
     const ventaId = result.lastInsertRowid
@@ -208,7 +215,7 @@ export function createVenta(data: any): any {
       data.usuario_id ?? null,
     )
 
-    return { id: ventaId, numero_venta: numeroVenta, credito_id: creditoId }
+    return { id: ventaId, numero_venta: numeroVenta, credito_id: creditoId, numero_control: numeroControl }
   })
 
   const result = insertVenta()

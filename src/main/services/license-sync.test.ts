@@ -212,4 +212,112 @@ describe('syncLicenseWithAccount', () => {
     const urlMala = await syncLicenseWithAccount({ url: 'ftp://x', email: 'a@b.com', password: 'x' })
     expect(urlMala.success).toBe(false)
   })
+
+  // Regresión: el handler IPC recibía deviceFingerprint y vendedorId pero no
+  // los reenviaba al servicio, así que el binding de dispositivo y la
+  // vinculación del vendedor nunca llegaban al backend en el flujo de cuenta.
+  it('envía el fingerprint del dispositivo y vincula al vendedor', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ success: true, token: 't' }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ success: true, empresa: { id: 9, nombre: 'Agro', api_key: 'api-key-9' } }),
+      })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ success: true, licencia: licenciaValida }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ success: true, vendedor: { id_vendedor: 'OMV-AB12C', nombre: 'Ana' } }),
+      })
+
+    const result = await syncLicenseWithAccount(
+      {
+        url: 'https://licencias.ejemplo.com',
+        email: 'a@b.com',
+        password: 'secreto',
+        deviceFingerprint: 'pc-123',
+        vendedorId: 'omv-ab12c',
+      },
+      { fetchImpl, saveImpl: vi.fn(() => ({ success: true })) },
+    )
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.vendedor).toEqual({ vinculado: true, id_vendedor: 'OMV-AB12C', nombre: 'Ana' })
+    }
+    const licenciaCall = fetchImpl.mock.calls[2] as [string, any]
+    expect(licenciaCall[1].headers['x-device-fingerprint']).toBe('pc-123')
+    const vendedorCall = fetchImpl.mock.calls[3] as [string, any]
+    expect(vendedorCall[0]).toBe('https://licencias.ejemplo.com/api/empresas/9/vendedor')
+    expect(vendedorCall[1].headers['x-api-key']).toBe('api-key-9')
+    expect(JSON.parse(vendedorCall[1].body)).toEqual({ id_vendedor: 'OMV-AB12C' })
+  })
+})
+
+describe('vinculación del vendedor (FASE 5)', () => {
+  function syncConVendedor(vendedorId: string | undefined, extra?: any) {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ success: true, licencia: licenciaValida }) })
+      .mockResolvedValueOnce(
+        extra ?? { ok: true, status: 200, json: async () => ({ success: true, vendedor: { id_vendedor: 'OMV-ZZ999', nombre: 'Vend' } }) },
+      )
+    return {
+      fetchImpl,
+      run: () =>
+        syncLicenseFromServer(
+          { url: 'http://localhost:3001', empresaId: 4, apiKey: 'k', vendedorId },
+          { fetchImpl, saveImpl: vi.fn(() => ({ success: true })) },
+        ),
+    }
+  }
+
+  it('vincula la empresa con el vendedor indicado', async () => {
+    const { fetchImpl, run } = syncConVendedor('omv-zz999')
+    const result = await run()
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.vendedor?.vinculado).toBe(true)
+    const call = fetchImpl.mock.calls[1] as [string, any]
+    expect(call[0]).toBe('http://localhost:3001/api/empresas/4/vendedor')
+    expect(JSON.parse(call[1].body).id_vendedor).toBe('OMV-ZZ999')
+  })
+
+  it('no llama al backend cuando el ID tiene formato inválido', async () => {
+    const { fetchImpl, run } = syncConVendedor('12345')
+    const result = await run()
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.vendedor?.vinculado).toBe(false)
+      expect(result.vendedor?.error).toContain('OMV-XXXXX')
+    }
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+
+  it('si el backend rechaza la vinculación, la licencia sigue activa con aviso', async () => {
+    const { run } = syncConVendedor('OMV-N0P3Z', {
+      ok: false,
+      status: 404,
+      json: async () => ({ success: false, error: 'No existe un vendedor con el ID OMV-N0P3Z' }),
+    })
+    const result = await run()
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.vendedor?.vinculado).toBe(false)
+      expect(result.vendedor?.error).toContain('No existe un vendedor')
+      expect(result.cliente).toBe('Corn Flakes LLC')
+    }
+  })
+
+  it('sin ID de vendedor no intenta vincular nada', async () => {
+    const fetchImpl = vi.fn().mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ success: true, licencia: licenciaValida }) })
+    const result = await syncLicenseFromServer(
+      { url: 'http://localhost:3001', empresaId: 1, apiKey: 'k' },
+      { fetchImpl, saveImpl: vi.fn(() => ({ success: true })) },
+    )
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.vendedor).toBeUndefined()
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
 })

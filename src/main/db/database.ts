@@ -1021,6 +1021,154 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
           CREATE INDEX IF NOT EXISTS idx_login_attempts_creado ON login_attempts(creado_en);
         `,
       },
+      {
+        nombre: '046_ventas_numero_control',
+        sql: `
+          -- N° de control fiscal (SENIAT) por factura: A-00000042.
+          -- Ver docs/LEGAL-VENEZUELA-POS.md y src/main/services/fiscal.ts
+          ALTER TABLE ventas ADD COLUMN numero_control TEXT;
+          CREATE UNIQUE INDEX IF NOT EXISTS idx_ventas_numero_control ON ventas(numero_control) WHERE numero_control IS NOT NULL;
+        `,
+      },
+      {
+        nombre: '047_hipico',
+        sql: `
+          -- Módulo Hípico (FASE 7): propietarios, caballos, carreras, inscripciones y resultados.
+          -- Las carreras pueden cargarse a mano o importarse de una API pública (columna fuente).
+          CREATE TABLE IF NOT EXISTS hipico_propietarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            documento TEXT,
+            telefono TEXT,
+            email TEXT,
+            pais TEXT,
+            notas TEXT,
+            activo INTEGER NOT NULL DEFAULT 1,
+            creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+          );
+          CREATE INDEX IF NOT EXISTS idx_hipico_propietarios_nombre ON hipico_propietarios(nombre);
+
+          CREATE TABLE IF NOT EXISTS hipico_caballos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            raza TEXT,
+            sexo TEXT,
+            anio_nacimiento INTEGER,
+            propietario_id INTEGER REFERENCES hipico_propietarios(id),
+            microchip TEXT,
+            entrenador TEXT,
+            notas TEXT,
+            activo INTEGER NOT NULL DEFAULT 1,
+            creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+          );
+          CREATE INDEX IF NOT EXISTS idx_hipico_caballos_nombre ON hipico_caballos(nombre);
+          CREATE INDEX IF NOT EXISTS idx_hipico_caballos_propietario ON hipico_caballos(propietario_id);
+          CREATE UNIQUE INDEX IF NOT EXISTS idx_hipico_caballos_microchip ON hipico_caballos(microchip) WHERE microchip IS NOT NULL;
+
+          CREATE TABLE IF NOT EXISTS hipico_carreras (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            hipodromo TEXT NOT NULL,
+            fecha TEXT NOT NULL,
+            numero_carrera INTEGER NOT NULL,
+            distancia_m INTEGER,
+            categoria TEXT,
+            premio REAL,
+            estado TEXT NOT NULL DEFAULT 'programada',
+            notas TEXT,
+            fuente TEXT NOT NULL DEFAULT 'manual',
+            creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+          );
+          -- Clave natural: es lo que permite que la importación de la API sea idempotente (INSERT OR IGNORE)
+          CREATE UNIQUE INDEX IF NOT EXISTS idx_hipico_carreras_unica ON hipico_carreras(hipodromo, fecha, numero_carrera);
+          CREATE INDEX IF NOT EXISTS idx_hipico_carreras_fecha ON hipico_carreras(fecha);
+
+          CREATE TABLE IF NOT EXISTS hipico_inscripciones (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            carrera_id INTEGER NOT NULL REFERENCES hipico_carreras(id),
+            caballo_id INTEGER NOT NULL REFERENCES hipico_caballos(id),
+            jinete TEXT,
+            peso REAL,
+            numero_partida INTEGER,
+            retirado INTEGER NOT NULL DEFAULT 0,
+            notas TEXT,
+            creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE (carrera_id, caballo_id)
+          );
+          CREATE INDEX IF NOT EXISTS idx_hipico_inscripciones_carrera ON hipico_inscripciones(carrera_id);
+
+          CREATE TABLE IF NOT EXISTS hipico_resultados (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            carrera_id INTEGER NOT NULL REFERENCES hipico_carreras(id),
+            inscripcion_id INTEGER NOT NULL REFERENCES hipico_inscripciones(id),
+            caballo_id INTEGER NOT NULL REFERENCES hipico_caballos(id),
+            posicion INTEGER NOT NULL,
+            tiempo TEXT,
+            dividendo REAL,
+            fuente TEXT NOT NULL DEFAULT 'manual',
+            creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE (carrera_id, posicion),
+            UNIQUE (inscripcion_id)
+          );
+          CREATE INDEX IF NOT EXISTS idx_hipico_resultados_carrera ON hipico_resultados(carrera_id);
+        `,
+      },
+      {
+        nombre: '048_hipico_apuestas',
+        sql: `
+          -- FASE 7b: Sub-modulo de apuestas hípicas.
+          -- Tickets de apuesta, selecciones, odds cacheadas y configuración de APIs.
+
+          CREATE TABLE IF NOT EXISTS hipico_carreras_odds (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            carrera_id INTEGER NOT NULL REFERENCES hipico_carreras(id),
+            bookmaker_key TEXT NOT NULL,
+            bookmaker_nombre TEXT NOT NULL,
+            outcomes_json TEXT NOT NULL,
+            actualizado_en TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE (carrera_id, bookmaker_key)
+          );
+          CREATE INDEX IF NOT EXISTS idx_hipico_odds_carrera ON hipico_carreras_odds(carrera_id);
+
+          CREATE TABLE IF NOT EXISTS hipico_apuestas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            numero_ticket TEXT NOT NULL,
+            carrera_id INTEGER NOT NULL REFERENCES hipico_carreras(id),
+            tipo_apuesta TEXT NOT NULL DEFAULT 'win',
+            monto REAL NOT NULL,
+            odd_total REAL,
+            payout_potencial REAL,
+            estado TEXT NOT NULL DEFAULT 'pendiente',
+            ganancia REAL,
+            cerrada_en TEXT,
+            cobrada_en TEXT,
+            notas TEXT,
+            creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+          );
+          CREATE UNIQUE INDEX IF NOT EXISTS idx_hipico_apuestas_ticket ON hipico_apuestas(numero_ticket);
+          CREATE INDEX IF NOT EXISTS idx_hipico_apuestas_carrera ON hipico_apuestas(carrera_id);
+          CREATE INDEX IF NOT EXISTS idx_hipico_apuestas_estado ON hipico_apuestas(estado);
+
+          CREATE TABLE IF NOT EXISTS hipico_apuesta_selections (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            apuesta_id INTEGER NOT NULL REFERENCES hipico_apuestas(id),
+            carrera_id INTEGER NOT NULL REFERENCES hipico_carreras(id),
+            caballo_nombre TEXT NOT NULL,
+            caballo_numero INTEGER,
+            posicion_predicha INTEGER,
+            odd_individual REAL,
+            resultado_posicion INTEGER,
+            ganador INTEGER NOT NULL DEFAULT 0,
+            creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+          );
+          CREATE INDEX IF NOT EXISTS idx_hipico_selections_apuesta ON hipico_apuesta_selections(apuesta_id);
+
+          CREATE TABLE IF NOT EXISTS hipico_config_api (
+            clave TEXT PRIMARY KEY,
+            valor TEXT NOT NULL,
+            actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
+          );
+        `,
+      },
     ]
 }
 // ============================================

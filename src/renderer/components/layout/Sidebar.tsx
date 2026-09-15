@@ -28,6 +28,8 @@ import {
   Warehouse,
   Sprout,
   LifeBuoy,
+  Printer,
+  Trophy,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react'
@@ -84,6 +86,7 @@ export default function Sidebar() {
       { to: '/cotizaciones', icon: FileText, label: t('nav.quotes'), permission: 'quotes_access' },
       { to: '/reportes', icon: BarChart3, label: t('nav.reports'), permission: 'reportes_access' },
       { to: '/reportes-visuales', icon: PieChart, label: t('nav.visualReports'), permission: 'reportes_access' },
+      { to: '/impresion', icon: Printer, label: t('nav.printing'), permission: 'print_access' },
       { to: '/configuracion', icon: Settings, label: t('nav.settings'), permission: 'config_access' },
       { to: '/ayuda', icon: HelpCircle, label: t('nav.help'), permission: null as string | null },
     ]
@@ -107,6 +110,9 @@ export default function Sidebar() {
     const postventa: MenuItem[] = [
       { to: '/postventa', icon: LifeBuoy, label: t('nav.afterSales'), permission: 'postventa_view', modulo: 'postventa' },
     ]
+    const hipico: MenuItem[] = [
+      { to: '/hipico', icon: Trophy, label: t('nav.hipico'), permission: 'hipico_view', modulo: 'hipico' },
+    ]
 
     return [
       { id: 'core', labelKey: 'nav.group.comercializador', color: 'text-blue-300', items },
@@ -114,6 +120,7 @@ export default function Sidebar() {
       { id: 'restaurant', labelKey: 'nav.group.restaurant', color: 'text-orange-300', items: restaurant },
       { id: 'productor', labelKey: 'nav.group.productor', color: 'text-lime-300', items: productor },
       { id: 'postventa', labelKey: 'nav.group.postventa', color: 'text-rose-300', items: postventa },
+      { id: 'hipico', labelKey: 'nav.group.hipico', color: 'text-amber-300', items: hipico },
       { id: 'administracion', labelKey: 'nav.group.administracion', color: 'text-amber-300', items: administracion },
     ]
   }, [t])

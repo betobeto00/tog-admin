@@ -4,7 +4,7 @@ import { useAuthStore } from '@core/auth/store'
 import {
   Search, ShoppingCart, Plus, Minus, Trash2, X,
   DollarSign, CreditCard, Smartphone, Check, Printer,
-  Package, AlertTriangle, ScanBarcode, Wallet, Banknote, Globe, HandCoins
+  Package, AlertTriangle, ScanBarcode, Wallet, Banknote, Globe, HandCoins, Receipt
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import CartItem from '../components/pos/CartItem'
@@ -92,6 +92,21 @@ export default function POSPage() {
   // Ticket
   const [ticketOpen, setTicketOpen] = useState(false)
   const [ultimoTicket, setUltimoTicket] = useState<any>(null)
+  const [imprimiendoTicketera, setImprimiendoTicketera] = useState(false)
+
+  /** Imprime el ticket ya guardado en la ticketera configurada (ESC/POS). */
+  const imprimirEnTicketera = async (ventaId: number) => {
+    setImprimiendoTicketera(true)
+    try {
+      const res = await callApi<{ success: boolean; error?: string }>('print:ticket', { venta_id: ventaId })
+      if (res?.success) toast.success(t('print.sentToPrinter'))
+      else toast.error(res?.error || t('print.printError'))
+    } catch (err: any) {
+      toast.error(err?.message || t('print.printError'))
+    } finally {
+      setImprimiendoTicketera(false)
+    }
+  }
 
   useEffect(() => {
     loadProducts()
@@ -1039,6 +1054,16 @@ export default function POSPage() {
                 className="flex-1 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 flex items-center justify-center gap-2">
                 <Printer className="w-4 h-4" /> {t('pos.printButton')}
               </button>
+              {ultimoTicket?.ventaGuardada?.id && (
+                <button
+                  onClick={() => imprimirEnTicketera(ultimoTicket.ventaGuardada.id)}
+                  disabled={imprimiendoTicketera}
+                  className="flex-1 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 flex items-center justify-center gap-2 disabled:bg-emerald-300"
+                  title={t('print.printTicket')}
+                >
+                  <Receipt className="w-4 h-4" /> {t('print.thermalPrinter')}
+                </button>
+              )}
             </div>
           </div>
         )}

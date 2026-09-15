@@ -39,9 +39,15 @@ export function registerLicenseHandlers(): void {
 
   // Pre-auth (pantalla de bloqueo / sin sesión): descarga la licencia activa
   // desde el backend TOG Platform y la guarda localmente tras validar la firma.
-  handleIpc('license:sync', async (_event, data?: { url?: string; empresa_id?: string | number; api_key?: string }) => {
+  handleIpc('license:sync', async (_event, data?: { url?: string; empresa_id?: string | number; api_key?: string; deviceFingerprint?: string; vendedorId?: string }) => {
     const result = await syncLicenseFromServer(
-      { url: data?.url || '', empresaId: data?.empresa_id ?? '', apiKey: data?.api_key || '' },
+      {
+        url: data?.url || '',
+        empresaId: data?.empresa_id ?? '',
+        apiKey: data?.api_key || '',
+        deviceFingerprint: data?.deviceFingerprint,
+        vendedorId: data?.vendedorId,
+      },
       { saveImpl: saveLicense },
     )
     if (result.success) await startRedServerIfBase()
@@ -49,9 +55,15 @@ export function registerLicenseHandlers(): void {
   })
 
   // Pre-auth: sincroniza la licencia con la cuenta OmniMargen (email + contraseña).
-  handleIpc('license:sync-account', async (_event, data?: { url?: string; email?: string; password?: string }) => {
+  handleIpc('license:sync-account', async (_event, data?: { url?: string; email?: string; password?: string; deviceFingerprint?: string; vendedorId?: string }) => {
     const result = await syncLicenseWithAccount(
-      { url: data?.url || '', email: data?.email || '', password: data?.password || '' },
+      {
+        url: data?.url || '',
+        email: data?.email || '',
+        password: data?.password || '',
+        deviceFingerprint: data?.deviceFingerprint,
+        vendedorId: data?.vendedorId,
+      },
       { saveImpl: saveLicense },
     )
     if (result.success) await startRedServerIfBase()

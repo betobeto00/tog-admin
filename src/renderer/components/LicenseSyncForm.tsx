@@ -3,7 +3,15 @@ import { RefreshCw, User, Copy, Check, LogIn, AlertTriangle, Monitor } from 'luc
 import { useToast } from './ui/Toast'
 import { callApi } from '../lib/api-client'
 
-type SyncResult = { success: true; cliente: string; expira: string; modulos: string[] } | { success: false; error: string; deviceMismatch?: boolean; empresaId?: string | number; apiKey?: string }
+type SyncResult =
+  | {
+      success: true
+      cliente: string
+      expira: string
+      modulos: string[]
+      vendedor?: { vinculado: boolean; id_vendedor?: string; nombre?: string; error?: string }
+    }
+  | { success: false; error: string; deviceMismatch?: boolean; empresaId?: string | number; apiKey?: string }
 
 const DEFAULT_PLATFORM_URL = 'https://tog-platform-production.up.railway.app'
 
@@ -16,6 +24,7 @@ export default function LicenseSyncForm({ onSynced, compact }: LicenseSyncFormPr
   const toast = useToast()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [vendedorId, setVendedorId] = useState('')
   const [syncing, setSyncing] = useState(false)
   const [initialPassword, setInitialPassword] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -31,10 +40,16 @@ export default function LicenseSyncForm({ onSynced, compact }: LicenseSyncFormPr
         email: email.trim(),
         password,
         deviceFingerprint: fingerprint,
+        vendedorId: vendedorId.trim() || undefined,
       })
       if (result.success) {
         const modulos = result.modulos.length ? result.modulos.join(', ') : 'base'
         toast.success(`Cuenta sincronizada ✓ — ${result.cliente} (expira ${result.expira}). Módulos: ${modulos}`)
+        if (result.vendedor?.vinculado) {
+          toast.success(`Vendedor vinculado ✓ — ${result.vendedor.nombre || result.vendedor.id_vendedor}`)
+        } else if (result.vendedor?.error) {
+          toast.error(result.vendedor.error)
+        }
         window.dispatchEvent(new Event('tog:license-updated'))
 
         const pw = await callApi<{ password: string | null }>('license:initial-password')
@@ -235,7 +250,23 @@ export default function LicenseSyncForm({ onSynced, compact }: LicenseSyncFormPr
             className={inputClass}
           />
         </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            ID de vendedor <span className="text-gray-400">(opcional)</span>
+          </label>
+          <input
+            type="text"
+            value={vendedorId}
+            onChange={(e) => setVendedorId(e.target.value.toUpperCase())}
+            placeholder="OMV-XXXXX"
+            className={inputClass}
+          />
+        </div>
       </div>
+      <p className="text-xs text-gray-400">
+        Si un vendedor de OmniMargen te atendió, escribí su ID (OMV-XXXXX): tu
+        compra queda vinculada a él. Es opcional; no afecta la activación.
+      </p>
       <button
         onClick={handleSyncAccount}
         disabled={syncing}

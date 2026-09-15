@@ -106,7 +106,8 @@ const { db, handles, state } = vi.hoisted(() => {
     CREATE TABLE configuracion (
       clave TEXT PRIMARY KEY,
       valor TEXT NOT NULL,
-      descripcion TEXT
+      descripcion TEXT,
+      actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `)
   db.prepare("INSERT INTO productos (nombre, precio_venta, stock, unidad) VALUES ('Caja de Maíz', 50, 100, 'cj')").run()
