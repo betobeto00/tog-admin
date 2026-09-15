@@ -46,9 +46,9 @@ Este repositorio usa **graphify** para mantener un grafo de conocimiento navegab
 ## Arquitectura
 
 - TOG Admin es un POS desktop (Electron 31 + React 18 + TypeScript + SQLite).
-- **Main process modularizado:** los handlers IPC se registran por módulo en `src/main/modules/<modulo>/` (inventario, ventas, configuracion, caja-extra, license, terminal, crash-report, shared) y auth/usuarios en `src/main/core/auth/`. `src/main/ipc-handlers.ts` es solo el punto de registro que llama a cada `register*Handlers()`.
+- **Main process modularizado:** los handlers IPC se registran por módulo en `src/main/modules/<modulo>/` (inventario, ventas, configuracion, caja-extra, license, terminal, distribuidor, restaurant, administracion, rrhh, productor, postventa, hipico, print, crash-report, shared) y auth/usuarios en `src/main/core/auth/`. `src/main/ipc-handlers.ts` es solo el punto de registro que llama a cada `register*Handlers()`.
 - `src/main/services/` queda para lógica transversal: `license.ts` (validación RSA), `crash-reporter.ts`, `updater.ts`, `valorTerminal.ts`, `configCache.ts`. (Ya NO existe `services/permissions.ts`.)
-- **Catálogo de permisos:** `src/shared/permissions.ts` (única fuente; `ROLE_DEFAULTS.admin` = todas las claves).
+- **Catálogo de permisos:** `src/shared/permissions.ts` (única fuente; 64 permisos en 13 categorías; `ROLE_DEFAULTS.admin` = todas las claves).
 - **Canales IPC tipados:** `src/shared/ipc-channels.ts` (tipo `IpcChannel` y lista `PREAUTH_CHANNELS`). El renderer llama por `callApi` en `src/renderer/lib/api-client.ts`, que inyecta `usuario_id` y lanza error si el handler responde `{ success: false }`.
 - La visión de plataforma modular (módulos activables por licencia) vive en https://github.com/betobeto00/tog-platform.
 
@@ -77,7 +77,7 @@ Activado por la licencia cuando `max_pcs ≥ 2`. Servicios principales en `src/m
 
 Handlers IPC del módulo en `src/main/modules/red/handlers.ts`: `red:status`, `red:vincular`, `red:desvincular`, `red:generar-codigo`, `red:listar-pcs`, `red:logout`. Permiso dedicado `red_manage` (solo admin).
 
-**Reenvío RPC desde la Hija**: `src/main/ipc-handlers.ts` detecta `isHija()` y registra solo los handlers locales (app:version, i18n, crash-report, update, feedback, red:*). Para los demás canales, registra un forwarder genérico que llama `rpcABase(canal, args)` y devuelve la respuesta del handler en la Base. `handleIpc` (`src/main/core/auth/ipc-guard.ts`) registra tanto el handler real como la entrada en el map `ipcListeners` que el servidor HTTP usa para despachar.
+**Reenvío RPC desde la Hija**: `src/main/ipc-handlers.ts` detecta `isHija()` y registra solo los handlers locales (app:version, i18n, crash-report, update, feedback, red:*, db:reset). Para los demás canales, registra un forwarder genérico que llama `rpcABase(canal, args)` y devuelve la respuesta del handler en la Base. `handleIpc` (`src/main/core/auth/ipc-guard.ts`) registra tanto el handler real como la entrada en el map `ipcListeners` que el servidor HTTP usa para despachar.
 
 **Setup de PC Hija**: `src/renderer/pages/SetupPage.tsx` se renderiza desde `LicenseGate` cuando la licencia local no es válida y el usuario hace clic en "Conectar a una PC Base". Pide IP, código de enlace y nombre de PC.
 

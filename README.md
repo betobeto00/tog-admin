@@ -27,6 +27,12 @@ Desktop app construida con Electron + React + TypeScript + SQLite. Una PC, una c
 - 📋 **Price lists** — listas de precio con factor global, overrides por producto y asignación por cliente
 - 📦 **Distribuidor module** (license-gated): client registry (international tax/reg. document) + sales orders with sequential numbering and states (pendiente → → despachado/entregado/anulado)
 - 🍽️ **Restaurant module** (license-gated): tables, table-side orders, kitchen screen, table billing
+- 📊 **Accounting module** (license-gated `administracion`): executive summary, sales/purchases/inventory books, journal ledger with automatic entries
+- 👥 **HR module** (license-gated `rrhh`): employees CRUD, attendance tracking, payroll processing, paystubs
+- 🌾 **Producer module** (license-gated `productor`): crops, plantings, harvests, field costs
+- 🔄 **After-sales module** (license-gated `postventa`): support tickets, returns, warranties
+- 🐎 **Racing module** (license-gated `hipico`): owners, horses, races, results, betting system with odds
+- 🖨️ **Print module** (license-gated): thermal ticket printing, A4 document printing, fiscal data configuration
 - 🖼️ **Product image on filesystem** — JPG/PNG/WebP, máx.2MB, magic-byte validation
 - 💱 **Currency symbol + exchange rate** — `currency_symbol` + `currency_name` + `tasa_cambio` se aplican a toda la app
 - 🔐 **Licensing v2**: offline RSA-2048 keys **and** a **Sincronizar** button that downloads the active license from the TOG Platform backend and re-validates its signature locally. Soporta `max_pcs` (1–20) para activar el módulo de red local
@@ -43,7 +49,7 @@ Desktop app construida con Electron + React + TypeScript + SQLite. Una PC, una c
 - 🐛 **Crash reports** — automatic error reports with system info
 - 🔑 **License sync** — pre-auth channel `license:sync` (works from the lock screen): URL + empresa ID + api key → download → RSA re-validation → save
 - 🔐 **Validación de origen IPC** — `handleIpc` (`core/auth/ipc-guard.ts`): solo main-frame `file://` (producción) o `localhost:5173` (dev); un origen ajeno lanza error y no ejecuta el handler
-- ✅ **337 automated tests** — validations, services, IPC handlers, React components, sesión única, servidor HTTP de red local
+- ✅ **435 automated tests** — validations, services, IPC handlers, React components, sesión única, servidor HTTP de red local
 
 ### UI/UX
 - 🎨 **Hero background** — imagen de fondo en pantalla de login
@@ -80,7 +86,7 @@ npm install
 # Ejecutar en modo desarrollo
 npm run dev
 
-# Ejecutar tests (Vitest: 337 tests en 28 archivos)
+# Ejecutar tests (Vitest: 435 tests en 36 archivos)
 npm test
 
 # Tests en watch mode
@@ -173,9 +179,9 @@ tog-admin/
 │   │   ├── preload.ts       # API segura para renderer
 │   │   ├── ipc-handlers.ts  # Registro central: delega en cada register*Handlers()
 │   │   ├── core/auth/       # auth-service.ts + permissions.ts (checkPermissionOrFail) + ipc-guard.ts (handleIpc, origen seguro)
-│   │   ├── modules/         # Handlers IPC por módulo (inventario, ventas, license, distribuidor, restaurant, red, shared…)
+│   │   ├── modules/         # Handlers IPC por módulo (inventario, ventas, configuracion, caja-extra, license, terminal, distribuidor, restaurant, administracion, rrhh, productor, postventa, hipico, print, red, shared…)
 │   │   ├── db/
-│   │   │   ├── database.ts  # SQLite + 31 migraciones + seeds
+│   │   │   ├── database.ts  # SQLite + 48 migraciones + seeds
 │   │   │   └── migrate.ts
 │   │   ├── i18n/            # Traducciones main process
 │   │   │   └── locales/     # es.json, en.json
@@ -190,14 +196,16 @@ tog-admin/
 │   │       ├── red-server.ts     # Servidor HTTP :3002 (PC Base)
 │   │       ├── red-client.ts     # Cliente HTTP (PC Hija)
 │   │       ├── red-session.ts    # Sesión única por usuario (grupo de PCs)
+│   │       ├── red-cert.ts       # Certificado TLS autofirmado (PC Base)
 │   │       ├── crash-reporter.ts # Reportes de error
 │   │       └── updater.ts        # Auto-actualizaciones
 │   ├── renderer/            # React frontend
 │   │   ├── main.tsx         # Entry point React
 │   │   ├── App.tsx          # Router + lazy loading
 │   │   ├── pages/           # Vistas (Core + Clientes/Pedidos + Almacenes + ListasPrecio + SetupPage para PC Hija)
-│   │   ├── components/      # Componentes UI (ProductImage, LicenseGate, SetupPage…)
+│   │   ├── components/      # Componentes UI (ProductImage, LicenseGate, SetupPage, ErrorBoundary, Tutorial, ForcePasswordChange, PageErrorBoundary…)
 │   │   ├── stores/          # Estado (Zustand + session timeout)
+│   │   ├── hooks/           # useBarcodeScanner, usePermissions, useActiveModules, useRedHeartbeat
 │   │   ├── services/        # currency.ts (símbolo + tasa en toda la app)
 │   │   ├── i18n/            # Traducciones renderer
 │   │   │   └── locales/     # es/, en/
@@ -206,9 +214,16 @@ tog-admin/
 │       ├── types.ts
 │       ├── papeleria-api.d.ts  # Tipos de la API expuesta al renderer
 │       ├── validations.ts   # Schemas Zod
-│       ├── permissions.ts   # Catálogo de 57 permisos en 11 categorías
+│       ├── permissions.ts   # Catálogo de 64 permisos en 13 categorías
+│       ├── permissions.test.ts
 │       ├── ipc-channels.ts  # Canales IPC + PREAUTH_CHANNELS
-│       └── modules.ts       # Catálogo de módulos TOG Platform
+│       ├── ipc-channels.test.ts
+│       ├── modules.ts       # Catálogo de módulos TOG Platform
+│       ├── modules.test.ts
+│       ├── fiscal.ts        # Datos fiscales (RIF, razón social, N° de control)
+│       ├── fiscal.test.ts
+│       ├── print.ts         # Lógica de impresión térmica y A4
+│       └── print.test.ts
 ├── keys/                    # Claves RSA (licencias) — fuera del repo (.gitignore)
 ├── package.json
 ├── tsconfig.json

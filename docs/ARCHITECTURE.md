@@ -23,7 +23,7 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │              SQLite Database                         │    │
 │  │         (tog-admin.db — archivo local)               │    │
-│  │         43 migraciones · 40+ tablas · 40+ índices     │    │
+│  │         48 migraciones · 40+ tablas · 40+ índices     │    │
 │  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -41,7 +41,7 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 | `preload.ts` | API segura IPC (contextBridge) |
 | `ipc-handlers.ts` | Registro central: delega en los `register*Handlers()` de cada módulo |
 | `core/auth/` | Login (`auth-service.ts`) + permisos (`permissions.ts` → `checkPermissionOrFail`) + guard de origen IPC (`ipc-guard.ts` → `handleIpc`) |
-| `modules/<modulo>/` | Handlers IPC por módulo: inventario, ventas, configuracion, caja-extra, license, distribuidor, restaurant, terminal, crash-report, red, shared |
+| `modules/<modulo>/` | Handlers IPC por módulo: inventario, ventas, configuracion, caja-extra, license, terminal, distribuidor, restaurant, administracion, rrhh, productor, postventa, hipico, print, crash-report, red, shared |
 | `db/database.ts` | SQLite + migraciones + seeds |
 | `services/valorTerminal.ts` | Comunicación serial VP800 (USB/COM) |
 | `services/license.ts` | Validación de licencias (consume `license-crypto`) |
@@ -61,7 +61,7 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 | `services/configCache.ts` | Cache de configuración |
 | `i18n/` | Traducciones ES/EN para main process |
 
-El **catálogo de permisos** vive en `src/shared/permissions.ts` (fuente única: `PERMISSIONS` + `ROLE_DEFAULTS`; el admin tiene todas las claves). Los canales IPC se tipan en `src/shared/ipc-channels.ts` (`IpcChannel` + `PREAUTH_CHANNELS`). Ya **no** existe `services/permissions.ts`: la lógica de autorización es `core/auth/permissions.ts` y se invoca desde cada handler con `checkPermissionOrFail(data, channel, permission)`.
+El **catálogo de permisos** vive en `src/shared/permissions.ts` (fuente única: 64 permisos en 13 categorías `PERMISSIONS` + `ROLE_DEFAULTS`; el admin tiene todas las claves). Los canales IPC se tipan en `src/shared/ipc-channels.ts` (`IpcChannel` + `PREAUTH_CHANNELS`). Ya **no** existe `services/permissions.ts`: la lógica de autorización es `core/auth/permissions.ts` y se invoca desde cada handler con `checkPermissionOrFail(data, channel, permission)`.
 
 ### 2. Process de Renderizado (Renderer Process)
 **Responsabilidad:** UI completamente en React.
@@ -93,7 +93,7 @@ Router (HashRouter)
 - **Un solo archivo:** `tog-admin.db` en `%APPDATA%/tog-admin/`
 - **Sin servidor:** No necesita MySQL ni nada externo
 - **Respaldo:** Copiar el archivo `.db` = respaldo completo
-- **Migraciones:** Sistema de versionado de esquema (43 migraciones, 001–043)
+- **Migraciones:** Sistema de versionado de esquema (48 migraciones, 001–048)
 - **WAL mode:** Permite lectura mientras escribe
 
 ### 4. Comunicación IPC
@@ -197,6 +197,11 @@ Renderer (React)                    Main (Node.js)
 | 041 | empleado_extendido | `empleados.experiencia`, `años_servicio`, `nivel_academico` (datos extendidos) |
 | 042 | nominas_flexible | `nomina_conceptos` (asignaciones/deducciones por nómina) |
 | 043 | almacen_caja | `caja.almacen_id` (caja vinculada a almacén) |
+| 044 | security_default_passwords | `admin_initial_password` (hash de password admin inicial) |
+| 045 | login_attempts | `login_attempts` (intentos de login con lockout progresivo) |
+| 046 | ventas_numero_control | `ventas.numero_control` (N° de control correlativo para facturación) |
+| 047 | hipico | `hipico_propietarios`, `hipico_caballos`, `hipico_carreras`, `hipico_resultados`, `hipico_carrera_caballos` (módulo hípico: propietarios, caballos, carreras, resultados) |
+| 048 | hipico_apuestas | `hipico_apuesta_tickets`, `hipico_apuesta_selections`, `hipico_apuesta_prizes`, `hipico_odds_snapshot` (sistema de apuestas: tickets, selecciones, premios, snapshots de odds) |
 
 ### Tablas Principales
 
@@ -245,7 +250,8 @@ Todos los índices están optimizados para los patrones de consulta típicos del
 > heartbeat + token de sesión (032–033), Contabilidad (034), RRHH (035),
 > Productor (036), Postventa (037), costo real combos (038),
 > cargos (039–040), empleado extendido (041), nóminas flexible (042),
-> almacén-caja (043).
+> almacén-caja (043), passwords iniciales (044), intentos de login (045),
+> N° de control (046), hípico + apuestas (047–048).
 
 ---
 
@@ -362,7 +368,7 @@ El modo **se evalúa en cada import** de `red-config.ts` (no requiere restart). 
 - `src/main/services/red-server.test.ts` — handshake / rpc / logout / tope `max_pcs` con `DbLike` en memoria.
 - `src/main/services/red-client.test.ts` — `vincularABase` con `fetch` mockeado.
 
-Pendientes (no en spike actual): **TLS local** con cert autofirmado por Base al primer arranque y **heartbeat 60s** para expulsar sesiones huérfanas. Ver `tog-platform/docs/INTERCONEXION-RED.md`.
+TLS local con cert autofirmado por Base al primer arranque (`services/red-cert.ts`) y heartbeat 60s desde la hija (`hooks/useRedHeartbeat.ts`) para expulsar sesiones huérfanas están implementados. Ver `tog-platform/docs/INTERCONEXION-RED.md`.
 
 ---
 
@@ -402,8 +408,9 @@ Estado en memoria (`symbol`, `rate`, `name`) inicializado por `loadCurrency()` d
 | Licencias | RSA-2048 con validación offline |
 | Error handling | ErrorBoundary global + crash reports + logging diagnóstico |
 | Internacionalización | i18n con 2 idiomas (ES/EN), ~1,862 keys por idioma en el renderer (+98 en main) |
+| Licencia | RSA-2048 con validación offline |
 | Backup automático | Al cerrar caja se crea backup de la DB |
-| Permisos | 57 permisos en 11 categorías (Ventas, Caja, Inventario, Compras, Cotizaciones, Reportes, Distribuidor, Restaurant, Contabilidad, Recursos Humanos, Administración), control granular por usuario (incluye `red_manage` para gestión de PC Base) |
+| Permisos | 64 permisos en 13 categorías (Impresión, Ventas, Caja, Inventario, Compras, Cotizaciones, Reportes, Administración, Distribuidor, Restaurant, Contabilidad, Recursos Humanos, Productor, Postventa, Hípico), control granular por usuario (incluye `red_manage` para gestión de PC Base) |
 | Sesión única en red local | Un usuario solo puede estar activo en una PC del grupo a la vez (`services/red-session.ts`) |
 | Validación origen IPC | `handleIpc` (`core/auth/ipc-guard.ts`): rechaza cualquier sender que no sea main-frame `file://` (empaquetado) o `localhost:5173` (dev) |
 
