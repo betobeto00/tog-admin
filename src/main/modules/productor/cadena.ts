@@ -2,61 +2,13 @@ import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { getActiveModules } from '../../services/license'
+import { calcularCostosCadena } from './costos'
 
 function checkModuleOrFail(): { success: false; error: string } | null {
   if (!getActiveModules().includes('productor')) {
     return { success: false, error: 'El módulo Productor no está activo en la licencia' }
   }
   return null
-}
-
-/** Calcula el costo total de una cadena a partir de sus pasos y configuración. */
-function calcularCostosCadena(db: any, cadenaId: number) {
-  const cadena = db.prepare(`
-    SELECT c.*, p.nombre as producto_nombre, p.precio_compra as producto_precio_compra
-    FROM cadena_produccion c
-    JOIN productos p ON p.id = c.producto_final_id
-    WHERE c.id = ?
-  `).get(cadenaId) as any
-
-  if (!cadena) return null
-
-  const pasos = db.prepare(`
-    SELECT cp.*, pb.nombre as base_nombre, pb.precio_compra as base_precio_compra,
-           pb.unidad as base_unidad
-    FROM cadena_paso cp
-    JOIN productos pb ON pb.id = cp.producto_base_id
-    WHERE cp.cadena_id = ?
-    ORDER BY cp.orden
-  `).all(cadenaId) as any[]
-
-  let costoMateriales = 0
-  const pasosConCosto = pasos.map((p: any) => {
-    const costoUnitario = p.costo_unitario_override ?? p.base_precio_compra ?? 0
-    const costoTotal = costoUnitario * p.cantidad
-    costoMateriales += costoTotal
-    return {
-      ...p,
-      costo_unitario_calculado: Math.round(costoUnitario * 10000) / 10000,
-      costo_total_linea: Math.round(costoTotal * 10000) / 10000,
-    }
-  })
-
-  const tiempoHoras = (cadena.tiempo_estimado_minutos || 0) / 60
-  const costoManoObra = tiempoHoras * (cadena.costo_mano_obra_hora || 0)
-  const costoOverhead = costoMateriales * ((cadena.overhead_porcentaje || 0) / 100)
-  const costoTotal = costoMateriales + costoManoObra + costoOverhead
-
-  return {
-    cadena,
-    pasos: pasosConCosto,
-    resumen: {
-      costo_materiales: Math.round(costoMateriales * 100) / 100,
-      costo_mano_obra: Math.round(costoManoObra * 100) / 100,
-      costo_overhead: Math.round(costoOverhead * 100) / 100,
-      costo_total: Math.round(costoTotal * 100) / 100,
-    },
-  }
 }
 
 export function registerCadenaHandlers(): void {

@@ -2,54 +2,13 @@ import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { getActiveModules } from '../../services/license'
+import { calcularCostosLote } from './costos'
 
 function checkModuleOrFail(): { success: false; error: string } | null {
   if (!getActiveModules().includes('productor')) {
     return { success: false, error: 'El módulo Productor no está activo en la licencia' }
   }
   return null
-}
-
-/** Calcula el costo total de una cadena a partir de sus pasos. */
-function calcularCostosCadena(db: any, cadenaId: number) {
-  const cadena = db.prepare(`
-    SELECT c.* FROM cadena_produccion c WHERE c.id = ?
-  `).get(cadenaId) as any
-  if (!cadena) return null
-
-  const pasos = db.prepare(`
-    SELECT cp.*, pb.precio_compra as base_precio_compra
-    FROM cadena_paso cp
-    JOIN productos pb ON pb.id = cp.producto_base_id
-    WHERE cp.cadena_id = ?
-    ORDER BY cp.orden
-  `).all(cadenaId) as any[]
-
-  let costoMateriales = 0
-  const detalle: any[] = []
-  for (const p of pasos) {
-    const costoUnitario = p.costo_unitario_override ?? p.base_precio_compra ?? 0
-    const costoTotal = costoUnitario * p.cantidad
-    costoMateriales += costoTotal
-    detalle.push({
-      producto_base_id: p.producto_base_id,
-      cantidad_unitaria: p.cantidad,
-      costo_unitario: Math.round(costoUnitario * 10000) / 10000,
-      costo_total: Math.round(costoTotal * 10000) / 10000,
-    })
-  }
-
-  const tiempoHoras = (cadena.tiempo_estimado_minutos || 0) / 60
-  const costoManoObra = tiempoHoras * (cadena.costo_mano_obra_hora || 0)
-  const costoOverhead = costoMateriales * ((cadena.overhead_porcentaje || 0) / 100)
-
-  return {
-    pasos: detalle,
-    costo_materiales: Math.round(costoMateriales * 100) / 100,
-    costo_mano_obra: Math.round(costoManoObra * 100) / 100,
-    costo_overhead: Math.round(costoOverhead * 100) / 100,
-    costo_total: Math.round((costoMateriales + costoManoObra + costoOverhead) * 100) / 100,
-  }
 }
 
 export function registerLoteHandlers(): void {
@@ -96,7 +55,7 @@ export function registerLoteHandlers(): void {
       `).get(data.cadena_id) as any
       if (!cadena) throw new Error('Cadena de producción no encontrada o inactiva')
 
-      const costos = calcularCostosCadena(db!, data.cadena_id)
+      const costos = calcularCostosLote(db!, data.cadena_id)
       if (!costos) throw new Error('Error calculando costos de la cadena')
 
       // Verificar stock de insumos
@@ -267,7 +226,7 @@ export function registerLoteHandlers(): void {
     `).get(data.producto_id) as any
     if (!cadena) return { success: false, error: 'No hay cadena de producción para este producto' }
 
-    const costos = calcularCostosCadena(db, cadena.id)
+    const costos = calcularCostosLote(db, cadena.id)
     if (!costos) return { success: false, error: 'Error calculando costos' }
 
     // Buscar los últimos 10 lotes para mostrar historial
