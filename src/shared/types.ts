@@ -52,6 +52,7 @@ export interface Producto {
   subcategoria_id: number | null
   marca: string | null
   tipo: 'producto' | 'servicio'
+  tipo_produccion: 'base' | 'intermedio' | 'final' | null
   precio_compra: number
   precio_venta: number
   stock: number
@@ -79,6 +80,7 @@ export interface ProductoCreate {
   subcategoria_id?: number
   marca?: string
   tipo?: 'producto' | 'servicio'
+  tipo_produccion?: 'base' | 'intermedio' | 'final' | null
   precio_compra: number
   precio_venta: number
   stock: number

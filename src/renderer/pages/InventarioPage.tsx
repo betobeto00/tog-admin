@@ -26,6 +26,7 @@ interface Almacen { id: number; nombre: string; direccion: string | null; activo
 const emptyProduct = {
   nombre: '', codigo_barras: '', sku: '', descripcion: '',
   categoria_id: 0, subcategoria_id: 0, marca: '', tipo: 'producto' as 'producto' | 'servicio',
+  tipo_produccion: null as 'base' | 'intermedio' | 'final' | null,
   precio_compra: 0, precio_venta: 0,
   stock: 0, stock_minimo: 5, unidad: 'unidad', imagen: null as string | null,
   almacen_id: 0,
@@ -164,6 +165,7 @@ export default function InventarioPage() {
 
   // Filtro sin stock
   const [filterSinStock, setFilterSinStock] = useState(false)
+  const [filterTipoProd, setFilterTipoProd] = useState<string>('all')
 
   // Historial de ajustes
   const [showAjustes, setShowAjustes] = useState(false)
@@ -196,7 +198,8 @@ export default function InventarioPage() {
       p.marca?.toLowerCase().includes(term)
     const matchCat = !filterCat || p.categoria_id === filterCat
     const matchStock = !filterSinStock || ((p as any).stock_display ?? p.stock) <= p.stock_minimo
-    return matchSearch && matchCat && matchStock
+    const matchTipoProd = filterTipoProd === 'all' || (p.tipo_produccion || 'base') === filterTipoProd
+    return matchSearch && matchCat && matchStock && matchTipoProd
   })
 
   // ======== IMPORT/EXPORT CSV ========
@@ -266,6 +269,7 @@ export default function InventarioPage() {
       subcategoria_id: p.subcategoria_id || 0,
       marca: p.marca || '',
       tipo: p.tipo || 'producto',
+      tipo_produccion: p.tipo_produccion || null,
       precio_compra: p.precio_compra,
       precio_venta: p.precio_venta,
       stock: p.stock,
@@ -308,6 +312,7 @@ export default function InventarioPage() {
         subcategoria_id: form.subcategoria_id || null,
         marca: form.marca.trim(),
         tipo: form.tipo,
+        tipo_produccion: form.tipo_produccion,
         // Los combos no tienen stock propio: se calcula desde componentes
         ...(esComboFinal ? { stock: 0, stock_minimo: 0 } : {}),
       }
@@ -683,6 +688,16 @@ export default function InventarioPage() {
             <option key={a.id} value={a.id}>{a.nombre}</option>
           ))}
         </select>
+        <select
+          value={filterTipoProd}
+          onChange={(e) => setFilterTipoProd(e.target.value)}
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="all">{i18n.language === 'en' ? 'All types' : 'Todos los tipos'}</option>
+          <option value="base">{i18n.language === 'en' ? 'Base (raw material)' : 'Base (materia prima)'}</option>
+          <option value="intermedio">{i18n.language === 'en' ? 'Intermediate' : 'Intermedio'}</option>
+          <option value="final">{i18n.language === 'en' ? 'Final product' : 'Producto final'}</option>
+        </select>
         <button
           onClick={() => setFilterSinStock(!filterSinStock)}
           className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
@@ -726,6 +741,15 @@ export default function InventarioPage() {
                           <p className="text-sm font-medium text-gray-900 truncate">{p.nombre}</p>
                           {p.tipo === 'servicio' && (
                             <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-sky-100 text-sky-700">{i18n.language === 'en' ? 'Service' : 'Servicio'}</span>
+                          )}
+                          {p.tipo_produccion === 'base' && (
+                            <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{i18n.language === 'en' ? 'Base' : 'Base'}</span>
+                          )}
+                          {p.tipo_produccion === 'intermedio' && (
+                            <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">{i18n.language === 'en' ? 'Intermediate' : 'Intermedio'}</span>
+                          )}
+                          {p.tipo_produccion === 'final' && (
+                            <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-green-100 text-green-700">{i18n.language === 'en' ? 'Final' : 'Final'}</span>
                           )}
                           {p.es_combo === 1 && (
                             <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700" title={i18n.language === 'en' ? 'Composite product / combo. Real cost from components.' : 'Producto compuesto / combo. Costo real desde componentes.'}>
@@ -804,6 +828,24 @@ export default function InventarioPage() {
               <p className="text-xs text-sky-600 mt-1">{i18n.language === 'en' ? 'Services are sold without stock control.' : 'Los servicios se venden sin control de stock.'}</p>
             )}
           </div>
+          {form.tipo === 'producto' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.language === 'en' ? 'Production type' : 'Tipo de producción'}</label>
+              <div className="grid grid-cols-4 gap-2">
+                {[{ val: null, label: i18n.language === 'en' ? 'None' : 'Ninguno', color: 'border-gray-200 text-gray-600' },
+                  { val: 'base' as const, label: i18n.language === 'en' ? 'Base' : 'Base', color: 'border-gray-400 bg-gray-50 text-gray-700' },
+                  { val: 'intermedio' as const, label: i18n.language === 'en' ? 'Intermediate' : 'Intermedio', color: 'border-amber-400 bg-amber-50 text-amber-700' },
+                  { val: 'final' as const, label: i18n.language === 'en' ? 'Final' : 'Final', color: 'border-green-400 bg-green-50 text-green-700' },
+                ].map(({ val, label, color }) => (
+                  <button key={label} type="button" onClick={() => setForm({ ...form, tipo_produccion: val })}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border-2 transition-colors ${
+                      form.tipo_produccion === val ? color : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                    }`}>{label}</button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">{i18n.language === 'en' ? 'Base = raw material. Intermediate = produced and used as input. Final = produced and sold.' : 'Base = materia prima. Intermedio = se produce y se usa como insumo. Final = se produce y se vende.'}</p>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.name')} *</label>
