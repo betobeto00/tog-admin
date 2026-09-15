@@ -332,12 +332,37 @@ export const PERMISSIONS = {
   productor_view: {
     label: { es: 'Ver Producción', en: 'View Production' },
     category: { es: 'Productor', en: 'Producer' },
-    description: { es: 'Ver cultivos, siembras, cosechas y su costeo', en: 'View crops, plantings, harvests and their costing' },
+    description: { es: 'Ver cultivos, siembras, cosechas, cadenas de producción y lotes', en: 'View crops, plantings, harvests, production chains and lots' },
   },
   productor_edit: {
     label: { es: 'Gestionar Producción', en: 'Manage Production' },
     category: { es: 'Productor', en: 'Producer' },
-    description: { es: 'Crear cultivos y siembras, registrar cosechas y costos de campo', en: 'Create crops and plantings, record harvests and field costs' },
+    description: { es: 'Crear/editar cadenas, lotes, cultivos, siembras y costos', en: 'Create/edit chains, lots, crops, plantings and costs' },
+  },
+  productor_cadenas_view: {
+    label: { es: 'Ver Cadenas de Producción', en: 'View Production Chains' },
+    category: { es: 'Productor', en: 'Producer' },
+    description: { es: 'Ver cadenas de producción (BOM) y sus pasos', en: 'View production chains (BOM) and their steps' },
+  },
+  productor_cadenas_edit: {
+    label: { es: 'Editar Cadenas de Producción', en: 'Edit Production Chains' },
+    category: { es: 'Productor', en: 'Producer' },
+    description: { es: 'Crear, editar y eliminar cadenas de producción y pasos', en: 'Create, edit and delete production chains and steps' },
+  },
+  productor_lotes_view: {
+    label: { es: 'Ver Lotes de Producción', en: 'View Production Lots' },
+    category: { es: 'Productor', en: 'Producer' },
+    description: { es: 'Ver lotes de producción y su historial', en: 'View production lots and their history' },
+  },
+  productor_lotes_edit: {
+    label: { es: 'Gestionar Lotes de Producción', en: 'Manage Production Lots' },
+    category: { es: 'Productor', en: 'Producer' },
+    description: { es: 'Crear, completar y cancelar lotes de producción', en: 'Create, complete and cancel production lots' },
+  },
+  productor_analisis_view: {
+    label: { es: 'Ver Análisis de Costos', en: 'View Cost Analysis' },
+    category: { es: 'Productor', en: 'Producer' },
+    description: { es: 'Ver estructura de costos, márgenes y precio recomendado', en: 'View cost structure, margins and recommended price' },
   },
 
   // === POSTVENTA ===

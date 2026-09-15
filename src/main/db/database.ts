@@ -1169,6 +1169,89 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
           );
         `,
       },
+      // ============================================
+      // FASE 8: MÓDULO PRODUCTOR REDISEÑADO — CADENAS DE PRODUCCIÓN
+      // ============================================
+      {
+        nombre: '049_producto_tipo_produccion',
+        sql: `
+          -- Clasificación de productos por etapa de transformación.
+          -- NULL = normal (comprado y vendido sin producción)
+          -- 'base' = materia prima / componente comprado al proveedor
+          -- 'intermedio' = se produce a partir de bases, se usa como insumo
+          -- 'final' = se produce y se vende al cliente
+          ALTER TABLE productos ADD COLUMN tipo_produccion TEXT DEFAULT NULL;
+        `,
+      },
+      {
+        nombre: '050_cadena_produccion',
+        sql: `
+          -- Receta / BOM (Bill of Materials) para producir un producto.
+          CREATE TABLE IF NOT EXISTS cadena_produccion (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            producto_final_id INTEGER NOT NULL REFERENCES productos(id),
+            nombre TEXT NOT NULL,
+            descripcion TEXT,
+            tiempo_estimado_minutos REAL NOT NULL DEFAULT 0,
+            costo_mano_obra_hora REAL NOT NULL DEFAULT 0,
+            overhead_porcentaje REAL NOT NULL DEFAULT 0,
+            activo INTEGER NOT NULL DEFAULT 1,
+            creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+            actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
+          );
+          CREATE INDEX IF NOT EXISTS idx_cadena_producto ON cadena_produccion(producto_final_id);
+
+          -- Cada paso de la cadena: qué insumo se consume en cada etapa.
+          CREATE TABLE IF NOT EXISTS cadena_paso (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cadena_id INTEGER NOT NULL REFERENCES cadena_produccion(id) ON DELETE CASCADE,
+            orden INTEGER NOT NULL DEFAULT 1,
+            producto_base_id INTEGER NOT NULL REFERENCES productos(id),
+            cantidad REAL NOT NULL DEFAULT 1,
+            unidad TEXT NOT NULL DEFAULT 'unidad',
+            costo_unitario_override REAL,
+            notas TEXT,
+            creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+          );
+          CREATE INDEX IF NOT EXISTS idx_cadena_paso_cadena ON cadena_paso(cadena_id);
+        `,
+      },
+      {
+        nombre: '051_produccion_lotes',
+        sql: `
+          -- Lote de producción: registro de que se fabricaron X unidades.
+          CREATE TABLE IF NOT EXISTS produccion_lote (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cadena_id INTEGER NOT NULL REFERENCES cadena_produccion(id),
+            producto_final_id INTEGER NOT NULL REFERENCES productos(id),
+            cantidad_producida REAL NOT NULL DEFAULT 1,
+            costo_materiales REAL NOT NULL DEFAULT 0,
+            costo_mano_obra REAL NOT NULL DEFAULT 0,
+            costo_overhead REAL NOT NULL DEFAULT 0,
+            costo_total REAL NOT NULL DEFAULT 0,
+            costo_unitario REAL NOT NULL DEFAULT 0,
+            fecha_inicio TEXT NOT NULL DEFAULT (datetime('now')),
+            fecha_fin TEXT,
+            estado TEXT NOT NULL DEFAULT 'en_proceso',
+            notas TEXT,
+            usuario_id INTEGER REFERENCES usuarios(id),
+            creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+          );
+          CREATE INDEX IF NOT EXISTS idx_produccion_lote_producto ON produccion_lote(producto_final_id);
+          CREATE INDEX IF NOT EXISTS idx_produccion_lote_estado ON produccion_lote(estado);
+
+          -- Detalle de insumos consumidos en un lote.
+          CREATE TABLE IF NOT EXISTS produccion_lote_detalle (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lote_id INTEGER NOT NULL REFERENCES produccion_lote(id) ON DELETE CASCADE,
+            producto_base_id INTEGER NOT NULL REFERENCES productos(id),
+            cantidad_consumida REAL NOT NULL DEFAULT 0,
+            costo_unitario REAL NOT NULL DEFAULT 0,
+            costo_total REAL NOT NULL DEFAULT 0
+          );
+          CREATE INDEX IF NOT EXISTS idx_produccion_detalle_lote ON produccion_lote_detalle(lote_id);
+        `,
+      },
     ]
 }
 // ============================================

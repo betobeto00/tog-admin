@@ -86,7 +86,7 @@ npm install
 # Ejecutar en modo desarrollo
 npm run dev
 
-# Ejecutar tests (Vitest: 435 tests en 36 archivos)
+# Ejecutar tests (Vitest: 444 tests en 37 archivos)
 npm test
 
 # Tests en watch mode

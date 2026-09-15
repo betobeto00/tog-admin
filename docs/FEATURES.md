@@ -181,6 +181,22 @@
 
 ---
 
+## Módulo: Productor 🔴 (adicional por licencia `productor`)
+
+| # | Feature | Prioridad | Estado | Descripción |
+|---|---------|-----------|--------|-------------|
+| PRD1 | Cadenas de producción (BOM) | 🔴 | ✅ | Recetas: producto final + pasos con insumos, cantidades, unidad, costo override (migración 050) |
+| PRD2 | Cálculo automático de costos | 🔴 | ✅ | Materiales + mano de obra (tiempo × tarifa/hora) + overhead (%); precio recomendado configurable (migración 050) |
+| PRD3 | Lotes de producción | 🔴 | ✅ | Crear lote → descuenta insumos del inventario; completar → agrega stock del producto final; cancelar → devuelve insumos (migración 051) |
+| PRD4 | Tipo de producto (base/intermedio/final) | 🔴 | ✅ | Clasificación de productos: base (materia prima), intermedio (se produce y se usa como insumo), final (se produce y se vende) (migración 049) |
+| PRD5 | Estructura de costos | 🔴 | ✅ | Desglose completo: materiales, mano de obra, overhead, historial de lotes recientes |
+| PRD6 | Precio recomendado | 🟡 | ✅ | Calcula precio de venta con margen configurable sobre costo total |
+| PRD7 | CRUD cadenas + pasos | 🔴 | ✅ | Crear, editar, eliminar cadenas y sus pasos (con protección si tiene lotes) |
+| PRD8 | Gating por licencia y permisos | 🔴 | ✅ | Solo con módulo `productor` en la licencia + permisos `productor_view` / `productor_edit` |
+| PRD9 | Agricultura (siembras/cosechas) | 🟡 | ✅ | Módulo original: cultivos, siembras, cosechas, costos de campo (migración 036) |
+
+---
+
 ## MÃ³dulo: Cotizaciones ðŸŸ¡
 
 | # | Feature | Prioridad | Estado | DescripciÃ³n |
@@ -249,7 +265,7 @@
 | INF1 | Auto-update (electron-updater) | ðŸŸ¡ | âœ… | Actualizaciones vÃ­a GitHub Releases |
 | INF2 | NSIS installer | ðŸŸ¡ | âœ… | Instalador Windows con acceso directo |
 | INF3 | i18n (ES/EN) | ðŸŸ¡ | âœ… | ~1,862 keys por idioma (ES/EN, renderer) + ~98 en main |
-| INF4 | Tests automatizados | ðŸŸ¡ | âœ… | 435 tests en 36 archivos (Vitest: validaciones, servicios, handlers IPC, componentes) |
+| INF4 | Tests automatizados | ðŸŸ¡ | âœ… | 444 tests en 37 archivos (Vitest: validaciones, servicios, handlers IPC, componentes) |
 | INF5 | Build portable | ðŸŸ¢ | âœ… | VersiÃ³n sin instalador |
 | INF6 | Instalador X32 | ðŸŸ¡ | â³ | Instalador para arquitectura de 32 bits |
 | INF7 | Logging estructurado (winston) | ðŸŸ¡ | â³ | Logging centralizado en main process |

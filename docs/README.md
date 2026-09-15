@@ -39,7 +39,7 @@ actualiza aquí y en la doc canónica correspondiente:
 | Métrica | Valor real | Fuente |
 |---|---|---|
 | Permisos | **64 en 13 categorías** | `src/shared/permissions.ts` (`PERMISSIONS`, `PERMISSION_CATEGORIES`) |
-| Tests | **435 tests en 36 archivos** | `npm test` (Vitest) |
+| Tests | **444 tests en 37 archivos** | `npm test` (Vitest) |
 | Migraciones DB | **001–048** | `src/main/db/database.ts` |
 | Páginas renderer | **26** | `src/renderer/pages/*.tsx` |
 | Módulos main | **17** | `src/main/modules/` |

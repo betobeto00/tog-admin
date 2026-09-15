@@ -23,7 +23,7 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │              SQLite Database                         │    │
 │  │         (tog-admin.db — archivo local)               │    │
-│  │         48 migraciones · 40+ tablas · 40+ índices     │    │
+│  │         51 migraciones · 45+ tablas · 45+ índices     │    │
 │  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -93,7 +93,7 @@ Router (HashRouter)
 - **Un solo archivo:** `tog-admin.db` en `%APPDATA%/tog-admin/`
 - **Sin servidor:** No necesita MySQL ni nada externo
 - **Respaldo:** Copiar el archivo `.db` = respaldo completo
-- **Migraciones:** Sistema de versionado de esquema (48 migraciones, 001–048)
+- **Migraciones:** Sistema de versionado de esquema (51 migraciones, 001–051)
 - **WAL mode:** Permite lectura mientras escribe
 
 ### 4. Comunicación IPC
@@ -131,6 +131,8 @@ Renderer (React)                    Main (Node.js)
 | Quotes | `quotes:list`, `getById`, `create`, `update`, `delete` |
 | Distribuidor | `clientes:list`, `create`, `update`, `delete` · `pedidos:list`, `catalogo`, `create`, `update` (cambio de estado / notas) |
 | Restaurant | `mesas:list`, `create`, `update`, `delete` · `comandas:open`, `add-item`, `update-item`, `remove-item`, `send-kitchen`, `mark-item`, `move`, `list`, `checkout` (reusa `createVenta`) |
+| Productor (cadenas) | `productor:cadena-list`, `productor:cadena-detail`, `productor:cadena-create`, `productor:cadena-update`, `productor:cadena-delete`, `productor:cadena-paso-add`, `productor:cadena-paso-update`, `productor:cadena-paso-delete`, `productor:precio-recomendado`, `productor:costo-estructura` |
+| Productor (lotes) | `productor:lote-list`, `productor:lote-create`, `productor:lote-completar`, `productor:lote-cancelar` |
 | Reportes | `reportes:ventas-periodo`, `productos-mas-vendidos`, `ultimas-ventas`, `ventas-por-categoria` |
 | Config | `config:get`, `config:set` |
 | Métodos de Pago | `metodos-pago:list`, `create`, `update`, `delete`, `procesar-tarjeta` |
@@ -148,7 +150,7 @@ Renderer (React)                    Main (Node.js)
 
 ---
 
-## Modelo de Datos (43 Migraciones)
+## Modelo de Datos (51 Migraciones)
 
 ### Migraciones
 
@@ -202,6 +204,9 @@ Renderer (React)                    Main (Node.js)
 | 046 | ventas_numero_control | `ventas.numero_control` (N° de control correlativo para facturación) |
 | 047 | hipico | `hipico_propietarios`, `hipico_caballos`, `hipico_carreras`, `hipico_resultados`, `hipico_carrera_caballos` (módulo hípico: propietarios, caballos, carreras, resultados) |
 | 048 | hipico_apuestas | `hipico_apuesta_tickets`, `hipico_apuesta_selections`, `hipico_apuesta_prizes`, `hipico_odds_snapshot` (sistema de apuestas: tickets, selecciones, premios, snapshots de odds) |
+| 049 | productor_tipo | `productos.tipo_produccion` (`base`/`intermedio`/`final`/NULL) — clasifica insumos, intermedios y productos finales |
+| 050 | cadena_produccion | `cadena_produccion`, `cadena_paso` — recetas/BOM: producto final, pasos con insumos, cantidades, costos |
+| 051 | produccion_lotes | `produccion_lote`, `produccion_lote_detalle` — lotes de producción con descuento de stock de insumos y agregado de stock final |
 
 ### Tablas Principales
 
@@ -231,6 +236,10 @@ Renderer (React)                    Main (Node.js)
 | `listas_precio` | 1-20 | Listas de precio (creada en 015; sin UI aún) |
 | `creditos` | 10-2000 | Ventas a crédito/fiado con saldo pendiente (`pendiente`/`pagado`/`anulado`) |
 | `credito_abonos` | 10-10000 | Abonos parciales contra cada crédito |
+| `cadena_produccion` | 1-50 | Recetas/BOM de producción: `producto_final_id`, `nombre`, `tiempo_estimado_minutos`, `costo_mano_obra_hora`, `overhead_porcentaje` |
+| `cadena_paso` | 1-200 | Insumos de cada cadena: `producto_base_id`, `cantidad`, `costo_unitario_override` |
+| `produccion_lote` | 1-1000 | Lotes de producción: `cadena_id`, `cantidad_producida`, costos, `estado` (en_proceso/completado/cancelado) |
+| `produccion_lote_detalle` | 1-5000 | Insumos consumidos por lote: `cantidad_consumida`, `costo_unitario` |
 | `pcs_enlazadas` | 0-20 | PCs hijas enlazadas a la Base (migración 031): `par_id`, `nombre`, `ip`, `cert_hash`, `last_seen` |
 | `sesiones_activas` | 0-20 | Sesión única por usuario en todo el grupo (migración 031): `usuario_id` UNIQUE, `par_id`, `sesion_token`, `opened_at` |
 | `codigos_enlace` | 0-100 | Códigos de enlace de un solo uso con expiración (5 min) |
@@ -251,7 +260,8 @@ Todos los índices están optimizados para los patrones de consulta típicos del
 > Productor (036), Postventa (037), costo real combos (038),
 > cargos (039–040), empleado extendido (041), nóminas flexible (042),
 > almacén-caja (043), passwords iniciales (044), intentos de login (045),
-> N° de control (046), hípico + apuestas (047–048).
+> N° de control (046), hípico + apuestas (047–048),
+> cadena de producción (049–051: tipo_produccion, cadenas con pasos, lotes).
 
 ---
 

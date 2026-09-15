@@ -8,7 +8,7 @@ import { registerDistribuidorHandlers } from './modules/distribuidor'
 import { registerRestaurantHandlers } from './modules/restaurant'
 import { registerAdministracionHandlers } from './modules/administracion'
 import { registerRrhhHandlers } from './modules/rrhh'
-import { registerProductorHandlers } from './modules/productor'
+import { registerAllProductorHandlers } from './modules/productor'
 import { registerPostventaHandlers } from './modules/postventa'
 import { registerCajaExtraHandlers } from './modules/caja-extra'
 import { registerHipicoHandlers } from './modules/hipico'
@@ -84,7 +84,7 @@ export function registerIpcHandlers(): void {
   registerRestaurantHandlers()
   registerAdministracionHandlers()
   registerRrhhHandlers()
-  registerProductorHandlers()
+  registerAllProductorHandlers()
   registerPostventaHandlers()
   registerCajaExtraHandlers()
   registerHipicoHandlers()
