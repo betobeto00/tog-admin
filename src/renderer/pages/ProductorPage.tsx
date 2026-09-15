@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sprout, Plus, Wheat, Coins, Factory, Package, BarChart3, Trash2, Edit2, CheckCircle, XCircle, ChevronDown, ChevronRight } from 'lucide-react'
+import { Sprout, Plus, Wheat, Coins, Factory, Package, BarChart3, Trash2, Edit2, CheckCircle, XCircle, ChevronDown, ChevronRight, Search } from 'lucide-react'
 import { useToast } from '../components/ui/Toast'
 import { usePermissions } from '../hooks/usePermissions'
 import { formatMoney } from '../services/currency'
@@ -321,49 +321,112 @@ function TabCadenas({ cadenas, puedeEditar, onEdit, onDetail, onDelete }: {
   onEdit: (c: Cadena) => void; onDetail: (c: Cadena) => void; onDelete: (id: number) => void
 }) {
   const { t } = useTranslation()
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [sortBy, setSortBy] = useState<'nombre' | 'costo_total' | 'pasos_count' | 'producto_nombre'>('nombre')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  const toggleSort = (col: typeof sortBy) => {
+    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortBy(col); setSortDir('asc') }
+  }
+
+  const SortIcon = ({ col }: { col: typeof sortBy }) => (
+    <span className="ml-1 text-gray-400 inline-block w-3">
+      {sortBy === col ? (sortDir === 'asc' ? '▲' : '▼') : '⇅'}
+    </span>
+  )
+
+  const filtered = cadenas
+    .filter(c => {
+      if (statusFilter === 'active' && !c.activo) return false
+      if (statusFilter === 'inactive' && c.activo) return false
+      if (search.trim()) {
+        const q = search.toLowerCase()
+        return c.producto_nombre.toLowerCase().includes(q) ||
+               c.nombre.toLowerCase().includes(q)
+      }
+      return true
+    })
+    .sort((a, b) => {
+      const aVal = a[sortBy]
+      const bVal = b[sortBy]
+      if (typeof aVal === 'string' && typeof bVal === 'string')
+        return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
+      return sortDir === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number)
+    })
+
+  const colCount = puedeEditar ? 9 : 8
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-gray-50">
-          <tr>
-            <Th>{t('productor.cadena.product')}</Th>
-            <Th>{t('productor.cadena.title')}</Th>
-            <Th right>{t('productor.cadena.steps')}</Th>
-            <Th right>{t('productor.cadena.materialCost')}</Th>
-            <Th right>{t('productor.cadena.laborCost')}</Th>
-            <Th right>{t('productor.cadena.overheadCost')}</Th>
-            <Th right>{t('productor.cadena.totalCost')}</Th>
-            <Th>{t('contable.colStatus')}</Th>
-            {puedeEditar && <Th right>{t('common.actions')}</Th>}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {cadenas.length === 0 ? (
-            <tr><td colSpan={puedeEditar ? 9 : 8} className="text-center py-10 text-gray-400">{t('productor.cadena.noChains')}</td></tr>
-          ) : cadenas.map(c => (
-            <tr key={c.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => onDetail(c)}>
-              <td className="px-3 py-2 font-medium">{c.producto_nombre}</td>
-              <td className="px-3 py-2">{c.nombre}</td>
-              <td className="px-3 py-2 text-right">{c.pasos_count}</td>
-              <td className="px-3 py-2 text-right">{formatMoney(c.costo_materiales)}</td>
-              <td className="px-3 py-2 text-right">{formatMoney(c.costo_mano_obra)}</td>
-              <td className="px-3 py-2 text-right">{formatMoney(c.costo_overhead)}</td>
-              <td className="px-3 py-2 text-right font-semibold">{formatMoney(c.costo_total)}</td>
-              <td className="px-3 py-2">
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c.activo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                  {c.activo ? t('productor.cadena.active') : t('productor.cadena.inactive')}
-                </span>
-              </td>
-              {puedeEditar && (
-                <td className="px-3 py-2 text-right space-x-2" onClick={(e) => e.stopPropagation()}>
-                  <button onClick={() => onEdit(c)} className="text-blue-600 hover:underline text-sm"><Edit2 className="w-4 h-4 inline" /></button>
-                  <button onClick={() => onDelete(c.id)} className="text-red-600 hover:underline text-sm"><Trash2 className="w-4 h-4 inline" /></button>
-                </td>
-              )}
+    <div className="space-y-3">
+      {/* Filters bar */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder={t('productor.cadena.search', { defaultValue: 'Buscar por producto o nombre...' })}
+            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm" />
+        </div>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="all">{t('common.all', { defaultValue: 'Todos' })}</option>
+          <option value="active">{t('productor.cadena.active')}</option>
+          <option value="inactive">{t('productor.cadena.inactive')}</option>
+        </select>
+        <span className="text-xs text-gray-400">
+          {filtered.length} / {cadenas.length}
+        </span>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50">
+            <tr>
+              <Th><button onClick={() => toggleSort('producto_nombre')} className="hover:text-gray-700">{t('productor.cadena.product')}<SortIcon col="producto_nombre" /></button></Th>
+              <Th><button onClick={() => toggleSort('nombre')} className="hover:text-gray-700">{t('productor.cadena.title')}<SortIcon col="nombre" /></button></Th>
+              <Th right><button onClick={() => toggleSort('pasos_count')} className="hover:text-gray-700">{t('productor.cadena.steps')}<SortIcon col="pasos_count" /></button></Th>
+              <Th right>{t('productor.cadena.materialCost')}</Th>
+              <Th right>{t('productor.cadena.laborCost')}</Th>
+              <Th right>{t('productor.cadena.overheadCost')}</Th>
+              <Th right><button onClick={() => toggleSort('costo_total')} className="hover:text-gray-700">{t('productor.cadena.totalCost')}<SortIcon col="costo_total" /></button></Th>
+              <Th>{t('contable.colStatus')}</Th>
+              {puedeEditar && <Th right>{t('common.actions')}</Th>}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {filtered.length === 0 ? (
+              <tr><td colSpan={colCount} className="text-center py-10 text-gray-400">
+                {search || statusFilter !== 'all'
+                  ? t('productor.cadena.noResults', { defaultValue: 'No se encontraron cadenas con esos filtros' })
+                  : t('productor.cadena.noChains')}
+              </td></tr>
+            ) : filtered.map(c => (
+              <tr key={c.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => onDetail(c)}>
+                <td className="px-3 py-2 font-medium">{c.producto_nombre}</td>
+                <td className="px-3 py-2">{c.nombre}</td>
+                <td className="px-3 py-2 text-right">{c.pasos_count}</td>
+                <td className="px-3 py-2 text-right">{formatMoney(c.costo_materiales)}</td>
+                <td className="px-3 py-2 text-right">{formatMoney(c.costo_mano_obra)}</td>
+                <td className="px-3 py-2 text-right">{formatMoney(c.costo_overhead)}</td>
+                <td className="px-3 py-2 text-right font-semibold">{formatMoney(c.costo_total)}</td>
+                <td className="px-3 py-2">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c.activo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                    {c.activo ? t('productor.cadena.active') : t('productor.cadena.inactive')}
+                  </span>
+                </td>
+                {puedeEditar && (
+                  <td className="px-3 py-2 text-right space-x-2" onClick={e => e.stopPropagation()}>
+                    <button onClick={() => onEdit(c)} className="text-blue-600 hover:underline text-sm"><Edit2 className="w-4 h-4 inline" /></button>
+                    <button onClick={() => onDelete(c.id)} className="text-red-600 hover:underline text-sm"><Trash2 className="w-4 h-4 inline" /></button>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -375,6 +438,9 @@ function TabProduccion({ lotes, onCompletar, onCancelar }: {
   lotes: Lote[]; onCompletar: (id: number) => void; onCancelar: (id: number) => void
 }) {
   const { t } = useTranslation()
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+
   const estadoBadge = (estado: string) => {
     const styles: Record<string, string> = {
       en_proceso: 'bg-yellow-100 text-yellow-700',
@@ -386,49 +452,85 @@ function TabProduccion({ lotes, onCompletar, onCancelar }: {
     </span>
   }
 
+  const filtered = lotes
+    .filter(l => {
+      if (statusFilter !== 'all' && l.estado !== statusFilter) return false
+      if (search.trim()) {
+        const q = search.toLowerCase()
+        return l.cadena_nombre.toLowerCase().includes(q) ||
+               l.producto_nombre.toLowerCase().includes(q)
+      }
+      return true
+    })
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-gray-50">
-          <tr>
-            <Th>#</Th>
-            <Th>{t('productor.lote.chain')}</Th>
-            <Th>{t('productor.cadena.product')}</Th>
-            <Th right>{t('productor.lote.produced')}</Th>
-            <Th right>{t('productor.lote.materialCost')}</Th>
-            <Th right>{t('productor.lote.unitCost')}</Th>
-            <Th right>{t('productor.lote.totalCost')}</Th>
-            <Th>{t('productor.lote.status')}</Th>
-            <Th>{t('productor.lote.startDate')}</Th>
-            <Th right>{t('common.actions')}</Th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {lotes.length === 0 ? (
-            <tr><td colSpan={10} className="text-center py-10 text-gray-400">{t('productor.lote.noLots')}</td></tr>
-          ) : lotes.map(l => (
-            <tr key={l.id} className="hover:bg-gray-50">
-              <td className="px-3 py-2 text-gray-400">{l.id}</td>
-              <td className="px-3 py-2">{l.cadena_nombre}</td>
-              <td className="px-3 py-2 font-medium">{l.producto_nombre}</td>
-              <td className="px-3 py-2 text-right">{l.cantidad_producida}</td>
-              <td className="px-3 py-2 text-right">{formatMoney(l.costo_materiales)}</td>
-              <td className="px-3 py-2 text-right">{formatMoney(l.costo_unitario)}</td>
-              <td className="px-3 py-2 text-right font-semibold">{formatMoney(l.costo_total)}</td>
-              <td className="px-3 py-2">{estadoBadge(l.estado)}</td>
-              <td className="px-3 py-2 text-gray-500">{l.fecha_inicio?.slice(0, 10)}</td>
-              <td className="px-3 py-2 text-right space-x-2">
-                {l.estado === 'en_proceso' && (
-                  <>
-                    <button onClick={() => onCompletar(l.id)} className="text-green-600 hover:underline text-sm">{t('productor.lote.estado.completado')}</button>
-                    <button onClick={() => onCancelar(l.id)} className="text-red-600 hover:underline text-sm">{t('productor.lote.estado.cancelado')}</button>
-                  </>
-                )}
-              </td>
+    <div className="space-y-3">
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder={t('productor.lote.search', { defaultValue: 'Buscar por cadena o producto...' })}
+            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm" />
+        </div>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="all">{t('common.all', { defaultValue: 'Todos' })}</option>
+          <option value="en_proceso">{t('productor.lote.estado.en_proceso')}</option>
+          <option value="completado">{t('productor.lote.estado.completado')}</option>
+          <option value="cancelado">{t('productor.lote.estado.cancelado')}</option>
+        </select>
+        <span className="text-xs text-gray-400">
+          {filtered.length} / {lotes.length}
+        </span>
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50">
+            <tr>
+              <Th>#</Th>
+              <Th>{t('productor.lote.chain')}</Th>
+              <Th>{t('productor.cadena.product')}</Th>
+              <Th right>{t('productor.lote.produced')}</Th>
+              <Th right>{t('productor.lote.materialCost')}</Th>
+              <Th right>{t('productor.lote.unitCost')}</Th>
+              <Th right>{t('productor.lote.totalCost')}</Th>
+              <Th>{t('productor.lote.status')}</Th>
+              <Th>{t('productor.lote.startDate')}</Th>
+              <Th right>{t('common.actions')}</Th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {filtered.length === 0 ? (
+              <tr><td colSpan={10} className="text-center py-10 text-gray-400">
+                {search || statusFilter !== 'all'
+                  ? t('productor.lote.noResults', { defaultValue: 'No se encontraron lotes con esos filtros' })
+                  : t('productor.lote.noLots')}
+              </td></tr>
+            ) : filtered.map(l => (
+              <tr key={l.id} className="hover:bg-gray-50">
+                <td className="px-3 py-2 text-gray-400">{l.id}</td>
+                <td className="px-3 py-2">{l.cadena_nombre}</td>
+                <td className="px-3 py-2 font-medium">{l.producto_nombre}</td>
+                <td className="px-3 py-2 text-right">{l.cantidad_producida}</td>
+                <td className="px-3 py-2 text-right">{formatMoney(l.costo_materiales)}</td>
+                <td className="px-3 py-2 text-right">{formatMoney(l.costo_unitario)}</td>
+                <td className="px-3 py-2 text-right font-semibold">{formatMoney(l.costo_total)}</td>
+                <td className="px-3 py-2">{estadoBadge(l.estado)}</td>
+                <td className="px-3 py-2 text-gray-500">{l.fecha_inicio?.slice(0, 10)}</td>
+                <td className="px-3 py-2 text-right space-x-2">
+                  {l.estado === 'en_proceso' && (
+                    <>
+                      <button onClick={() => onCompletar(l.id)} className="text-green-600 hover:underline text-sm">{t('productor.lote.estado.completado')}</button>
+                      <button onClick={() => onCancelar(l.id)} className="text-red-600 hover:underline text-sm">{t('productor.lote.estado.cancelado')}</button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
