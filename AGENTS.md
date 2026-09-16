@@ -6,12 +6,14 @@
 
 ## graphify
 
-Este repositorio usa **graphify** para mantener un grafo de conocimiento navegable del código y los docs. Está integrado en opencode vía el plugin `.opencode/plugins/graphify.js`.
+Este repositorio tiene un grafo de conocimiento en la **raíz del workspace**
+(`graphify-out/`). Cubre todos los repos del ecosistema. Plugin en
+`.opencode/plugins/graphify.js`.
 
 **Reglas para el agente:**
 
-1. **Antes de responder preguntas sobre el código, lee `graphify-out/graph.json` y `graphify-out/GRAPH_REPORT.md`.** Si existen, úsalos como fuente primaria; son la representación navegable del repo.
-2. **Usa `/graphify query "<pregunta>"`** cuando el usuario pregunte cómo funciona algo, qué llama a qué, o trace un flujo. El grafo ya está construido; no lo reextraigas.
+1. **Antes de responder preguntas sobre el código, lee `../graphify-out/graph.json` y `../graphify-out/GRAPH_REPORT.md`.** Si existen, úsalos como fuente primaria.
+2. **Usa `graphify query "<pregunta>"`** cuando el usuario pregunte cómo funciona algo, qué llama a qué, o trace un flujo. El grafo ya está construido; no lo reextraigas.
 3. **Si el usuario pide cambios estructurales** (nuevos archivos, mover carpetas, renombrar), reconstruye el grafo al final con `graphify` o avisa que el hook post-commit lo hará automáticamente.
 4. **NUNCA** ejecutes un build completo de graphify (`graphify .`) si ya existe `graphify-out/graph.json` y la pregunta es sobre el código — usa query.
 5. **Sí** ejecuta `graphify .` cuando:

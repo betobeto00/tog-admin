@@ -32,8 +32,9 @@ licenses/*.key
 *.png
 license.key
 
-# Graphify (knowledge graph artifacts)
+#Graphify
 graphify-out/
+.graphifyignore
 
 # Backup of .git created by filter-repo operations (do not commit)
 .git-backup-*
