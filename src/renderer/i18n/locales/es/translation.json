@@ -405,6 +405,7 @@
     "description": "Descripción",
     "sale": "Venta",
     "saleId": "ID de venta (opcional)",
+    "saleIdInvalid": "El ID de venta debe ser un número entero positivo. Dejá el campo vacío si no querés vincular una venta.",
     "productId": "ID de producto (opcional)",
     "reason": "Motivo",
     "type": "Tipo",

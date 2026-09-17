@@ -179,6 +179,31 @@ describe('Postventa: tickets', () => {
     expect(list[0].mensajes).toBe(1)
   })
 
+  it('rechaza una venta inexistente con un mensaje claro (antes: FOREIGN KEY constraint failed)', async () => {
+    const res = await call('postventa:ticket-create', { cliente_nombre: 'A', asunto: 'X', venta_id: 999 })
+    expect(res.success).toBe(false)
+    expect(res.error).toContain('no existe')
+    const list = await call('postventa:tickets-list') as any[]
+    expect(list).toHaveLength(0)
+  })
+
+  it('rechaza un ID de venta que no es un entero positivo', async () => {
+    const texto = await call('postventa:ticket-create', { cliente_nombre: 'A', asunto: 'X', venta_id: 'abc' })
+    expect(texto.success).toBe(false)
+    expect(texto.error).toContain('inválido')
+
+    const cero = await call('postventa:ticket-create', { cliente_nombre: 'A', asunto: 'X', venta_id: 0 })
+    expect(cero.success).toBe(false)
+  })
+
+  it('acepta una venta existente y la guarda', async () => {
+    db.prepare('INSERT OR IGNORE INTO ventas (id, numero_venta) VALUES (7, 7)').run()
+    const created = await call('postventa:ticket-create', { cliente_nombre: 'A', asunto: 'X', venta_id: 7 })
+    expect(created.id).toBeTruthy()
+    const list = await call('postventa:tickets-list') as any[]
+    expect(list[0].venta_id).toBe(7)
+  })
+
   it('filtra tickets por estado', async () => {
     await call('postventa:ticket-create', { cliente_nombre: 'A', asunto: 'X' })
     const t2 = await call('postventa:ticket-create', { cliente_nombre: 'B', asunto: 'Y' })
@@ -217,6 +242,15 @@ describe('Postventa: devoluciones', () => {
     expect(res.id).toBeTruthy()
     const list = await call('postventa:devoluciones-list') as any[]
     expect(list[0].tipo).toBe('nota_credito')
+    // El producto inexistente se guarda como NULL: con FK activa, guardarlo
+    // haría fallar el INSERT en producción.
+    expect(list[0].producto_id).toBeNull()
+  })
+
+  it('rechaza una venta inexistente con un mensaje claro', async () => {
+    const res = await call('postventa:devolucion-create', { venta_id: 4242, monto: 10, motivo: 'X' })
+    expect(res.success).toBe(false)
+    expect(res.error).toContain('no existe')
   })
 
   it('rechaza devolución sin motivo o con monto inválido', async () => {

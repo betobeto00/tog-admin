@@ -61,7 +61,7 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 | `services/configCache.ts` | Cache de configuración |
 | `i18n/` | Traducciones ES/EN para main process |
 
-El **catálogo de permisos** vive en `src/shared/permissions.ts` (fuente única: 64 permisos en 13 categorías `PERMISSIONS` + `ROLE_DEFAULTS`; el admin tiene todas las claves). Los canales IPC se tipan en `src/shared/ipc-channels.ts` (`IpcChannel` + `PREAUTH_CHANNELS`). Ya **no** existe `services/permissions.ts`: la lógica de autorización es `core/auth/permissions.ts` y se invoca desde cada handler con `checkPermissionOrFail(data, channel, permission)`.
+El **catálogo de permisos** vive en `src/shared/permissions.ts` (fuente única: 69 permisos en 15 categorías `PERMISSIONS` + `ROLE_DEFAULTS`; el admin tiene todas las claves). Los canales IPC se tipan en `src/shared/ipc-channels.ts` (`IpcChannel` + `PREAUTH_CHANNELS`). Ya **no** existe `services/permissions.ts`: la lógica de autorización es `core/auth/permissions.ts` y se invoca desde cada handler con `checkPermissionOrFail(data, channel, permission)`.
 
 ### 2. Process de Renderizado (Renderer Process)
 **Responsabilidad:** UI completamente en React.
@@ -420,7 +420,7 @@ Estado en memoria (`symbol`, `rate`, `name`) inicializado por `loadCurrency()` d
 | Internacionalización | i18n con 2 idiomas (ES/EN), ~1,862 keys por idioma en el renderer (+98 en main) |
 | Licencia | RSA-2048 con validación offline |
 | Backup automático | Al cerrar caja se crea backup de la DB |
-| Permisos | 64 permisos en 13 categorías (Impresión, Ventas, Caja, Inventario, Compras, Cotizaciones, Reportes, Administración, Distribuidor, Restaurant, Contabilidad, Recursos Humanos, Productor, Postventa, Hípico), control granular por usuario (incluye `red_manage` para gestión de PC Base) |
+| Permisos | 69 permisos en 15 categorías (Impresión, Ventas, Caja, Inventario, Compras, Cotizaciones, Reportes, Administración, Distribuidor, Restaurant, Contabilidad, Recursos Humanos, Productor, Postventa, Hípico), control granular por usuario (incluye `red_manage` para gestión de PC Base) |
 | Sesión única en red local | Un usuario solo puede estar activo en una PC del grupo a la vez (`services/red-session.ts`) |
 | Validación origen IPC | `handleIpc` (`core/auth/ipc-guard.ts`): rechaza cualquier sender que no sea main-frame `file://` (empaquetado) o `localhost:5173` (dev) |
 

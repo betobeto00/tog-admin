@@ -252,7 +252,7 @@
   <h1>TOG Admin</h1>
   <h2>Manual del Usuario</h2>
   <div class="badge">Sistema Modular de Punto de Venta y Gestión</div>
-  <div class="version">Versión 1.2.0 · Septiembre 2026</div>
+  <div class="version">Versión 1.2.1 · Septiembre 2026</div>
 </div>
 
 <div class="container">
@@ -283,10 +283,15 @@
     <li><a href="#distribuidor">21. Módulo Distribuidor</a></li>
     <li><a href="#restaurant">22. Módulo Restaurant</a></li>
     <li><a href="#redlocal">23. Red Local (PC Base + Hijas)</a></li>
-    <li><a href="#rrhh">24. Recursos Humanos</a></li>
-    <li><a href="#contable">25. Contabilidad</a></li>
-    <li><a href="#faq">26. Preguntas Frecuentes</a></li>
-    <li><a href="#soporte">27. Soporte</a></li>
+    <li><a href="#postventa">24. Módulo Postventa</a></li>
+    <li><a href="#productor">25. Módulo Productor</a></li>
+    <li><a href="#produccion">26. Producción y Lotes</a></li>
+    <li><a href="#almacenes">27. Almacenes</a></li>
+    <li><a href="#hipico">28. Módulo Hípico</a></li>
+    <li><a href="#rrhh">29. Recursos Humanos</a></li>
+    <li><a href="#contable">30. Contabilidad</a></li>
+    <li><a href="#faq">31. Preguntas Frecuentes</a></li>
+    <li><a href="#soporte">32. Soporte</a></li>
   </ol>
 </nav>
 
@@ -312,11 +317,23 @@
   </div>
 
   <h3>Módulos adicionales (según licencia)</h3>
+  <p>El <strong>Comercializador</strong> (POS, inventario, ventas, compras, caja y reportes) viene en toda licencia. El resto se activa según lo que hayas contratado: cada módulo agrega sus pantallas y desaparece del menú si no está en tu licencia.</p>
   <div class="grid grid-2">
-    <div class="card"><h4>🚚 Distribuidor</h4><p>Gestión de clientes, pedidos, listas de precio y ruta de entrega.</p></div>
+    <div class="card"><h4>🚚 Distribuidor</h4><p>Clientes, pedidos, remitos, despachos, listas de precio y rutas de entrega.</p></div>
     <div class="card"><h4>🍽️ Restaurant</h4><p>Salón de mesas, comandas, pantalla de cocina y cobro por mesa.</p></div>
-    <div class="card"><h4>👥 RRHH</h4><p>Empleados, asistencia, nómina por período con conceptos y deducciones.</p></div>
+    <div class="card"><h4>🔧 Postventa</h4><p>Tickets de soporte, devoluciones con reposición de stock, garantías y notas de crédito.</p></div>
+    <div class="card"><h4>🌾 Productor</h4><p>Siembras, costos de campo, estimación de cosecha y análisis de costos.</p></div>
+    <div class="card"><h4>⚙️ Producción y Lotes</h4><p>Cadenas de producción con costos y márgenes, lotes de transformación de materia prima.</p></div>
+    <div class="card"><h4>🗄️ Almacenes</h4><p>Múltiples depósitos, stock por almacén y caja por almacén.</p></div>
+    <div class="card"><h4>🐎 Hípico</h4><p>Propietarios, caballos, carreras, inscripciones, resultados y venta de apuestas.</p></div>
+    <div class="card"><h4>👥 Recursos Humanos</h4><p>Empleados, asistencia, nómina por período con conceptos y deducciones.</p></div>
     <div class="card"><h4>📊 Contabilidad</h4><p>Libros de ventas, compras, inventario y libro diario. Exportar a CSV.</p></div>
+    <div class="card"><h4>🌐 Red Local</h4><p>PC Base con licencia + PCs hijas conectadas por la red (ver sección 23).</p></div>
+  </div>
+
+  <div class="callout tip">
+    <strong>¿No ves un módulo?</strong>
+    Probablemente no esté en tu licencia. Podés consultar qué módulos tenés activos en <strong>Configuración → Sistema → Licencia</strong> y pedir la ampliación a tu proveedor.
   </div>
 
   <div class="callout info">
@@ -368,7 +385,7 @@
     <li>Haz clic en <strong>"Conectar a una PC Base"</strong>.</li>
     <li>Ingresa la <strong>IP de la PC Base</strong>, el <strong>código de enlace</strong> y un <strong>nombre para esta PC</strong>.</li>
   </ol>
-  <p>Ver详细 instrucciones en la sección <a href="#redlocal">23. Red Local</a>.</p>
+  <p>El detalle completo está en la sección <a href="#redlocal">23. Red Local</a>.</p>
 
   <h3>Iniciar sesión</h3>
   <ol class="steps">
@@ -566,6 +583,9 @@
 <section class="chapter" id="reportes">
   <h2>13. Reportes</h2>
   <p>Visualiza el rendimiento del negocio con gráficos (ventas por día, top 10 productos, métodos de pago, ventas por categoría). Exporta a CSV o imprime como PDF.</p>
+
+  <h3>Reportes visuales</h3>
+  <p>Además de los reportes en vivo, podés <strong>guardar</strong> un reporte con sus filtros y volver a consultarlo cuando quieras. Los reportes guardados quedan en la lista y podés eliminarlos individualmente.</p>
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -573,14 +593,17 @@
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <section class="chapter" id="config">
   <h2>14. Configuración</h2>
-  <p>Solo accesible para administradores. 5 pestañas:</p>
+  <p>Solo accesible para administradores. Estas son las pestañas y lo que se ajusta en cada una:</p>
   <ul>
-    <li><strong>Negocio</strong>: nombre, EIN/RIF, dirección, teléfono, logo, tasa de impuesto, moneda, impresora, fondo de caja.</li>
-    <li><strong>Usuarios</strong>: crear, editar, asignar permisos (ver sección 17).</li>
-    <li><strong>Terminal</strong>: configurar VP800 (ver sección 15).</li>
-    <li><strong>Sistema</strong>: backups, restaurar, información de licencia.</li>
-    <li><strong>Métodos de Pago</strong>: agregar, activar/desactivar métodos (ver sección 16).</li>
+    <li><strong>Negocio</strong>: nombre, EIN/RIF, dirección, teléfono, logo, tasa de impuesto, moneda, impresora y fondo de caja.</li>
+    <li><strong>Usuarios</strong>: crear, editar y asignar permisos (ver sección 17).</li>
+    <li><strong>Terminal</strong>: puerto y conexión del VP800 (ver sección 15).</li>
+    <li><strong>Sistema</strong>: backups, restaurar, información de licencia y reinicio del tutorial.</li>
+    <li><strong>Métodos de Pago</strong>: agregar y activar/desactivar métodos (ver sección 16).</li>
   </ul>
+
+  <h3>Pantalla de Impresión</h3>
+  <p>El menú <strong>Impresión</strong> es una pantalla aparte (no una pestaña) y concentra todo lo del comprobante: puerto de la ticketera, ancho de papel, razón social, RIF y números de control. Requiere el permiso <em>Configurar Impresora y Datos Fiscales</em>.</p>
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -614,21 +637,29 @@
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <section class="chapter" id="permisos">
   <h2>17. Usuarios y Permisos</h2>
-  <p>Solo accesible para administradores. 57 permisos en 11 categorías:</p>
+  <p>Solo accesible para administradores. <strong>69 permisos en 15 categorías</strong>. El rol <em>admin</em> los tiene todos; al <em>cajero</em> le llegan los básicos del mostrador, y podés ajustar permiso por permiso para cada usuario.</p>
   <table>
     <tr><th>Categoría</th><th>Permisos</th></tr>
-    <tr><td>🛒 Ventas</td><td>POS, Anular, Descuentos, Editar precio, Venta rápida, Créditos</td></tr>
-    <tr><td>💰 Caja</td><td>Abrir, Cerrar, Movimientos, Reporte X</td></tr>
+    <tr><td>🖨️ Impresión</td><td>Imprimir comprobantes, Configurar impresora y datos fiscales, Reimprimir tickets</td></tr>
+    <tr><td>🛒 Ventas</td><td>POS, Anular, Descuentos, Editar precio, Venta rápida, Ver créditos, Registrar abonos</td></tr>
+    <tr><td>💰 Caja</td><td>Acceso, Abrir, Cerrar, Movimientos, Reporte X</td></tr>
     <tr><td>📦 Inventario</td><td>Acceso, Crear, Editar, Eliminar, Ajustar, Categorías, Unidades</td></tr>
     <tr><td>🚚 Compras</td><td>Acceso, Registrar, Proveedores</td></tr>
     <tr><td>📝 Cotizaciones</td><td>Acceso, Crear, Editar, Eliminar</td></tr>
     <tr><td>📊 Reportes</td><td>Ver, Exportar</td></tr>
-    <tr><td>🚚 Distribuidor</td><td>Clientes (ver/editar), Pedidos (ver/editar), Listas de precio</td></tr>
+    <tr><td>⚙️ Administración</td><td>Ver/editar config, Terminal, Backups, Reset de base de datos, Usuarios, Asignar permisos, Cambiar contraseña propia, Licencia, Red Local</td></tr>
+    <tr><td>🚚 Distribuidor</td><td>Clientes (ver/editar), Pedidos (ver/editar), Listas de precio (ver/editar)</td></tr>
     <tr><td>🍽️ Restaurant</td><td>Mesas (ver/gestionar), Comandas (ver/crear-cobrar)</td></tr>
     <tr><td>📊 Contabilidad</td><td>Ver libros, Exportar libros</td></tr>
-    <tr><td>👥 RRHH</td><td>Ver empleados, Gestionar empleados, Nómina</td></tr>
-    <tr><td>⚙️ Admin</td><td>Config, Terminal, Backups, Reset DB, Usuarios, Permisos, Licencia, Red Local</td></tr>
+    <tr><td>👥 Recursos Humanos</td><td>Ver empleados, Gestionar empleados, Procesar nómina</td></tr>
+    <tr><td>🌾 Productor</td><td>Ver producción, Gestionar producción, Cadenas (ver/editar), Lotes (ver/gestionar), Análisis de costos</td></tr>
+    <tr><td>🔧 Postventa</td><td>Ver postventa, Gestionar postventa</td></tr>
+    <tr><td>🐎 Hípico</td><td>Ver, Gestionar, Vender apuestas, Administrar apuestas</td></tr>
   </table>
+  <div class="callout tip">
+    <strong>Buena práctica</strong>
+    Dale a cada cajero solo lo que necesita. Los permisos de <em>configuración</em>, <em>reset de base de datos</em> y <em>backups</em> conviene dejarlos únicamente al dueño o encargado.
+  </div>
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -656,7 +687,8 @@
     <li><strong>Expira</strong> — fecha de vencimiento de la licencia.</li>
     <li><strong>Días restantes</strong> — cuántos días faltan para que venza.</li>
     <li><strong>ID de máquina</strong> — identificador único de la PC (si la licencia está vinculada a una máquina específica).</li>
-    <li><strong>Módulos</strong> — módulos activos según tu compra (Comercializador, Distribuidor, Restaurant, RRHH, Contabilidad).</li>
+    <li><strong>Módulos</strong> — módulos activos según tu compra (Comercializador, Distribuidor, Restaurant, Postventa, Productor, Producción y Lotes, Almacenes, Hípico, RRHH, Contabilidad). El Comercializador va siempre.</li>
+    <li><strong>Red Local</strong> — si la licencia incluye <code>max_pcs ≥ 2</code>, indica cuántas PCs pueden conectarse (ver sección 23).</li>
   </ul>
 
   <h3>Activar o renovar licencia</h3>
@@ -704,8 +736,11 @@
     <li>Al entregar, el stock se descuenta y la venta se registra.</li>
   </ol>
 
+  <h3>Remitos y despachos</h3>
+  <p>El remito es el papel que viaja con la mercancía. Se genera desde un pedido y lleva su propio número y estado. Al confirmar la entrega, el stock se descuenta y la venta queda registrada.</p>
+
   <h3>Listas de precio</h3>
-  <p>Crea listas de precio personalizadas por cliente o zona. Al crear un pedido, selecciona la lista aplicable.</p>
+  <p>Crea listas de precio personalizadas por cliente o zona. Al crear un pedido, selecciona la lista aplicable. También podés asignarle una lista fija a un cliente para que sus precios se carguen solos.</p>
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -765,10 +800,149 @@
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
-<!-- 24. RECURSOS HUMANOS -->
+<!-- 24. POSTVENTA -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section class="chapter" id="postventa">
+  <h2>24. Módulo Postventa</h2>
+  <p>Todo lo que pasa <em>después</em> de la venta: reclamos, devoluciones y garantías. Se organiza en tres pestañas.</p>
+
+  <h3>Tickets de soporte</h3>
+  <ol class="steps">
+    <li>Ve a <strong>Postventa → Tickets</strong> y pulsa <strong>Nuevo ticket</strong>.</li>
+    <li>Completá cliente, teléfono, asunto y descripción, y elegí la prioridad (baja, media, alta).</li>
+    <li>Si el reclamo corresponde a una venta concreta, escribí su <strong>ID de venta</strong>. El sistema valida que exista; si no lo encontrás, dejá el campo vacío.</li>
+    <li>Cada ticket recibe un número correlativo (<code>PV-000001</code>) y arranca en estado <strong>Abierto</strong>.</li>
+    <li>Respondé con <strong>Responder</strong>: al agregar un mensaje, el ticket pasa a <strong>En proceso</strong>.</li>
+    <li>Al resolverse, cambialo a <strong>Resuelto</strong> o <strong>Cerrado</strong>: queda sellada la fecha de cierre.</li>
+  </ol>
+
+  <h3>Devoluciones y notas de crédito</h3>
+  <ol class="steps">
+    <li>Ve a <strong>Postventa → Devoluciones</strong> y pulsa <strong>Registrar devolución</strong>.</li>
+    <li>Indicá la venta, el producto, la cantidad y el monto, y escribí el motivo (obligatorio).</li>
+    <li>Elegí el tipo: <strong>Devolución</strong> (repone el stock del producto) o <strong>Nota de crédito</strong> (solo deja el registro contable).</li>
+  </ol>
+  <div class="callout tip">
+    <strong>El stock se repone solo</strong>
+    En las devoluciones con producto asociado, el sistema suma la cantidad devuelta al inventario. Los servicios no mueven stock.
+  </div>
+
+  <h3>Garantías</h3>
+  <p>Cada garantía muestra la venta, el producto y su fecha de vencimiento, y arranca en estado <strong>Vigente</strong>. Cuando el cliente reclama, resolvela como:</p>
+  <ul>
+    <li><strong>Reponer</strong> — repone el stock del producto y marca la garantía como resuelta.</li>
+    <li><strong>Reembolsar</strong> — deja registrado el reembolso con sus notas.</li>
+    <li><strong>Rechazar</strong> — marca la garantía como rechazada, con el motivo escrito en las notas.</li>
+  </ul>
+  <p>Una garantía ya resuelta no se puede volver a tocar: el historial queda intacto.</p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- 25. PRODUCTOR -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section class="chapter" id="productor">
+  <h2>25. Módulo Productor</h2>
+  <p>Para negocios que producen lo que venden: registra qué sembraste, cuánto te costó y cuánto cosechaste.</p>
+
+  <h3>Siembras</h3>
+  <ol class="steps">
+    <li>Ve a <strong>Producción</strong> y crea una siembra.</li>
+    <li>Completá cultivo, fecha de siembra, área y unidad (hectáreas, m², etc.).</li>
+    <li>Anotá la cantidad sembrada y el estado: <strong>Activa</strong> mientras está en el campo.</li>
+    <li>Al cosechar, registrá la fecha y la cantidad cosechada; la siembra pasa a <strong>Cosechada</strong>.</li>
+  </ol>
+
+  <h3>Costos de campo</h3>
+  <p>Sumá los gastos de cada siembra (semilla, fertilizante, mano de obra, combustible…). El sistema acumula el costo y lo usa para el análisis.</p>
+
+  <h3>Análisis de costos</h3>
+  <p>Compara costo total contra rendimiento por siembra y por cultivo, para saber qué te deja margen y qué no.</p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- 26. PRODUCCIÓN Y LOTES -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section class="chapter" id="produccion">
+  <h2>26. Producción y Lotes</h2>
+  <p>Transformá materia prima en producto terminado, con receta y costos calculados. Es la continuación natural del módulo Productor.</p>
+
+  <h3>Cadenas de producción (la receta)</h3>
+  <ol class="steps">
+    <li>En <strong>Producción → Cadenas</strong>, crea una cadena.</li>
+    <li>Asociá el producto final y definí el margen de ganancia.</li>
+    <li>Agregá los pasos: cada uno con su producto de entrada, la cantidad y, si querés, el costo unitario y el tiempo estimado.</li>
+    <li>El sistema calcula el costo total y el costo unitario del producto final.</li>
+  </ol>
+
+  <h3>Lotes</h3>
+  <ol class="steps">
+    <li>Con la cadena lista, crea un <strong>lote</strong> indicando la cantidad a producir.</li>
+    <li>Mientras está en marcha podés registrar los costos reales de mano de obra y gastos indirectos.</li>
+    <li>Al terminar, pulsá <strong>Completar lote</strong>: se descuentan las materias primas y se suma el producto terminado al stock.</li>
+    <li>Si algo salió mal, <strong>Cancelar lote</strong> deja el registro sin mover stock.</li>
+  </ol>
+  <div class="callout tip">
+    <strong>Un lote, un número</strong>
+    Cada lote es una tanda concreta de producción. Sirve para rastrear cuánto costó de verdad cada corrida y compararlo con la estimación de la cadena.
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- 27. ALMACENES -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section class="chapter" id="almacenes">
+  <h2>27. Almacenes</h2>
+  <p>Si tenés más de un depósito, local o camión, dividí el stock por almacén. Cada movimiento de inventario (compra, venta, ajuste, transferencia) queda registrado en el almacén que corresponde.</p>
+  <ul>
+    <li><strong>Crear almacenes</strong>: en <strong>Almacenes</strong> podés dar de alta, renombrar y activar o desactivar depósitos.</li>
+    <li><strong>El almacén activo</strong> se elige en la barra superior y aplica a todo lo que hagas después: POS, compras, ajustes y caja.</li>
+    <li><strong>Ajustes</strong>: al ajustar stock podés indicar el almacén, de modo que el movimiento quede con su justificación y su ubicación.</li>
+    <li><strong>Caja por almacén</strong>: si cada local maneja su propia caja, la apertura y el cierre quedan asociados al almacén.</li>
+  </ul>
+  <div class="callout info">
+    <strong>Si usás un solo depósito</strong>
+    Podés ignorar esta sección: el sistema trabaja con un almacén principal y todo cae ahí.
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- 28. HÍPICO -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section class="chapter" id="hipico">
+  <h2>28. Módulo Hípico</h2>
+  <p>Gestión de carreras y venta de apuestas dentro del mismo sistema, sin planillas aparte.</p>
+
+  <h3>Datos base</h3>
+  <ul>
+    <li><strong>Propietarios</strong>: dueños de los ejemplares, con sus datos de contacto.</li>
+    <li><strong>Caballos</strong>: cada ejemplar queda asociado a su propietario.</li>
+  </ul>
+
+  <h3>Carreras e inscripciones</h3>
+  <ol class="steps">
+    <li>Crea la carrera con fecha, hipódromo y condiciones.</li>
+    <li>Inscribí los ejemplares participantes.</li>
+    <li>Al correr la carrera, cargá los <strong>resultados</strong> con las posiciones.</li>
+  </ol>
+
+  <h3>Apuestas</h3>
+  <ol class="steps">
+    <li>Seleccioná la carrera y el ejemplar.</li>
+    <li>Registrá el monto de la apuesta y el tipo (ganador, lugar, etc.).</li>
+    <li>El sistema genera el comprobante de la apuesta, que podés imprimir.</li>
+    <li>Si la apuesta resulta ganadora, registrá su pago desde la misma pantalla.</li>
+  </ol>
+  <div class="callout warn">
+    <strong>Permisos</strong>
+    Vender apuestas y administrarlas son permisos separados: podés dejar que un cajero venda sin darle acceso a cerrar o pagar apuestas.
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- 29. RECURSOS HUMANOS -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <section class="chapter" id="rrhh">
-  <h2>24. Recursos Humanos</h2>
+  <h2>29. Recursos Humanos</h2>
   <p>Gestiona empleados, asistencia y nómina.</p>
 
   <h3>Empleados</h3>
@@ -788,10 +962,10 @@
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
-<!-- 24. CONTABILIDAD -->
+<!-- 30. CONTABILIDAD -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <section class="chapter" id="contable">
-  <h2>25. Contabilidad</h2>
+  <h2>30. Contabilidad</h2>
   <p>Consulta libros contables generados automáticamente a partir de las operaciones del sistema.</p>
   <ul>
     <li><strong>Libro de Ventas</strong>: cada venta registrada con impuesto desglosado.</li>
@@ -803,10 +977,10 @@
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
-<!-- 25. PREGUNTAS FRECUENTES -->
+<!-- 31. PREGUNTAS FRECUENTES -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <section class="chapter" id="faq">
-  <h2>25. Preguntas Frecuentes</h2>
+  <h2>31. Preguntas Frecuentes</h2>
   <div class="grid grid-2">
     <div class="card">
       <h4>¿Funciona sin internet?</h4>
@@ -830,29 +1004,37 @@
     </div>
     <div class="card">
       <h4>¿Puedo exportar a Excel?</h4>
-      <p>Sí. Usa los botones <strong>Exportar CSV</strong> en Inventario, Reportes y Ventas.</p>
+      <p>Sí. Usa los botones <strong>Exportar CSV</strong> en Inventario, Reportes, Ventas y en los libros de Contabilidad.</p>
+    </div>
+    <div class="card">
+      <h4>¿Qué módulos puedo activar?</h4>
+      <p>Comercializador (base, siempre incluido), Distribuidor, Restaurant, Postventa, Productor, Producción y Lotes, Almacenes, Hípico, Recursos Humanos, Contabilidad y Red Local. Vés cuáles tenés activos en <strong>Configuración → Sistema → Licencia</strong>.</p>
+    </div>
+    <div class="card">
+      <h4>Registré una devolución, ¿vuelve el stock?</h4>
+      <p>Sí, si asociaste un producto: el sistema repone la cantidad devuelta. Las notas de crédito solo dejan el registro, sin mover stock. Ver <a href="#postventa">Postventa</a>.</p>
     </div>
   </div>
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
-<!-- 26. SOPORTE -->
+<!-- 32. SOPORTE -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <section class="chapter" id="soporte">
-  <h2>26. Soporte</h2>
+  <h2>32. Soporte</h2>
   <p>Dentro de TOG Admin hay un <strong>Centro de Ayuda</strong> (ícono ❓) con guía de cada función y atajos de teclado.</p>
   <p>Para reiniciar el tutorial de onboarding: <strong>Configuración → Sistema → Reiniciar Tutorial</strong>.</p>
   <p>Si encuentras un error, el sistema genera archivos <code>.txt</code> con el detalle técnico. Envíalos al soporte junto con una descripción del problema.</p>
 
   <div class="callout info">
-    <strong>TOG Admin v1.2.0</strong> — Ecosistema modular de Punto de Venta y Gestión
+    <strong>TOG Admin v1.2.1</strong> — Ecosistema modular de Punto de Venta y Gestión
   </div>
 </section>
 
 <!-- FOOTER -->
 <div class="footer">
   <p>&copy; 2026 TOG Admin. Todos los derechos reservados.</p>
-  <p>Manual del Usuario &middot; Versión 1.2.0 &middot; Septiembre 2026</p>
+  <p>Manual del Usuario &middot; Versión 1.2.1 &middot; Septiembre 2026</p>
 </div>
 
 </div><!-- /container -->

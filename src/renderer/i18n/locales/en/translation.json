@@ -404,6 +404,7 @@
     "description": "Description",
     "sale": "Sale",
     "saleId": "Sale ID (optional)",
+    "saleIdInvalid": "The sale ID must be a positive whole number. Leave the field empty if you do not want to link a sale.",
     "productId": "Product ID (optional)",
     "reason": "Reason",
     "type": "Type",

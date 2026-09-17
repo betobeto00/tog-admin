@@ -52,8 +52,24 @@ export function registerPostventaHandlers(): void {
     }
     const db = getDatabase()
 
+    // La venta es opcional, pero si viene tiene que existir de verdad: la FK
+    // `venta_id → ventas(id)` haría fallar el INSERT con el críptico
+    // "FOREIGN KEY constraint failed" (era el error que veía el usuario al
+    // escribir un ID de venta que no existe).
+    let ventaId: number | null = null
+    if (data.venta_id !== undefined && data.venta_id !== null && data.venta_id !== ('' as any)) {
+      const parsed = Number(data.venta_id)
+      if (!Number.isInteger(parsed) || parsed <= 0) {
+        return { success: false, error: `ID de venta inválido: "${data.venta_id}". Debe ser un número entero positivo.` }
+      }
+      const venta = db.prepare('SELECT id FROM ventas WHERE id = ?').get(parsed) as any
+      if (!venta) {
+        return { success: false, error: `La venta #${parsed} no existe. Revisá el ID o dejá el campo vacío.` }
+      }
+      ventaId = parsed
+    }
+
     const crear = db.transaction(() => {
-      const hoy = new Date().toISOString().slice(0, 10).replace(/-/g, '')
       const row = db!.prepare('SELECT MAX(numero) as max_num FROM tickets_postventa').get() as any
       // numero global secuencial PV-000001
       const secuencia = (row?.max_num ? parseInt(String(row.max_num).split('-')[1], 10) : 0) + 1
@@ -62,7 +78,7 @@ export function registerPostventaHandlers(): void {
         INSERT INTO tickets_postventa (numero, venta_id, cliente_nombre, cliente_telefono, asunto, descripcion, prioridad, usuario_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
-        numero, data.venta_id || null, data.cliente_nombre.trim(), data.cliente_telefono?.trim() || null,
+        numero, ventaId, data.cliente_nombre.trim(), data.cliente_telefono?.trim() || null,
         data.asunto.trim(), data.descripcion?.trim() || null, data.prioridad || 'media', data.usuario_id ?? null,
       )
       const ticketId = result.lastInsertRowid as number
@@ -76,7 +92,16 @@ export function registerPostventaHandlers(): void {
     try {
       return crear()
     } catch (err: any) {
-      return { success: false, error: err?.message || 'Error al crear el ticket' }
+      // Red de seguridad: si alguna otra FK se viola, al menos decimos qué revisar
+      // en vez de devolver el mensaje crudo de SQLite.
+      const mensaje = String(err?.message ?? '')
+      if (mensaje.includes('FOREIGN KEY constraint failed')) {
+        return {
+          success: false,
+          error: 'No se pudo crear el ticket: hay una referencia inexistente (venta o usuario). Revisá el ID de venta.',
+        }
+      }
+      return { success: false, error: mensaje || 'Error al crear el ticket' }
     }
   })
 
@@ -165,26 +190,47 @@ export function registerPostventaHandlers(): void {
     const tipo = data.tipo === 'nota_credito' ? 'nota_credito' : 'devolucion'
     const db = getDatabase()
 
+    // Ventas y tickets son referencias explícitas: si el ID no existe, mejor
+    // decirlo que dejar que la FK falle con "FOREIGN KEY constraint failed".
+    if (data.venta_id) {
+      const venta = db.prepare('SELECT id FROM ventas WHERE id = ?').get(Number(data.venta_id)) as any
+      if (!venta) return { success: false, error: `La venta #${data.venta_id} no existe. Revisá el ID o dejá el campo vacío.` }
+    }
+    if (data.ticket_id) {
+      const ticket = db.prepare('SELECT id FROM tickets_postventa WHERE id = ?').get(Number(data.ticket_id)) as any
+      if (!ticket) return { success: false, error: `El ticket #${data.ticket_id} no existe.` }
+    }
+    // El producto sí es best-effort (contrato documentado abajo): si ya no está
+    // en el catálogo, la devolución se registra igual, sin reponer stock.
+    const productoExiste = data.producto_id
+      ? Boolean(db.prepare('SELECT id FROM productos WHERE id = ?').get(Number(data.producto_id)))
+      : false
+    const productoId = productoExiste ? Number(data.producto_id) : null
+
     const registrar = db.transaction(() => {
       const result = db!.prepare(`
         INSERT INTO devoluciones (venta_id, ticket_id, producto_id, cantidad, monto, motivo, tipo, usuario_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
-        data.venta_id || null, data.ticket_id || null, data.producto_id || null,
+        data.venta_id || null, data.ticket_id || null, productoId,
         data.cantidad || 1, data.monto, data.motivo.trim(), tipo, data.usuario_id ?? null,
       )
       // Reposición de inventario si hay producto asociado
-      if (data.producto_id) {
+      if (productoId) {
         db!.prepare("UPDATE productos SET stock = stock + ? WHERE id = ? AND tipo != 'servicio'")
-          .run(data.cantidad || 1, data.producto_id)
+          .run(data.cantidad || 1, productoId)
       }
-      return { id: result.lastInsertRowid }
+      return { id: result.lastInsertRowid, producto_id: productoId }
     })
 
     try {
       return registrar()
     } catch (err: any) {
-      return { success: false, error: err?.message || 'Error al registrar la devolución' }
+      const mensaje = String(err?.message ?? '')
+      if (mensaje.includes('FOREIGN KEY constraint failed')) {
+        return { success: false, error: 'No se pudo registrar la devolución: hay una referencia inexistente.' }
+      }
+      return { success: false, error: mensaje || 'Error al registrar la devolución' }
     }
   })
 

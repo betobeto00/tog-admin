@@ -310,12 +310,20 @@ function ModalTicket({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
   const [saving, setSaving] = useState(false)
 
   const guardar = async () => {
+    // La venta es opcional, pero si se escribe tiene que ser un ID válido:
+    // así el usuario ve un mensaje claro en vez del error de FK del backend.
+    const ventaNumero = ventaId.trim() === '' ? undefined : Number(ventaId)
+    if (ventaNumero !== undefined && (!Number.isInteger(ventaNumero) || ventaNumero <= 0)) {
+      toast.error(t('postventa.saleIdInvalid'))
+      return
+    }
+
     setSaving(true)
     try {
       await callApi('postventa:ticket-create', {
         cliente_nombre: cliente, cliente_telefono: telefono || undefined, asunto,
         descripcion: descripcion || undefined, prioridad,
-        venta_id: ventaId ? Number(ventaId) : undefined,
+        venta_id: ventaNumero,
       })
       toast.success(t('postventa.ticketCreated'))
       onSaved()
@@ -342,7 +350,7 @@ function ModalTicket({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
           <select value={prioridad} onChange={(e) => setPrioridad(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
             {PRIORIDADES.map((p) => <option key={p} value={p}>{t(`postventa.prioridad.${p}`)}</option>)}
           </select>
-          <input type="number" value={ventaId} onChange={(e) => setVentaId(e.target.value)} placeholder={t('postventa.saleId')} min="0"
+          <input type="number" value={ventaId} onChange={(e) => setVentaId(e.target.value)} placeholder={t('postventa.saleId')} min="1" step="1"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
         </div>
         <div className="flex justify-end gap-2 pt-2">
@@ -407,10 +415,18 @@ function ModalDevolucion({ onClose, onSaved }: { onClose: () => void; onSaved: (
   const [saving, setSaving] = useState(false)
 
   const guardar = async () => {
+    // Mismo cuidado que en el ticket: si se escribe un ID de venta, tiene que ser
+    // un número válido (el backend avisa si no existe).
+    const ventaNumero = ventaId.trim() === '' ? undefined : Number(ventaId)
+    if (ventaNumero !== undefined && (!Number.isInteger(ventaNumero) || ventaNumero <= 0)) {
+      toast.error(t('postventa.saleIdInvalid'))
+      return
+    }
+
     setSaving(true)
     try {
       await callApi('postventa:devolucion-create', {
-        venta_id: ventaId ? Number(ventaId) : undefined,
+        venta_id: ventaNumero,
         producto_id: productoId ? Number(productoId) : undefined,
         cantidad: Number(cantidad) || 1,
         monto: Number(monto),
@@ -431,7 +447,7 @@ function ModalDevolucion({ onClose, onSaved }: { onClose: () => void; onSaved: (
       <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold">{t('postventa.newDevolucion')}</h2>
         <div className="grid grid-cols-2 gap-3">
-          <input type="number" value={ventaId} onChange={(e) => setVentaId(e.target.value)} placeholder={t('postventa.saleId')} min="0"
+          <input type="number" value={ventaId} onChange={(e) => setVentaId(e.target.value)} placeholder={t('postventa.saleId')} min="1" step="1"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
           <input type="number" value={productoId} onChange={(e) => setProductoId(e.target.value)} placeholder={t('postventa.productId')} min="0"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />

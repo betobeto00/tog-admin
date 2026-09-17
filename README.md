@@ -49,7 +49,7 @@ Desktop app construida con Electron + React + TypeScript + SQLite. Una PC, una c
 - 🐛 **Crash reports** — automatic error reports with system info
 - 🔑 **License sync** — pre-auth channel `license:sync` (works from the lock screen): URL + empresa ID + api key → download → RSA re-validation → save
 - 🔐 **Validación de origen IPC** — `handleIpc` (`core/auth/ipc-guard.ts`): solo main-frame `file://` (producción) o `localhost:5173` (dev); un origen ajeno lanza error y no ejecuta el handler
-- ✅ **435 automated tests** — validations, services, IPC handlers, React components, sesión única, servidor HTTP de red local
+- ✅ **454 automated tests** — validations, services, IPC handlers, React components, sesión única, servidor HTTP de red local
 
 ### UI/UX
 - 🎨 **Hero background** — imagen de fondo en pantalla de login
@@ -86,7 +86,7 @@ npm install
 # Ejecutar en modo desarrollo
 npm run dev
 
-# Ejecutar tests (Vitest: 444 tests en 37 archivos)
+# Ejecutar tests (Vitest: 454 tests en 38 archivos)
 npm test
 
 # Tests en watch mode
@@ -181,7 +181,7 @@ tog-admin/
 │   │   ├── core/auth/       # auth-service.ts + permissions.ts (checkPermissionOrFail) + ipc-guard.ts (handleIpc, origen seguro)
 │   │   ├── modules/         # Handlers IPC por módulo (inventario, ventas, configuracion, caja-extra, license, terminal, distribuidor, restaurant, administracion, rrhh, productor, postventa, hipico, print, red, shared…)
 │   │   ├── db/
-│   │   │   ├── database.ts  # SQLite + 48 migraciones + seeds
+│   │   │   ├── database.ts  # SQLite + 52 migraciones + seeds
 │   │   │   └── migrate.ts
 │   │   ├── i18n/            # Traducciones main process
 │   │   │   └── locales/     # es.json, en.json
@@ -214,7 +214,7 @@ tog-admin/
 │       ├── types.ts
 │       ├── papeleria-api.d.ts  # Tipos de la API expuesta al renderer
 │       ├── validations.ts   # Schemas Zod
-│       ├── permissions.ts   # Catálogo de 64 permisos en 13 categorías
+│       ├── permissions.ts   # Catálogo de 69 permisos en 15 categorías
 │       ├── permissions.test.ts
 │       ├── ipc-channels.ts  # Canales IPC + PREAUTH_CHANNELS
 │       ├── ipc-channels.test.ts

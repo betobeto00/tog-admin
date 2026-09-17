@@ -248,7 +248,7 @@
 | # | Feature | Prioridad | Estado | DescripciÃ³n |
 |---|---------|-----------|--------|-------------|
 | SEC1 | Sistema de licencias RSA-2048 | ðŸ”´ | âœ… | Licencias offline con validaciÃ³n de firma + **Sincronizar** (canal pre-auth `license:sync`, re-validaciÃ³n RSA local) |
-| SEC2 | Permisos por usuario (64 permisos) | ðŸŸ¡ | âœ… | 13 categorÃ­as de permisos granulares (incl. `distribuidor_*`, `creditos_*`, `red_manage`, `hipico_*`, `productor_*`, `postventa_*`) |
+| SEC2 | Permisos por usuario (69 permisos) | ðŸŸ¡ | âœ… | 13 categorÃ­as de permisos granulares (incl. `distribuidor_*`, `creditos_*`, `red_manage`, `hipico_*`, `productor_*`, `postventa_*`) |
 | SEC3 | Rate limiting en login | ðŸ”´ | âœ… | Bloqueo despuÃ©s de 5 intentos |
 | SEC4 | Session timeout | ðŸ”´ | âœ… | 30 min de inactividad |
 | SEC5 | Password hashing (bcrypt) | ðŸ”´ | âœ… | 10 salt rounds |
@@ -265,7 +265,7 @@
 | INF1 | Auto-update (electron-updater) | ðŸŸ¡ | âœ… | Actualizaciones vÃ­a GitHub Releases |
 | INF2 | NSIS installer | ðŸŸ¡ | âœ… | Instalador Windows con acceso directo |
 | INF3 | i18n (ES/EN) | ðŸŸ¡ | âœ… | ~1,862 keys por idioma (ES/EN, renderer) + ~98 en main |
-| INF4 | Tests automatizados | ðŸŸ¡ | âœ… | 444 tests en 37 archivos (Vitest: validaciones, servicios, handlers IPC, componentes) |
+| INF4 | Tests automatizados | ðŸŸ¡ | âœ… | 454 tests en 38 archivos (Vitest: validaciones, servicios, handlers IPC, componentes) |
 | INF5 | Build portable | ðŸŸ¢ | âœ… | VersiÃ³n sin instalador |
 | INF6 | Instalador X32 | ðŸŸ¡ | â³ | Instalador para arquitectura de 32 bits |
 | INF7 | Logging estructurado (winston) | ðŸŸ¡ | â³ | Logging centralizado en main process |
