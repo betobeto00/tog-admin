@@ -1,4 +1,5 @@
 import { app, dialog } from 'electron'
+import crypto from 'node:crypto'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
@@ -48,11 +49,25 @@ function ensureCrashDir(): string {
   return dir
 }
 
+/**
+ * Tope por campo textual del reporte. `crash-report:save` es pre-auth (tiene
+ * que funcionar desde la pantalla de login), así que el renderer puede mandar
+ * strings enormes: sin tope, unos pocos reportes llenan el disco.
+ */
+const MAX_REPORT_FIELD_CHARS = 20_000
+
+function clampField(value: string | undefined, max = MAX_REPORT_FIELD_CHARS): string | undefined {
+  if (typeof value !== 'string') return undefined
+  return value.length > max ? `${value.slice(0, max)}\n…[truncado]` : value
+}
+
 function generateId(): string {
   const now = new Date()
   const date = now.toISOString().split('T')[0]
   const time = now.toTimeString().split(' ')[0].replace(/:/g, '')
-  const random = Math.random().toString(36).substring(2, 6)
+  // hex de crypto (CSPRNG) en lugar de Math.random(): el id es parte del
+  // nombre de archivo, no queremos colisiones predecibles.
+  const random = crypto.randomBytes(3).toString('hex')
   return `crash-${date}-${time}-${random}`
 }
 
@@ -85,9 +100,9 @@ function buildReport(data: {
     id: generateId(),
     timestamp: new Date().toISOString(),
     type: data.type,
-    message: data.message,
-    stack: data.stack,
-    componentStack: data.componentStack,
+    message: clampField(data.message) ?? '',
+    stack: clampField(data.stack),
+    componentStack: clampField(data.componentStack),
     appVersion: app.getVersion(),
     electronVersion: process.versions.electron || 'unknown',
     nodeVersion: process.versions.node || 'unknown',
@@ -98,9 +113,9 @@ function buildReport(data: {
     totalMemory: os.totalmem(),
     freeMemory: os.freemem(),
     uptime: os.uptime(),
-    currentUrl: data.currentUrl,
-    userAgent: data.userAgent,
-    loggedUser: data.loggedUser,
+    currentUrl: clampField(data.currentUrl, 2_000),
+    userAgent: clampField(data.userAgent, 1_000),
+    loggedUser: clampField(data.loggedUser, 200),
     recentLogs: getRecentLogs(),
   }
 }

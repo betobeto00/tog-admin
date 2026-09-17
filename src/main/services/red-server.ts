@@ -1,7 +1,16 @@
 import http from 'http'
 import https from 'https'
-import { PREAUTH_CHANNELS } from '../../shared/ipc-channels'
-import { generarToken, parTieneSesionActiva, liberarSesionesDePar, actualizarHeartbeatPar, type DbLike } from './red-session'
+import { PREAUTH_CHANNELS, REMOTE_BLOCKED_CHANNELS } from '../../shared/ipc-channels'
+import {
+  generarToken,
+  getSesionUsuario,
+  liberarSesionesDePar,
+  actualizarHeartbeatPar,
+  actualizarHeartbeatSesiones,
+  barrerSesionesInactivas,
+  type DbLike,
+} from './red-session'
+import { permitirIntentoVincular } from './red-rate-limit'
 import { logger } from './logger'
 import { getDatabase } from '../db/database'
 import { getIpcListener } from '../core/auth/ipc-guard'
@@ -11,25 +20,6 @@ import type { TlsMaterial } from './red-cert'
 
 export const RED_SERVER_PORT = 3002
 const CODIGO_TTL_MS = 5 * 60 * 1000
-
-const RATE_LIMIT_WINDOW_MS = 60_000
-const RATE_LIMIT_MAX = 5
-const vincularAttempts = new Map<string, { count: number; windowStart: number }>()
-
-export function resetVincularRateLimit(): void {
-  vincularAttempts.clear()
-}
-
-function checkVincularRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const entry = vincularAttempts.get(ip)
-  if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
-    vincularAttempts.set(ip, { count: 1, windowStart: now })
-    return true
-  }
-  entry.count++
-  return entry.count <= RATE_LIMIT_MAX
-}
 
 const SAFE_FILENAME_RE = /^[a-zA-Z0-9._-]+$/
 
@@ -66,6 +56,41 @@ export function generarCodigoEnlace(
 }
 
 let runningServer: RedServer | null = null
+let sweepTimer: ReturnType<typeof setInterval> | null = null
+
+/**
+ * Frecuencia del barrido de sesiones huérfanas. Es menor que el TTL de 5 min
+ * para que una terminal caída libere su sesión en pocos minutos.
+ */
+const SESION_SWEEP_INTERVAL_MS = 60 * 1000
+
+/**
+ * Arranca el barrido periódico de sesiones sin latido. Solo corre en la PC Base
+ * (es la única que conoce las sesiones de todas las terminales).
+ */
+function iniciarBarridoSesiones(): void {
+  if (sweepTimer) return
+  sweepTimer = setInterval(() => {
+    try {
+      const expulsados = barrerSesionesInactivas(getDatabase())
+      if (expulsados.length > 0) {
+        logger.info('red', `Sesiones liberadas de ${expulsados.length} PC(s) sin latido`)
+      }
+    } catch (err: any) {
+      // best-effort: nunca debe tumbar el proceso main
+      logger.error('red', 'Error en el barrido de sesiones:', err)
+    }
+  }, SESION_SWEEP_INTERVAL_MS)
+  // No mantiene vivo el proceso por sí solo (Electron cierra cuando quiere).
+  sweepTimer.unref?.()
+}
+
+function detenerBarridoSesiones(): void {
+  if (sweepTimer) {
+    clearInterval(sweepTimer)
+    sweepTimer = null
+  }
+}
 
 export async function startRedServerIfBase(): Promise<boolean> {
   try {
@@ -98,6 +123,7 @@ export async function startRedServerIfBase(): Promise<boolean> {
       tls,
     })
     await runningServer.start()
+    iniciarBarridoSesiones()
     return true
   } catch (err: any) {
     logger.error('red', 'No se pudo iniciar el servidor red:', err)
@@ -106,6 +132,7 @@ export async function startRedServerIfBase(): Promise<boolean> {
 }
 
 export async function stopRedServer(): Promise<void> {
+  detenerBarridoSesiones()
   if (runningServer) {
     await runningServer.stop()
     runningServer = null
@@ -160,6 +187,20 @@ function validarPar(db: DbLike, parId: unknown, certHash: unknown): boolean {
   return true
 }
 
+/**
+ * `usuario_id` que el cliente dice ser. Se busca en cualquier argumento objeto
+ * porque los handlers lo reciben en distintas posiciones.
+ */
+export function extractClaimedUserId(args: unknown[]): number | null {
+  for (const arg of args) {
+    if (arg && typeof arg === 'object' && !Array.isArray(arg)) {
+      const value = (arg as Record<string, unknown>).usuario_id
+      if (typeof value === 'number') return value
+    }
+  }
+  return null
+}
+
 export function createRedServer(deps: RedServerDeps): RedServer {
   let server: http.Server | https.Server | null = null
   const port = deps.port ?? RED_SERVER_PORT
@@ -190,8 +231,9 @@ export function createRedServer(deps: RedServerDeps): RedServer {
         const body = await readBody(req, res)
         if (body === null) return
 
+        const db = deps.getDb()
         const clienteIp = (req.socket.remoteAddress || '').replace(/^::ffff:/, '')
-        if (!checkVincularRateLimit(clienteIp)) {
+        if (!permitirIntentoVincular(db, clienteIp)) {
           return json(res, 429, { success: false, error: 'Demasiados intentos. Intentá de nuevo en un minuto.' })
         }
 
@@ -200,7 +242,6 @@ export function createRedServer(deps: RedServerDeps): RedServer {
         if (!codigo || !nombre) {
           return json(res, 400, { success: false, error: 'codigo y nombre son requeridos' })
         }
-        const db = deps.getDb()
         const row = db
           .prepare('SELECT id, expira_en, usado FROM codigos_enlace WHERE codigo = ?')
           .get(codigo) as { id: number; expira_en: string; usado: number } | undefined
@@ -246,6 +287,10 @@ export function createRedServer(deps: RedServerDeps): RedServer {
         if (!validarPar(db, body?.par_id, body?.cert_hash)) {
           return json(res, 401, { success: false, error: 'Credenciales de par inválidas' })
         }
+        // El latido también marca vivas las SESIONES de ese par: es lo que
+        // distingue "terminal trabajando" de "terminal apagada con la sesión
+        // trabada" para el barrido (ver `barrerSesionesInactivas`).
+        actualizarHeartbeatSesiones(db, body.par_id)
         return json(res, 200, { success: true, server_time: new Date().toISOString() })
       }
 
@@ -271,9 +316,28 @@ export function createRedServer(deps: RedServerDeps): RedServer {
         const args: unknown[] = Array.isArray(body?.args) ? body.args : []
         if (!canal) return json(res, 400, { success: false, error: 'canal es requerido' })
 
+        if ((REMOTE_BLOCKED_CHANNELS as readonly string[]).includes(canal)) {
+          return json(res, 403, { success: false, error: 'Canal no disponible para PCs remotas' })
+        }
+
         const esPreauth = (PREAUTH_CHANNELS as readonly string[]).includes(canal)
-        if (!esPreauth && !parTieneSesionActiva(db, body.par_id)) {
-          return json(res, 401, { success: false, error: 'Sin sesión activa en esta PC. Iniciá sesión primero.' })
+        const sesionUsuario = getSesionUsuario(db, body.par_id)
+        if (!esPreauth) {
+          if (sesionUsuario == null) {
+            return json(res, 401, { success: false, error: 'Sin sesión activa en esta PC. Iniciá sesión primero.' })
+          }
+          // La hija elige el usuario_id que manda; la Base decide si es cierto.
+          const claimed = extractClaimedUserId(args)
+          if (claimed != null && claimed !== sesionUsuario) {
+            logger.warn(
+              'red',
+              `RPC rechazado: par ${String(body.par_id).slice(0, 8)}… reclamó usuario_id=${claimed} con sesión de usuario_id=${sesionUsuario}`,
+            )
+            return json(res, 403, {
+              success: false,
+              error: 'El usuario indicado no coincide con la sesión activa de esta PC.',
+            })
+          }
         }
 
         const handler = deps.getHandler(canal)

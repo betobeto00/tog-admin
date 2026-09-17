@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getApi } from '../lib/api-client'
+import { callApi } from '../lib/api-client'
 
 interface Props {
   productoId: number
@@ -16,9 +16,10 @@ export default function ProductImage({ productoId, alt = '', className, fallback
     let active = true
     setDataUrl(null)
     setLoaded(false)
-    getApi()
-      .productos.getImagen({ id: productoId })
-      .then((res: { success?: boolean; dataUrl?: string | null }) => {
+    // Por `callApi` (no por `window.api` directo) para que viaje el token de
+    // sesión: `productos:get-imagen` valida permisos en el main.
+    callApi<{ success?: boolean; dataUrl?: string | null }>('productos:get-imagen', { id: productoId })
+      .then((res) => {
         if (!active) return
         if (res?.success && res.dataUrl) {
           setDataUrl(res.dataUrl)

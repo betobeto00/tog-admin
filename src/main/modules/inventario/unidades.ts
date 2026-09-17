@@ -1,6 +1,7 @@
 import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
+import { unidadCreateSchema, unidadUpdateSchema, validateInput } from '../../../shared/validations'
 
 export function registerUnidadesHandlers(): void {
   handleIpc('unidades:list', async (_event, data: any) => {
@@ -13,6 +14,8 @@ export function registerUnidadesHandlers(): void {
   handleIpc('unidades:create', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'unidades:create', 'inventario_units')
     if (fail) return fail
+    const invalid = validateInput(unidadCreateSchema, data)
+    if (!invalid.ok) return { success: false, error: invalid.error }
     const db = getDatabase()
     const result = db.prepare('INSERT INTO unidades_medida (nombre, abreviatura) VALUES (?, ?)').run(
       data.nombre,
@@ -24,6 +27,8 @@ export function registerUnidadesHandlers(): void {
   handleIpc('unidades:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'unidades:update', 'inventario_units')
     if (fail) return fail
+    const invalid = validateInput(unidadUpdateSchema, data?.data)
+    if (!invalid.ok) return { success: false, error: invalid.error }
     const db = getDatabase()
     db.prepare('UPDATE unidades_medida SET nombre = COALESCE(?, nombre), abreviatura = COALESCE(?, abreviatura) WHERE id = ?').run(
       data.data.nombre || null,

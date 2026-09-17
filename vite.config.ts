@@ -13,9 +13,18 @@ function electronHtmlFix(): any {
   }
 }
 
-// CSP: estricta en producción, relajada en dev (Vite necesita inline + ws para HMR)
-const DEV_CSP = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http://localhost:5173 ws://localhost:5173 https:; object-src 'none'; base-uri 'self'; form-action 'self'"
-const PROD_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'"
+// CSP: estricta en producción, relajada en dev (Vite necesita inline + ws para HMR).
+//
+// ⚠️ Este plugin REESCRIBE el meta tag de `index.html` en build: si no se
+// actualiza acá, la edición del HTML no llega al instalador. Son tres lugares
+// que deben coincidir: este archivo (build del renderer), `src/main/index.ts`
+// (header de sesión de Electron) e `index.html` (fallback en dev).
+//
+// `connect-src 'self'`: el renderer de TOG Admin NO hace requests externos (es
+// offline-first; todo el tráfico de red vive en el proceso main). Con `https:`
+// abierto, un XSS podía exfiltrar la base del negocio a cualquier dominio.
+const DEV_CSP = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http://localhost:5173 ws://localhost:5173; object-src 'none'; base-uri 'self'; form-action 'self'"
+const PROD_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
 
 function injectCsp(): any {
   return {

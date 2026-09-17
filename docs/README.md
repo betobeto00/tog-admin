@@ -23,8 +23,12 @@
 
 Registros, no fuentes de verdad. No se actualizan; se archivan.
 
-`ROADMAP.md` · `ROADMAP-INTEGRACION.md` · `FASE-5-PRODUCTOS.md` · `KNOWLEDGE.md` · `CONVERSACION-2025-09-01.md` · `AUDITORIA_COMPLETA_TOG_ADMIN_V3.md` · `ANALISIS_PERFORMANCE_UNA_PC.md` · `INFORME-ERP.md` · `benchmarkin-Integra-POS.md` · `Caso-Venezuela.md` · `ARQUITECTURA-MODULAR.md` · `PRODUCTION_BUILD_REPORT.md` · `DATA_MODEL.md` · `MONEDA.md` · `Sistema-COD-BARRAS.md` · `DISENO-MODULO-RESTAURANTE.md` · `TECH_STACK.md` · `NEXT-SESSION.md`
+`ROADMAP.md` · `ROADMAP-INTEGRACION.md` · `FASE-5-PRODUCTOS.md` · `KNOWLEDGE.md` · `CONVERSACION-2025-09-01.md` · `AUDITORIA_COMPLETA_TOG_ADMIN_V3.md` · `ANALISIS_PERFORMANCE_UNA_PC.md` · `INFORME-ERP.md` · `benchmarkin-Integra-POS.md` · `Caso-Venezuela.md` · `ARQUITECTURA-MODULAR.md` · `PRODUCTION_BUILD_REPORT.md` · `DATA_MODEL.md` · `MONEDA.md` · `Sistema-COD-BARRAS.md` · `DISENO-MODULO-RESTAURANTE.md` · `TECH_STACK.md` · `NEXT-SESSION.md` · `REMEDIACION_INFORME_SEGURIDAD.md`
 
+> La auditoría `INFORME_SEGURIDAD_TOG_ADMIN.md` (raíz de `docs/`) es un insumo del
+> binario desempaquetado, no fuente de verdad: su certificación contra el código
+> y su remediación viven en `docs/historia/REMEDIACION_INFORME_SEGURIDAD.md`.
+>
 > Notas: el diseño de cobro online (Crixto) vive en `tog-platform/docs/FACTURACION-CRIXTO.md`.
 > **Stripe fue descartado**: las bitácoras archivadas que lo mencionan son históricas,
 > no describen el sistema actual.
@@ -38,7 +42,7 @@ actualiza aquí y en la doc canónica correspondiente:
 
 | Métrica | Valor real | Fuente |
 |---|---|---|
-| Permisos | **64 en 13 categorías** | `src/shared/permissions.ts` (`PERMISSIONS`, `PERMISSION_CATEGORIES`) |
+| Permisos | **69 en 15 categorías** | `src/shared/permissions.ts` (`PERMISSIONS`, `ROLE_DEFAULTS`, `USER_ROLES`) |
 | Tests | **444 tests en 37 archivos** | `npm test` (Vitest) |
 | Migraciones DB | **001–048** | `src/main/db/database.ts` |
 | Páginas renderer | **26** | `src/renderer/pages/*.tsx` |

@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
+import { USER_ROLES } from './permissions'
 import {
   usuarioCreateSchema,
   usuarioUpdateSchema,
+  validateInput,
   categoriaCreateSchema,
   productoCreateSchema,
   proveedorCreateSchema,
@@ -496,5 +498,75 @@ describe('creditoAbonoSchema', () => {
     expect(creditoAbonoSchema.safeParse({ credito_id: 1, monto: 10 }).success).toBe(true)
     expect(creditoAbonoSchema.safeParse({ credito_id: 1, monto: 0 }).success).toBe(false)
     expect(creditoAbonoSchema.safeParse({ credito_id: 1, monto: -5 }).success).toBe(false)
+  })
+})
+
+// ============================================
+// ROLES — fuente única (regresión: el enum decía solo admin | cajero, así que
+// no se podía crear ni editar un usuario `manager` desde el formulario, que
+// ofrece los tres roles).
+// ============================================
+
+describe('roles de usuario', () => {
+  it('USER_ROLES incluye los tres roles que ofrece la UI', () => {
+    expect([...USER_ROLES].sort()).toEqual(['admin', 'cajero', 'manager'])
+  })
+
+  it('usuarioCreateSchema acepta manager', () => {
+    const result = usuarioCreateSchema.safeParse({
+      usuario: 'gerente',
+      contrasena: '12345678',
+      nombre: 'Gerente',
+      rol: 'manager',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.rol).toBe('manager')
+  })
+
+  it('usuarioUpdateSchema acepta manager y rechaza roles inventados', () => {
+    expect(usuarioUpdateSchema.safeParse({ rol: 'manager' }).success).toBe(true)
+    expect(usuarioUpdateSchema.safeParse({ rol: 'superuser' }).success).toBe(false)
+    expect(usuarioUpdateSchema.safeParse({ rol: '' }).success).toBe(false)
+  })
+
+  it('la contraseña mínima es la misma (8) al crear y al editar', () => {
+    expect(usuarioCreateSchema.safeParse({ usuario: 'ab', contrasena: '1234567', nombre: 'X' }).success).toBe(false)
+    expect(
+      usuarioCreateSchema.safeParse({ usuario: 'abc', contrasena: '12345678', nombre: 'X' }).success,
+    ).toBe(true)
+    // Antes el update pedía 6 y el create 8: inconsistente.
+    expect(usuarioUpdateSchema.safeParse({ contrasena: '1234567' }).success).toBe(false)
+    expect(usuarioUpdateSchema.safeParse({ contrasena: '12345678' }).success).toBe(true)
+  })
+})
+
+// ============================================
+// validateInput — helper de los handlers
+// ============================================
+
+describe('validateInput', () => {
+  it('acepta datos válidos', () => {
+    expect(validateInput(categoriaCreateSchema, { nombre: 'Bebidas' })).toEqual({ ok: true })
+  })
+
+  it('devuelve un mensaje en español con el campo que falló', () => {
+    const result = validateInput(categoriaCreateSchema, { nombre: '' })
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.error).toBe('nombre: Nombre requerido')
+  })
+
+  it('no recorta campos que el handler necesita (almacen_id en caja:abrir)', () => {
+    const payload: any = { usuario_id: 1, fondo_inicial: 50, almacen_id: 3 }
+    // El schema ahora contempla `almacen_id`; y aunque no lo hiciera, el helper
+    // NO reemplaza el payload por el resultado del parse.
+    expect(validateInput(cajaAbrirSchema, payload)).toEqual({ ok: true })
+    expect(payload.almacen_id).toBe(3)
+  })
+
+  it('rechaza fondo inicial negativo con mensaje propio', () => {
+    const result = validateInput(cajaAbrirSchema, { usuario_id: 1, fondo_inicial: -1 })
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.error).toContain('fondo_inicial')
   })
 })

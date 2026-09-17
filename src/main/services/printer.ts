@@ -41,6 +41,54 @@ export async function listarPuertosSerie(): Promise<PuertoSerie[]> {
 }
 
 /**
+ * Nombres de puerto serie que aceptamos.
+ *
+ * Windows: `COM1`…`COM256`. Unix: cualquier cosa bajo `/dev/` (`ttyUSB0`,
+ * `ttyACM0`, `cu.usbserial-1420`, `usb/lp0`, `serial/by-id/…`).
+ */
+const PUERTO_SERIE_RE = /^(COM\d{1,3}|\/dev\/[A-Za-z0-9._/-]+)$/i
+
+/** Valida la *forma* del nombre del puerto (no que exista). */
+export function esNombreDePuertoValido(puerto: string): boolean {
+  const valor = (puerto || '').trim()
+  if (!valor || valor.includes('..')) return false
+  return PUERTO_SERIE_RE.test(valor)
+}
+
+/**
+ * Comprueba que el puerto configurado sea real antes de abrirlo.
+ *
+ * El puerto sale de la configuración, y la configuración puede venir de un backup
+ * restaurado o haber quedado apuntando a otra cosa: no alcanza con que un humano
+ * lo haya elegido de una lista. Sin esta guarda, un valor arbitrario hacía que la
+ * app escribiera bytes ESC/POS en el dispositivo que se le indicara (cualquier
+ * `/dev/...`), con el permiso del proceso main.
+ *
+ * Si la enumeración falla (driver ausente, entorno de test) NO se bloquea la
+ * impresión: el `open()` de abajo ya devuelve un error concreto.
+ */
+export async function validarPuertoDisponible(puerto: string): Promise<ResultadoImpresion> {
+  if (!esNombreDePuertoValido(puerto)) {
+    return {
+      success: false,
+      error: `Puerto de impresora inválido: "${puerto}". Elegí la ticketera en Configuración → Impresión.`,
+    }
+  }
+  try {
+    const puertos = await listarPuertosSerie()
+    if (puertos.length > 0 && !puertos.some((p) => p.path === puerto)) {
+      return {
+        success: false,
+        error: `El puerto ${puerto} no está disponible. Verificá que la impresora esté encendida o elegí otro puerto en Configuración → Impresión.`,
+      }
+    }
+  } catch {
+    // Sin enumeración disponible seguimos: la apertura real decide.
+  }
+  return { success: true }
+}
+
+/**
  * Escribe los bytes en el puerto y cierra. Resuelve cuando el sistema confirmó
  * la escritura (drain), no cuando el papel terminó de salir.
  */
@@ -52,6 +100,11 @@ export async function enviarEscPos(bytes: number[], opciones: OpcionesImpresion)
   if (!Array.isArray(bytes) || bytes.length === 0) {
     return { success: false, error: 'El ticket quedó vacío' }
   }
+
+  // El puerto se valida ANTES de importar el módulo nativo: así un valor
+  // arbitrario se rechaza sin tocar el hardware.
+  const puertoValido = await validarPuertoDisponible(puerto)
+  if (!puertoValido.success) return puertoValido
 
   let SerialPort: any
   try {

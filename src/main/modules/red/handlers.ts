@@ -1,6 +1,6 @@
 import os from 'os'
 import { handleIpc } from '../../core/auth/ipc-guard'
-import { checkPermissionOrFail } from '../../core/auth'
+import { checkPermissionOrFail, extractSessionToken, endSession } from '../../core/auth'
 import { getDatabase } from '../../db/database'
 import { getRedModo, getHijaConfig, isBase, isHija } from '../../services/red-config'
 import { generarCodigoEnlace, isRedServerRunning, RED_SERVER_PORT } from '../../services/red-server'
@@ -96,6 +96,13 @@ export function registerRedHandlers(): void {
   handleIpc('red:logout', async (_event, data: any) => {
     if (isHija()) {
       await logoutEnBase()
+      return { success: true }
+    }
+    // Preferido: cerrar exactamente la sesión del token que llama (el renderer
+    // captura el token antes de limpiar el store). Los fallbacks existen para
+    // no romper llamadas que no traen token.
+    if (extractSessionToken(data)) {
+      endSession(data)
       return { success: true }
     }
     const db = getDatabase()

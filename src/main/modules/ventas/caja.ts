@@ -2,6 +2,7 @@ import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { t } from '../../i18n'
 import { checkPermissionOrFail } from '../../core/auth'
+import { cajaAbrirSchema, cajaCerrarSchema, movimientoCajaSchema, validateInput } from '../../../shared/validations'
 
 export function registerCajaHandlers(): void {
   handleIpc('caja:status', async (_event, data?: any) => {
@@ -22,6 +23,8 @@ export function registerCajaHandlers(): void {
   handleIpc('caja:abrir', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'caja:abrir', 'caja_open')
     if (fail) return fail
+    const invalid = validateInput(cajaAbrirSchema, data)
+    if (!invalid.ok) return { success: false, error: invalid.error }
     const db = getDatabase()
 
     const abierta = db.prepare("SELECT id FROM caja WHERE estado = 'abierta' LIMIT 1").get()
@@ -39,6 +42,8 @@ export function registerCajaHandlers(): void {
   handleIpc('caja:cerrar', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'caja:cerrar', 'caja_close')
     if (fail) return fail
+    const invalid = validateInput(cajaCerrarSchema, data)
+    if (!invalid.ok) return { success: false, error: invalid.error }
     const db = getDatabase()
 
     const cerrarCaja = db.transaction(() => {
@@ -69,6 +74,8 @@ export function registerCajaHandlers(): void {
   handleIpc('caja:movimiento', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'caja:movimiento', 'caja_movement')
     if (fail) return fail
+    const invalid = validateInput(movimientoCajaSchema, data)
+    if (!invalid.ok) return { success: false, error: invalid.error }
     const db = getDatabase()
 
     const cajaAbierta = db.prepare("SELECT id FROM caja WHERE estado = 'abierta' LIMIT 1").get() as any

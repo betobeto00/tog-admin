@@ -2,16 +2,9 @@ import { getDatabase } from '../db/database'
 
 export type RedModo = 'hija' | 'base' | 'local'
 
-// Provider de licencia inyectable (evita electron en tests). Default lazy:
-// consulta la licencia local recién cuando se evalúa el modo.
-let licenciaValidaProvider: (() => boolean) | null = null
-
-export function setLicenciaValidaProvider(fn: () => boolean): void {
-  licenciaValidaProvider = fn
-}
-
+// La licencia se consulta de forma lazy al evaluar el modo: `red-config` no debe
+// arrastrar electron al importarse.
 function licenciaValida(): boolean {
-  if (licenciaValidaProvider) return licenciaValidaProvider()
   try {
     // Lazy require: red-config no debe arrastrar electron al importarse
     // eslint-disable-next-line @typescript-eslint/no-var-requires

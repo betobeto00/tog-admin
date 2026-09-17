@@ -56,10 +56,15 @@ export default function LoginPage() {
         setFeedbackContact('')
         setModalContent(null)
       } else {
-        toast.error(result.error === 'Feedback no configurado (token/chat de Telegram)' ? t('login.feedbackNotConfigured') : result.error || t('login.feedbackError'))
+        toast.error(result.error || t('login.feedbackError'))
       }
     } catch (err: any) {
-      toast.error(err?.message || t('login.feedbackError'))
+      // `callApi` lanza con el prefijo "IPC Error (<canal>): " cuando el handler
+      // responde `{ success: false }`, así que el `else` de arriba es
+      // inalcanzable y el usuario vería un error técnico. Se muestra solo el
+      // mensaje útil.
+      const mensaje = String(err?.message || '').replace(/^IPC Error \([^)]*\):\s*/, '')
+      toast.error(mensaje || t('login.feedbackError'))
     } finally {
       setSendingFeedback(false)
     }

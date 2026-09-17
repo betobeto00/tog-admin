@@ -24,14 +24,14 @@ vi.mock('react-i18next', () => ({
         'forcePassword.changeButton': 'Change Password',
         'forcePassword.changingButton': 'Changing...',
         'forcePassword.errorCurrentRequired': 'Enter your current password',
-        'forcePassword.errorMinLength': 'New password must be at least 6 characters',
+        'forcePassword.errorMinLength': 'New password must be at least 8 characters',
         'forcePassword.errorMismatch': 'Passwords do not match',
         'forcePassword.errorDifferent': 'New password must be different from current',
         'forcePassword.passwordMismatch': 'Passwords do not match',
-        'forcePassword.passwordLength': `${opts?.count || 0}/6 minimum characters`,
+        'forcePassword.passwordLength': `${opts?.count || 0}/8 minimum characters`,
         'forcePassword.passwordOk': '✓ Length OK',
         'forcePassword.currentPasswordPlaceholder': 'Enter your current password',
-        'forcePassword.newPasswordPlaceholder': 'Min 6 characters',
+        'forcePassword.newPasswordPlaceholder': 'Min 8 characters',
         'forcePassword.confirmPasswordPlaceholder': 'Repeat the new password',
         'common.closeSession': 'Log Out',
       }
@@ -85,20 +85,20 @@ describe('ForcePasswordChange', () => {
   it('shows error when new password is too short', async () => {
     const { container } = render(<ForcePasswordChange />)
     const currentInput = screen.getByPlaceholderText('Enter your current password')
-    const newInput = screen.getByPlaceholderText('Min 6 characters')
+    const newInput = screen.getByPlaceholderText('Min 8 characters')
 
     fireEvent.change(currentInput, { target: { value: 'old123' } })
     fireEvent.change(newInput, { target: { value: '12345' } })
     const form = container.querySelector('form')!
     fireEvent.submit(form)
 
-    expect(screen.getByText('New password must be at least 6 characters')).toBeInTheDocument()
+    expect(screen.getByText('New password must be at least 8 characters')).toBeInTheDocument()
   })
 
   it('shows error when passwords do not match', async () => {
     const { container } = render(<ForcePasswordChange />)
     const currentInput = screen.getByPlaceholderText('Enter your current password')
-    const newInput = screen.getByPlaceholderText('Min 6 characters')
+    const newInput = screen.getByPlaceholderText('Min 8 characters')
     const confirmInput = screen.getByPlaceholderText('Repeat the new password')
 
     fireEvent.change(currentInput, { target: { value: 'old123' } })
@@ -115,7 +115,7 @@ describe('ForcePasswordChange', () => {
 
     render(<ForcePasswordChange />)
     const currentInput = screen.getByPlaceholderText('Enter your current password')
-    const newInput = screen.getByPlaceholderText('Min 6 characters')
+    const newInput = screen.getByPlaceholderText('Min 8 characters')
     const confirmInput = screen.getByPlaceholderText('Repeat the new password')
 
     fireEvent.change(currentInput, { target: { value: 'old123' } })

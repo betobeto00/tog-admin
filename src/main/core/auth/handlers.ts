@@ -3,11 +3,20 @@ import bcrypt from 'bcryptjs'
 import { getDatabase } from '../../db/database'
 import { t } from '../../i18n'
 import { ROLE_DEFAULTS, type PermissionKey } from '../../../shared/permissions'
+import {
+  changePasswordSchema,
+  loginSchema,
+  usuarioCreateSchema,
+  usuarioUpdateSchema,
+  validateInput,
+} from '../../../shared/validations'
 import { checkPermissionOrFail } from './permissions'
 import { login } from './auth-service'
 
 export function registerAuthHandlers(): void {
   handleIpc('auth:login', async (_event, data: { usuario: string; contrasena: string; __par_id?: string }) => {
+    const invalid = validateInput(loginSchema, data)
+    if (!invalid.ok) return { success: false, error: invalid.error }
     try {
       return await login(data, data.__par_id || 'base')
     } catch (err: any) {
@@ -20,12 +29,16 @@ export function registerUsuariosHandlers(): void {
   handleIpc('usuarios:change-password', async (_event, data: { usuario_id: number; contrasena_actual: string; contrasena_nueva: string }) => {
     const fail = checkPermissionOrFail(data, 'usuarios:change-password', 'usuarios_change_own_password')
     if (fail) return fail
+    // Después del chequeo de permisos: así `data.usuario_id` ya quedó normalizado
+    // al usuario de la sesión y no se le cuentan detalles de validación a quien
+    // no está autenticado. La longitud mínima la define el schema (8).
+    const invalid = validateInput(changePasswordSchema, data)
+    if (!invalid.ok) return { success: false, error: invalid.error }
     const db = getDatabase()
     const user = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(data.usuario_id) as any
     if (!user) return { success: false, error: t('errors.notFound') }
     const validPassword = bcrypt.compareSync(data.contrasena_actual, user.contrasena)
     if (!validPassword) return { success: false, error: t('errors.wrongCurrentPassword') }
-    if (!data.contrasena_nueva || data.contrasena_nueva.length < 6) return { success: false, error: t('errors.passwordMinLength') }
     const newHash = bcrypt.hashSync(data.contrasena_nueva, 10)
     db.prepare(`UPDATE usuarios SET contrasena = ?, debe_cambiar_contrasena = 0, actualizado_en = datetime('now') WHERE id = ?`).run(newHash, data.usuario_id)
     return { success: true }
@@ -41,6 +54,10 @@ export function registerUsuariosHandlers(): void {
   handleIpc('usuarios:create', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'usuarios:create', 'usuarios_access')
     if (fail) return fail
+    // El schema (fuente única del enum de roles) valida el rol, el largo de la
+    // contraseña y el formato del usuario. `rol` es opcional → 'cajero'.
+    const invalid = validateInput(usuarioCreateSchema, data)
+    if (!invalid.ok) return { success: false, error: invalid.error }
     const db = getDatabase()
     const hash = bcrypt.hashSync(data.contrasena, 10)
     const result = db.prepare(
@@ -52,6 +69,8 @@ export function registerUsuariosHandlers(): void {
   handleIpc('usuarios:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'usuarios:update', 'usuarios_access')
     if (fail) return fail
+    const invalid = validateInput(usuarioUpdateSchema, data?.data)
+    if (!invalid.ok) return { success: false, error: invalid.error }
     const db = getDatabase()
     const fields: string[] = []
     const values: any[] = []

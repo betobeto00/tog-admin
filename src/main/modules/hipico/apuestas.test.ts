@@ -157,6 +157,73 @@ beforeEach(() => {
   registerApuestasHandlers()
 })
 
+describe('config de APIs externas (MED-04)', () => {
+  const config = (clave: string) =>
+    db.prepare('SELECT valor FROM configuracion WHERE clave = ?').get(clave) as { valor: string } | undefined
+
+  it('guarda la clave de odds pero nunca la devuelve al renderer', async () => {
+    const res = await handles['hipico:api-odds-config'](null, {
+      usuario_id: 1,
+      api_key: 'odds-secreta-abcd1234',
+      api_base: 'https://api.the-odds-api.com/v4',
+    })
+
+    expect(res.configurado).toBe(true)
+    expect(res.api_base).toBe('https://api.the-odds-api.com/v4')
+    expect(res.api_key_masked).toBe('••••••••1234')
+
+    // Lo que importa: la respuesta no contiene la clave en ninguna forma útil
+    const serializado = JSON.stringify(res)
+    expect(serializado).not.toContain('secreta')
+    expect(serializado).not.toContain('odds-secreta-abcd1234')
+
+    // Y sí quedó guardada: el main la necesita para llamar a la API
+    expect(config('odds_api_key')?.valor).toBe('odds-secreta-abcd1234')
+  })
+
+  it('guarda la clave de racing pero nunca la devuelve al renderer', async () => {
+    const res = await handles['hipico:api-racing-config'](null, {
+      usuario_id: 1,
+      api_key: 'racing-secreta-9999',
+      api_base: 'https://api.theracingapi.com/v1',
+    })
+
+    expect(res.configurado).toBe(true)
+    expect(res.api_key_masked).toBe('••••••••9999')
+    expect(JSON.stringify(res)).not.toContain('racing-secreta-9999')
+    expect(config('racing_api_key')?.valor).toBe('racing-secreta-9999')
+  })
+
+  it('cambiar sólo la base no borra la clave guardada', async () => {
+    await handles['hipico:api-odds-config'](null, { usuario_id: 1, api_key: 'k-1234' })
+
+    const res = await handles['hipico:api-odds-config'](null, {
+      usuario_id: 1,
+      api_key: '',
+      api_base: 'https://otro-espejo/v4',
+    })
+
+    expect(res.api_base).toBe('https://otro-espejo/v4')
+    expect(res.configurado).toBe(true)
+    expect(res.api_key_masked).toBe('••1234')
+    expect(config('odds_api_key')?.valor).toBe('k-1234')
+  })
+
+  it('sin clave cargada informa que no está configurada y no inventa máscara', async () => {
+    // `configuracion` no se limpia entre tests (sólo las tablas de apuestas)
+    db.exec("DELETE FROM configuracion WHERE clave IN ('odds_api_key', 'racing_api_key')")
+
+    const res = await handles['hipico:api-odds-config'](null, { usuario_id: 1 })
+    expect(res.configurado).toBe(false)
+    expect(res.api_key_masked).toBeNull()
+  })
+
+  it('exige permiso de administración de apuestas', async () => {
+    const res = await handles['hipico:api-odds-config'](null, { usuario_id: 2, api_key: 'x-abcd' })
+    expect(res.success).toBe(false)
+  })
+})
+
 describe('reglas de liquidación', () => {
   it('win sólo paga si el caballo ganó', () => {
     expect(apuestaGanadora('win', [{ posicion_predicha: null, posicion_real: 1 }])).toBe(true)

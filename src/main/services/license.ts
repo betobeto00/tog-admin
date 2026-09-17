@@ -51,19 +51,37 @@ function getLicenseDbPath(): string {
   return path.join(process.cwd(), 'data', 'license.json')
 }
 
+const HMAC_KEY_FILENAME = '.license-state-key'
+
+/**
+ * Clave HMAC del archivo de estado de licencia (`license.json`).
+ *
+ * Antes se derivaba de la MAC: un valor visible desde la propia red y
+ * falsificable (basta un cambio de MAC para recalcular el HMAC), así que un
+ * atacante podía reescribir el estado (días usados, última fecha). Ahora es
+ * aleatoria de 32 bytes, persistida con permisos de dueño y estable entre
+ * arranques.
+ *
+ * Nota de migración: en instalaciones existentes el estado viejo no verifica
+ * con la clave nueva y se descarta (`readLicenseState` devuelve ceros). Eso es
+ * seguro: la validez de la licencia la decide la firma RSA, no este HMAC.
+ */
 function getHmacKey(): string {
-  const interfaces = os.networkInterfaces()
-  let mac = ''
-  for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name] || []) {
-      if (iface.mac && iface.mac !== '00:00:00:00:00:00') {
-        mac = iface.mac
-        break
-      }
+  const keyPath = path.join(path.dirname(getLicenseDbPath()), HMAC_KEY_FILENAME)
+  try {
+    if (fs.existsSync(keyPath)) {
+      const existing = fs.readFileSync(keyPath, 'utf8').trim()
+      if (existing) return existing
     }
-    if (mac) break
+    const generated = crypto.randomBytes(32).toString('hex')
+    fs.mkdirSync(path.dirname(keyPath), { recursive: true })
+    fs.writeFileSync(keyPath, generated, { encoding: 'utf8', mode: 0o600 })
+    return generated
+  } catch {
+    // FS no escribible: falla cerrado (el estado se descarta), la licencia
+    // sigue validándose por firma RSA.
+    return crypto.createHash('sha256').update('license-state-unavailable').digest('hex')
   }
-  return crypto.createHash('sha256').update(mac || 'unknown-license-state').digest('hex')
 }
 
 function signState(state: LicenseState): string {

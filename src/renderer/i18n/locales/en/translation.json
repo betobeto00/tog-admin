@@ -1398,7 +1398,7 @@
     "password": "Password",
     "passwordHint": "(leave blank to keep current)",
     "passwordPlaceholder": "Enter new password or leave blank",
-    "passwordMinPlaceholder": "Min 6 characters",
+    "passwordMinPlaceholder": "Min 8 characters",
     "roleLabel": "Role",
     "cashierRole": "Cashier",
     "managerRole": "Manager",
@@ -1528,16 +1528,16 @@
     "currentPassword": "Current Password *",
     "currentPasswordPlaceholder": "Enter your current password",
     "newPassword": "New Password *",
-    "newPasswordPlaceholder": "Min 6 characters",
+    "newPasswordPlaceholder": "Min 8 characters",
     "confirmPassword": "Confirm New Password *",
     "confirmPasswordPlaceholder": "Repeat the new password",
     "passwordMismatch": "Passwords do not match",
-    "passwordLength": "{{count}}/6 minimum characters",
+    "passwordLength": "{{count}}/8 minimum characters",
     "passwordOk": "✓ Length OK",
     "changeButton": "Change Password",
     "changingButton": "Changing...",
     "errorCurrentRequired": "Enter your current password",
-    "errorMinLength": "New password must be at least 6 characters",
+    "errorMinLength": "New password must be at least 8 characters",
     "errorMismatch": "Passwords do not match",
     "errorDifferent": "New password must be different from current",
     "errorChangeFailed": "Error changing password"
@@ -1575,7 +1575,7 @@
     "max": "Maximum value: {{max}}",
     "positive": "Must be greater than 0",
     "passwordMismatch": "Passwords do not match",
-    "passwordTooShort": "Password must be at least 6 characters"
+    "passwordTooShort": "Password must be at least 8 characters"
   },
   "errors": {
     "generic": "An unexpected error occurred",

@@ -8,6 +8,19 @@ import { t } from '../../i18n'
 import { checkPermissionOrFail } from '../../core/auth'
 import { hasImagenesDir, getImagenesDir } from '../../services/imagenes'
 import { logger } from '../../services/logger'
+import { validarArchivoBackup, type ValidacionBackup } from './backup-validacion'
+
+/** Traduce el motivo del rechazo a un mensaje para el usuario. */
+function mensajeDeValidacion(validacion: Extract<ValidacionBackup, { ok: false }>): string {
+  switch (validacion.motivo) {
+    case 'no-existe':
+      return t('errors.fileNotFound')
+    case 'esquema-ajeno':
+      return t('errors.backupIncompatible', { tablas: validacion.detalle ?? '' })
+    default:
+      return t('errors.invalidDbFile')
+  }
+}
 
 function copyDirRecursive(src: string, dest: string): void {
   if (!fs.existsSync(src)) return
@@ -80,17 +93,15 @@ export function registerBackupHandlers(): void {
         sourcePath = result.filePaths[0]
       }
 
-      if (!fs.existsSync(sourcePath)) {
-        return { success: false, error: t('errors.fileNotFound') }
-      }
-
-      const fd = fs.openSync(sourcePath, 'r')
-      const buf = Buffer.alloc(16)
-      fs.readSync(fd, buf, 0, 16, 0)
-      fs.closeSync(fd)
-      const magic = buf.toString('utf8', 0, 16)
-      if (!magic.startsWith('SQLite format')) {
-        return { success: false, error: t('errors.invalidDbFile') }
+      // Restaurar REEMPLAZA la base viva: se valida que el archivo sea un backup
+      // de TOG Admin (cabecera SQLite + tablas esperadas) antes de tocar nada.
+      const validacion = validarArchivoBackup(sourcePath)
+      if (!validacion.ok) {
+        logger.warn(
+          'backup',
+          `Restore rechazado (${validacion.motivo})${validacion.detalle ? `: ${validacion.detalle}` : ''}`,
+        )
+        return { success: false, error: mensajeDeValidacion(validacion) }
       }
 
       const dbPath = getDbPath()

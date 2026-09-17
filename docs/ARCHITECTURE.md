@@ -30,6 +30,41 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 
 ---
 
+## Modelo de operación (offline-first)
+
+TOG Admin **funciona sin internet**. La conexión solo se usa en dos momentos
+puntuales, y ninguno es necesario para operar el día a día:
+
+| Momento | ¿Necesita internet? | Qué viaja |
+|---|---|---|
+| **Activar la licencia** | Sí, una vez | Email + clave de la cuenta en `omnimargen.site`, o un archivo `.key` cargado a mano (`license:import`). Después, la validez la decide la **firma RSA local** (`license-crypto.ts`), no el servidor |
+| **Feedback al equipo** | Sí, opcional | Solo el texto que escribe el usuario → `/api/feedback` de la landing (ver §7). Si falla, la app sigue andando |
+| **Login (usuario/contraseña)** | **No** | Se valida contra el SQLite local (`usuarios` + `bcrypt`). El usuario del sistema **no** es una cuenta de `omnimargen.site` |
+| **Módulo Red Local** | **No** | LAN entre la PC Base y las hijas (`:3002`). Nunca sale a internet |
+
+Esto impone tres consecuencias de diseño:
+
+- **La sesión no puede depender de un servidor**: el `session_token` se emite y se
+  valida contra el SQLite local (ver “Autorización y sesión”).
+- **No existe “modo degradado”**: sin internet todo funciona salvo activar una
+  licencia nueva y mandar feedback.
+- **Un servidor caído no puede dejar a un negocio sin cobrar.**
+
+### Modalidades de instalación
+
+| Modalidad | Cómo se determina | Alcance |
+|---|---|---|
+| **Una PC** (default) | Licencia local con `max_pcs = 1` y sin config de hija → `getRedModo() === 'local'` | Todo el sistema en un solo equipo, sin red |
+| **PC Base** | Licencia con `max_pcs ≥ 2` → `getRedModo() === 'base'` | Levanta el servidor `:3002` y atiende a las hijas |
+| **PC Hija** | Se vincula a la Base con un código de 6 caracteres → `red_modo = 'hija'` | Terminal sin licencia propia: reenvía los canales IPC a la Base por `rpcABase()` |
+
+En Red Local, **un solo inventario**: las hijas no tienen base de datos propia, leen
+y escriben contra la de la Base. La Base es también la única que conoce la sesión
+de cada terminal (`sesiones_activas`), y por eso puede verificar quién dice ser
+cada llamada remota (ver “Autorización y sesión”).
+
+---
+
 ## Capas de Arquitectura
 
 ### 1. Process Principal (Main Process)
@@ -40,7 +75,7 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 | `index.ts` | Entry point, ventana principal, DevTools |
 | `preload.ts` | API segura IPC (contextBridge) |
 | `ipc-handlers.ts` | Registro central: delega en los `register*Handlers()` de cada módulo |
-| `core/auth/` | Login (`auth-service.ts`) + permisos (`permissions.ts` → `checkPermissionOrFail`) + guard de origen IPC (`ipc-guard.ts` → `handleIpc`) |
+| `core/auth/` | Login (`auth-service.ts`, que además emite el `session_token`) + autorización (`permissions.ts` → `checkPermissionOrFail`, que resuelve el usuario **desde el token**) + guard de canal y origen IPC (`ipc-guard.ts` → `handleIpc`) |
 | `modules/<modulo>/` | Handlers IPC por módulo: inventario, ventas, configuracion, caja-extra, license, terminal, distribuidor, restaurant, administracion, rrhh, productor, postventa, hipico, print, crash-report, red, shared |
 | `db/database.ts` | SQLite + migraciones + seeds |
 | `services/valorTerminal.ts` | Comunicación serial VP800 (USB/COM) |
@@ -52,9 +87,9 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 | `services/red-config.ts` | Modo de la PC (`base`/`hija`/`local`) leyendo `red_modo` + licencia activa |
 | `services/red-server.ts` | Servidor HTTP local `:3002` que levanta la **PC Base** para atender PCs hijas (vincular / rpc / logout) |
 | `services/red-client.ts` | Cliente HTTP de la **PC Hija** hacia la Base (vincular / rpc / logout) |
-| `services/red-session.ts` | Sesión única por usuario en todo el grupo de PCs (`registrarSesion`, `liberarSesionesDePar`) |
+| `services/red-session.ts` | Sesión única por usuario en todo el grupo de PCs (`registrarSesion`, `liberarSesionesDePar`) y **resolución de identidad por token** (`getUsuarioDeToken`, `liberarSesionPorToken`); `getSesionUsuario(db, parId)` es la autoridad de la Base sobre quién está logueado en cada terminal |
 | `services/red-cert.ts` | Certificado TLS autofirmado de la PC Base: genera al primer arranque, carga en los siguientes; la Base expone HTTPS en `:3002` y la hija ancla al cert recibido en el handshake |
-| `services/red-heartbeat` (renderer: `hooks/useRedHeartbeat.ts`) | Heartbeat de 60 s desde la hija; la Base actualiza `last_heartbeat` y libera sesiones huérfanas (> 5 min) |
+| `services/red-heartbeat` (renderer: `hooks/useRedHeartbeat.ts`) | Heartbeat de 60 s desde la hija; la Base actualiza `last_heartbeat` del par y de sus sesiones, y cada 60 s barre las sesiones huérfanas (`barrerSesionesInactivas`, TTL 5 min) |
 | `modules/red/` | Handlers IPC del módulo red (`red:status`, `vincular`, `desvincular`, `generar-codigo`, `listar-pcs`, `logout`) — registro análogo a otros módulos |
 | `services/crash-reporter.ts` | Sistema de reportes de error |
 | `services/updater.ts` | Auto-actualizaciones vía GitHub (`update:*`) |
@@ -145,8 +180,74 @@ Renderer (React)                    Main (Node.js)
 | i18n | `i18n:get-lang`, `i18n:set-lang` |
 | Updater | `update:check`, `download`, `install` |
 
-> **Autorización:** salvo los canales de `PREAUTH_CHANNELS` (ver `src/shared/ipc-channels.ts`), cada handler exige sesión y permiso vía `checkPermissionOrFail`. El renderer inyecta `usuario_id` automáticamente por `callApi` (`src/renderer/lib/api-client.ts`) y lanza un error si el main devuelve `{ success: false }`.
+> **Autorización:** salvo los canales de `PREAUTH_CHANNELS` (ver `src/shared/ipc-channels.ts`), cada handler exige sesión y permiso vía `checkPermissionOrFail`, que resuelve al usuario **desde el `session_token`** (ver “Autorización y sesión”). El renderer adjunta las credenciales por `callApi` (`src/renderer/lib/api-client.ts`) y lanza un error si el main devuelve `{ success: false }`.
 > **Origen (SEC8):** todo handler se registra con `handleIpc` (`src/main/core/auth/ipc-guard.ts`), que valida que el sender sea el main-frame y venga de `file://` (empaquetado) o del dev-server (localhost:5173); un origen ajeno lanza error y no ejecuta la lógica. **CSP (SEC7):** meta tag en `index.html`, estricta en producción (sin inline scripts) y relajada en dev por el plugin `inject-csp` de Vite. **Ventas compartidas:** `createVenta` (`modules/ventas/ventas.ts`) es la lógica única de alta de venta (stock, combos, fiado, caja) usada por `ventas:create` y por el cobro de mesas `comandas:checkout`.
+
+---
+
+## Autorización y sesión
+
+El **actor** de cada llamada IPC no lo elige el cliente:
+
+```
+auth:login (usuario + contraseña → SQLite local, bcrypt)
+   │  credenciales OK (con lockout progresivo en `login_attempts`)
+   ▼
+auth-service.ts → registrarSesion(db, usuarioId, 'base')
+   │  INSERT/UPDATE en `sesiones_activas` (`usuario_id` UNIQUE)
+   ▼
+respuesta: { usuario, sesionToken }        ← crypto.randomBytes(16).toString('hex')
+   │
+   ▼
+renderer: useAuthStore.sessionToken        ← SOLO en memoria, nunca localStorage
+   │
+   ▼  callApi() adjunta `session_token` a toda llamada no-preauth
+checkPermissionOrFail(data, canal, permiso)
+   │  getUsuarioDeToken(db, token) → usuario_id real, o null
+   ▼  normaliza data.usuario_id = <usuario de la sesión>
+permiso evaluado sobre el usuario REAL → handler
+```
+
+Reglas que hay que respetar al tocar auth o handlers:
+
+- **Sin token no hay actor.** `resolveAuthenticatedUserId()` (`core/auth/permissions.ts`)
+  devuelve `null` y el handler responde `{ success: false, error: "...requiere
+  sesión activa..." }`. **Falla cerrado**: no hay fallback al `usuario_id` del cliente.
+- **`callApi` sigue mandando `usuario_id`** a propósito: muchos handlers lo
+  persisten (ventas, caja, auditoría) y los schemas Zod lo piden. El main lo
+  **sobrescribe** con el usuario de la sesión antes de que el handler lo use, así
+  que no sirve para suplantar. No confundir “el campo existe” con “el cliente manda”.
+- **El token vive solo en memoria.** La app pide login en cada arranque
+  (`localStorage.removeItem('tog_user')` en `renderer/core/auth/store.ts`), así que
+  recargar equivale a cerrar sesión. Persistirlo sería persistir la credencial.
+- **Un re-login rota el token** (`registrarSesion` hace `UPDATE ... SET sesion_token`),
+  de modo que un token filtrado muere en el siguiente login del mismo usuario.
+- **`PREAUTH_CHANNELS` queda fuera de todo esto**: son los caminos que corren
+  antes de que exista sesión (activación de licencia, `red:vincular`, crash de la
+  pantalla de login, `feedback:send`). Lista canónica en `src/shared/ipc-channels.ts`;
+  el renderer la espeja en `api-client.ts` (actualizar AMBOS lugares).
+- **Logout real:** `red:logout` recibe el token y borra esa fila
+  (`liberarSesionPorToken`); el store lo captura **antes** de limpiar el estado.
+  Así la sesión única por usuario no queda trabada al salir.
+- **Las sesiones de terminales caídas se liberan solas.** La PC Base barre cada
+  60 s (`barrerSesionesInactivas`) y borra las sesiones de los pares que llevan
+  más de 5 min sin latir. Es imprescindible porque `sesiones_activas.usuario_id`
+  es UNIQUE: sin el barrido, una terminal apagada sin cerrar sesión dejaba a ese
+  usuario fuera de cualquier otra PC **para siempre**. Las sesiones locales de la
+  Base (`par_id = 'base'`) quedan fuera del barrido por diseño.
+- **El main valida, no el renderer.** Toda defensa vive en `src/main`; lo que haga
+  el renderer es UX, no seguridad.
+
+### Red Local: quién dice ser la terminal
+
+- La Base **no cree** el `usuario_id` que viaja en el RPC de una hija: lo compara
+  con el usuario de la sesión registrada para ese `par_id`
+  (`getSesionUsuario`, `services/red-session.ts`). Si no coincide → **403**.
+- `REMOTE_BLOCKED_CHANNELS` (`src/shared/ipc-channels.ts`) nunca se despacha por
+  red → **403**: agrupa los canales que se resuelven localmente en la hija y los
+  sensibles (entre ellos `license:initial-password`, que exponía la contraseña del
+  admin a cualquier PC emparejada).
+- Canal de negocio sin sesión activa en ese par → **401** (regla previa).
 
 ---
 
@@ -334,10 +435,11 @@ El modo **se evalúa en cada import** de `red-config.ts` (no requiere restart). 
 
 | Servicio | Rol |
 |---|---|
+| `services/claves-api.ts` | `enmascararApiKey()` — presentación segura de las claves de API: el renderer nunca las recibe en claro (ver §Seguridad) |
 | `services/red-config.ts` | Lee/escribe la config de red; provee `getRedModo()`, `isBase()`, `isHija()`, `getHijaConfig()` |
 | `services/red-server.ts` | `createRedServer({getDb, getHandler, getMaxPcs, port})` — HTTP server singleton, `startRedServerIfBase()`, `stopRedServer()`, `generarCodigoEnlace(db)` (códigos de 6 chars hex, TTL 5 min, un solo uso) |
 | `services/red-client.ts` | Cliente de la Hija: `vincularABase()`, `desvincularDeBase()`, `rpcABase()` (timeout 15s), `logoutEnBase()` |
-| `services/red-session.ts` | `registrarSesion(db, usuarioId, parId)` rechaza si el usuario ya tiene sesión en otro `par_id`; `liberarSesionesDePar(db, parId)`; `parTieneSesionActiva(db, parId)`; `generarToken(bytes=16)` |
+| `services/red-session.ts` | `registrarSesion(db, usuarioId, parId)` rechaza si el usuario ya tiene sesión en otro `par_id` y devuelve el `sesionToken`; `getUsuarioDeToken(db, token)` resuelve el actor (lo usa `checkPermissionOrFail`); `getSesionUsuario(db, parId)` es la autoridad de la Base sobre la hija; `barrerSesionesInactivas(db)` libera las sesiones de las terminales que dejaron de latir (TTL `RED_SESION_TTL_MS` = 5 min); `liberarSesionPorToken`, `liberarSesionesDePar`, `parTieneSesionActiva`; `generarToken(bytes=16)` (CSPRNG) |
 | `modules/red/handlers.ts` | Handlers IPC del módulo: `red:status`, `red:vincular`, `red:desvincular`, `red:generar-codigo`, `red:listar-pcs`, `red:logout` |
 
 ### Endpoints HTTP del servidor (PC Base)
@@ -345,8 +447,9 @@ El modo **se evalúa en cada import** de `red-config.ts` (no requiere restart). 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
 | POST | `/api/red/vincular` | código de enlace (header body) | Handshake: valida código no usado y vigente, persiste `pcs_enlazadas`, devuelve `{ par_id, cert_hash }` |
+| POST | `/api/red/heartbeat` | par_id + cert_hash (body) | Marca vivo al par **y a sus sesiones** (`actualizarHeartbeatPar` + `actualizarHeartbeatSesiones`). Es lo que distingue "terminal trabajando" de "terminal apagada con la sesión trabada" |
 | POST | `/api/red/logout` | par_id + cert_hash (body) | Libera las sesiones del par (logout de la hija) |
-| POST | `/api/red/rpc` | par_id + cert_hash + sesión activa (body) | Despacho genérico de cualquier canal IPC: reenvía a los mismos handlers locales; si el canal es pre-auth, basta con `par_id`+`cert_hash`; si no, requiere sesión activa en ese par |
+| POST | `/api/red/rpc` | par_id + cert_hash + sesión activa (body) | Despacho genérico a los mismos handlers locales. 403 si el canal está en `REMOTE_BLOCKED_CHANNELS`; si el canal es pre-auth basta con `par_id`+`cert_hash`; si no, exige sesión activa en ese par **y** que el `usuario_id` reclamado coincida con el usuario de esa sesión (`getSesionUsuario`) |
 
 ### Flujo de uso
 
@@ -414,7 +517,7 @@ Estado en memoria (`symbol`, `rate`, `name`) inicializado por `loadCurrency()` d
 | Session timeout | 30 min de inactividad → auto-logout |
 | Context isolation | `contextIsolation: true`, `nodeIntegration: false` |
 | contextBridge | API expuesta de forma controlada y tipada |
-| Validación IPC | 24 schemas Zod en handlers críticos |
+| Validación IPC | Schemas Zod cableados en los handlers críticos (usuarios, contraseñas, configuración, caja, inventario) vía `validateInput` |
 | Licencias | RSA-2048 con validación offline |
 | Error handling | ErrorBoundary global + crash reports + logging diagnóstico |
 | Internacionalización | i18n con 2 idiomas (ES/EN), ~1,862 keys por idioma en el renderer (+98 en main) |
@@ -422,6 +525,9 @@ Estado en memoria (`symbol`, `rate`, `name`) inicializado por `loadCurrency()` d
 | Backup automático | Al cerrar caja se crea backup de la DB |
 | Permisos | 69 permisos en 15 categorías (Impresión, Ventas, Caja, Inventario, Compras, Cotizaciones, Reportes, Administración, Distribuidor, Restaurant, Contabilidad, Recursos Humanos, Productor, Postventa, Hípico), control granular por usuario (incluye `red_manage` para gestión de PC Base) |
 | Sesión única en red local | Un usuario solo puede estar activo en una PC del grupo a la vez (`services/red-session.ts`) |
+| Sesiones huérfanas | Barrido de la PC Base (60 s) que libera las sesiones de las terminales sin latido por más de 5 min: sin él, la sesión única dejaba al usuario fuera para siempre si apagaba la PC sin cerrar sesión |
+| Claves de API | Viven solo en el main (`odds_api_key`, `racing_api_key`): los canales de configuración devuelven `api_key_masked` (`services/claves-api.ts`) y `config:get` filtra las claves reservadas |
+| Puerto de impresora | Se valida la forma del nombre (`COM3`, `/dev/...`, sin `..`) y, si se pueden enumerar, que el puerto esté conectado antes de abrirlo (`services/printer.ts`) |
 | Validación origen IPC | `handleIpc` (`core/auth/ipc-guard.ts`): rechaza cualquier sender que no sea main-frame `file://` (empaquetado) o `localhost:5173` (dev) |
 
 ---

@@ -83,13 +83,11 @@ export function setupAutoUpdater(win: BrowserWindow): void {
   // Errores
   autoUpdater.on('error', (err) => {
     log.error('[Updater] Error:', err.message)
-    console.error('[Updater] Error:', err.message)
   })
 
   // Log cuando no hay actualización
   autoUpdater.on('update-not-available', () => {
     log.info('[Updater] No hay actualización disponible')
-    console.log('[Updater] No hay actualización disponible')
   })
 
   // Verificar actualizaciones al iniciar (después de 5 segundos)

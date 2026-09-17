@@ -1,14 +1,22 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { createRedServer, generarCodigoEnlace, sanitizeCrashFilename, resetVincularRateLimit, type RedServer } from './red-server'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { createRedServer, generarCodigoEnlace, sanitizeCrashFilename, type RedServer } from './red-server'
+import { resetVincularRateLimit } from './red-rate-limit'
+import { barrerSesionesInactivas, RED_SESION_TTL_MS } from './red-session'
 
 type Db = ReturnType<typeof crearDb>
+
+// La capa de permisos (`core/auth/permissions.ts`) resuelve el actor contra
+// `getDatabase()`. Se apunta a la misma BD en memoria del test para poder
+// ejercitar la autorización REAL por token en el camino de red local.
+const dbHolder = vi.hoisted(() => ({ db: null as any }))
+vi.mock('../db/database', () => ({ getDatabase: () => dbHolder.db }))
 
 function crearDb() {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { DatabaseSync }: any = require('node:sqlite')
   const raw = new DatabaseSync(':memory:')
   raw.exec(`
-    CREATE TABLE usuarios (id INTEGER PRIMARY KEY AUTOINCREMENT, usuario TEXT, contrasena TEXT, nombre TEXT, rol TEXT, activo INTEGER DEFAULT 1);
+    CREATE TABLE usuarios (id INTEGER PRIMARY KEY AUTOINCREMENT, usuario TEXT, contrasena TEXT, nombre TEXT, rol TEXT, activo INTEGER DEFAULT 1, permisos TEXT);
     CREATE TABLE pcs_enlazadas (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       par_id TEXT NOT NULL UNIQUE,
@@ -34,6 +42,11 @@ function crearDb() {
       expira_en TEXT NOT NULL,
       usado INTEGER NOT NULL DEFAULT 0,
       usado_en TEXT
+    );
+    CREATE TABLE intentos_vincular (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ip TEXT NOT NULL,
+      creado_en TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `)
   raw.prepare("INSERT INTO usuarios (usuario, contrasena, nombre, rol) VALUES ('admin', 'x', 'Admin', 'admin')").run()
@@ -64,6 +77,8 @@ describe('red-server (PC Base)', () => {
   // el par_id que el servidor inyecta como __par_id (ver red-server RPC).
   const handlerFake = (canal: string, _event: unknown, ...args: unknown[]) => {
     if (canal === 'app:version') return '1.0.0'
+    if (canal === 'license:status') return { valid: true }
+    if (canal === 'license:initial-password') return { password: 'secret' }
     if (canal === 'productos:list') return [{ id: 1, nombre: 'Producto A' }]
     if (canal === 'auth:login') {
       const data = (args[0] || {}) as { __par_id?: string }
@@ -86,8 +101,9 @@ describe('red-server (PC Base)', () => {
   }
 
   beforeEach(async () => {
-    resetVincularRateLimit()
+    resetVincularRateLimit(db)
     db = crearDb()
+    dbHolder.db = db
     server = createRedServer({
       getDb: () => db,
       getHandler: (c) => {
@@ -177,9 +193,61 @@ describe('red-server (PC Base)', () => {
     const { par_id } = vin.json
     const { cert_hash } = db.prepare('SELECT cert_hash FROM pcs_enlazadas WHERE par_id = ?').get(par_id) as { cert_hash: string }
 
-    const res = await post('/api/red/rpc', { canal: 'app:version', args: [], par_id, cert_hash })
+    const res = await post('/api/red/rpc', { canal: 'license:status', args: [], par_id, cert_hash })
     expect(res.status).toBe(200)
-    expect(res.json.response).toBe('1.0.0')
+    expect(res.json.response).toEqual({ valid: true })
+  })
+
+  it('rpc: bloquea canales locales o sensibles aunque la PC esté emparejada', async () => {
+    const { codigo } = generarCodigoEnlace(db)
+    const vin = await post('/api/red/vincular', { codigo, nombre: 'Caja 1' })
+    const { par_id } = vin.json
+    const { cert_hash } = db.prepare('SELECT cert_hash FROM pcs_enlazadas WHERE par_id = ?').get(par_id) as { cert_hash: string }
+
+    // license:initial-password era preauth: cualquier hija emparejada obtenía
+    // la contraseña del admin en texto plano.
+    const password = await post('/api/red/rpc', {
+      canal: 'license:initial-password',
+      args: [],
+      par_id,
+      cert_hash,
+    })
+    expect(password.status).toBe(403)
+    expect(password.json.success).toBe(false)
+
+    for (const canal of ['app:version', 'db:reset', 'red:generar-codigo', 'crash-report:save', 'feedback:send']) {
+      const res = await post('/api/red/rpc', { canal, args: [], par_id, cert_hash })
+      expect(res.status, `canal ${canal}`).toBe(403)
+    }
+  })
+
+  it('rpc: rechaza un usuario_id que no corresponde a la sesión del par', async () => {
+    const { codigo } = generarCodigoEnlace(db)
+    const vin = await post('/api/red/vincular', { codigo, nombre: 'Caja 1' })
+    const { par_id } = vin.json
+    const { cert_hash } = db.prepare('SELECT cert_hash FROM pcs_enlazadas WHERE par_id = ?').get(par_id) as { cert_hash: string }
+
+    await post('/api/red/rpc', { canal: 'auth:login', args: [{ usuario: 'admin', contrasena: 'x' }], par_id, cert_hash })
+
+    // La sesión del par es del usuario 1; reclamar ser otro usuario se rechaza.
+    const suplantacion = await post('/api/red/rpc', {
+      canal: 'productos:list',
+      args: [{ usuario_id: 7 }],
+      par_id,
+      cert_hash,
+    })
+    expect(suplantacion.status).toBe(403)
+    expect(suplantacion.json.error).toContain('sesión activa')
+
+    // El mismo canal con el usuario de la sesión sigue funcionando.
+    const legitimo = await post('/api/red/rpc', {
+      canal: 'productos:list',
+      args: [{ usuario_id: 1 }],
+      par_id,
+      cert_hash,
+    })
+    expect(legitimo.status).toBe(200)
+    expect(legitimo.json.response).toEqual([{ id: 1, nombre: 'Producto A' }])
   })
 
   it('rpc: exige sesión activa para canales de negocio', async () => {
@@ -212,6 +280,148 @@ describe('red-server (PC Base)', () => {
     const list = await post('/api/red/rpc', { canal: 'productos:list', args: [], par_id, cert_hash })
     expect(list.status).toBe(200)
     expect(list.json.response).toEqual([{ id: 1, nombre: 'Producto A' }])
+  })
+
+  it('heartbeat: el latido por HTTP mantiene la sesión viva y su ausencia la libera', async () => {
+    const { codigo } = generarCodigoEnlace(db)
+    const vin = await post('/api/red/vincular', { codigo, nombre: 'Caja 1' })
+    const { par_id } = vin.json
+    const { cert_hash } = db.prepare('SELECT cert_hash FROM pcs_enlazadas WHERE par_id = ?').get(par_id) as { cert_hash: string }
+
+    await post('/api/red/rpc', {
+      canal: 'auth:login',
+      args: [{ usuario: 'admin', contrasena: 'x' }],
+      par_id,
+      cert_hash,
+    })
+
+    // 1) El endpoint real de heartbeat deja la SESIÓN marcada como viva.
+    const hb = await post('/api/red/heartbeat', { par_id, cert_hash })
+    expect(hb.status).toBe(200)
+    const sesion = db
+      .prepare('SELECT last_heartbeat FROM sesiones_activas WHERE par_id = ?')
+      .get(par_id) as { last_heartbeat: string | null }
+    expect(sesion.last_heartbeat).toBeTruthy()
+
+    // 2) Punto de referencia controlado: la PC se enlazó hace una hora, así que
+    // el único dato que puede salvarla del barrido es su último latido.
+    const T0 = new Date()
+    db.prepare('UPDATE pcs_enlazadas SET last_heartbeat = ?, creado_en = ? WHERE par_id = ?').run(
+      T0.toISOString(),
+      new Date(T0.getTime() - 60 * 60 * 1000).toISOString(),
+      par_id,
+    )
+
+    // 3) Dentro del TTL: la sesión sobrevive y la terminal sigue operando.
+    const dentroDelTtl = new Date(T0.getTime() + RED_SESION_TTL_MS - 60 * 1000)
+    expect(barrerSesionesInactivas(db, dentroDelTtl)).toEqual([])
+    const viva = await post('/api/red/rpc', { canal: 'productos:list', args: [], par_id, cert_hash })
+    expect(viva.status).toBe(200)
+
+    // 4) Pasado el TTL sin latir: la Base libera la sesión y la terminal queda
+    // afuera hasta que su usuario vuelva a iniciar sesión.
+    const fueraDelTtl = new Date(T0.getTime() + RED_SESION_TTL_MS + 60 * 1000)
+    expect(barrerSesionesInactivas(db, fueraDelTtl)).toEqual([par_id])
+    const muerta = await post('/api/red/rpc', { canal: 'productos:list', args: [], par_id, cert_hash })
+    expect(muerta.status).toBe(401)
+    expect(muerta.json.error).toContain('sesión activa')
+  })
+
+  it('heartbeat: el barrido libera la sesión trabada para que el usuario pueda entrar en otra PC', async () => {
+    // Con `usuario_id` UNIQUE, una terminal apagada con sesión abierta dejaba al
+    // usuario fuera en cualquier otra PC (“ya tiene sesión activa en otra PC”).
+    const { codigo } = generarCodigoEnlace(db)
+    const vin = await post('/api/red/vincular', { codigo, nombre: 'Caja vieja' })
+    const { par_id } = vin.json
+    await post('/api/red/rpc', {
+      canal: 'auth:login',
+      args: [{ usuario: 'admin', contrasena: 'x' }],
+      par_id,
+      cert_hash: vin.json.cert_hash,
+    })
+
+    const T0 = new Date()
+    db.prepare('UPDATE pcs_enlazadas SET last_heartbeat = ?, creado_en = ? WHERE par_id = ?').run(
+      new Date(T0.getTime() - 60 * 60 * 1000).toISOString(),
+      new Date(T0.getTime() - 60 * 60 * 1000).toISOString(),
+      par_id,
+    )
+
+    expect(barrerSesionesInactivas(db, T0)).toEqual([par_id])
+    // Sin la fila en sesiones_activas, el login del mismo usuario ya no choca.
+    const sesiones = db.prepare('SELECT COUNT(*) AS c FROM sesiones_activas').get() as { c: number }
+    expect(sesiones.c).toBe(0)
+  })
+
+  it('rpc: el token emitido en el login autoriza canales con la capa de permisos real', async () => {
+    // A diferencia del resto del archivo (handlers fake), acá el handler de
+    // `productos:list` llama a la autorización REAL (`checkPermissionOrFail`),
+    // que resuelve el usuario desde el token contra la BD de la Base.
+    await server.stop()
+    const { checkPermissionOrFail } = await import('../core/auth/permissions')
+    const { registrarSesion } = await import('./red-session')
+
+    server = createRedServer({
+      getDb: () => db,
+      getHandler: (canal) => {
+        if (canal === 'auth:login') {
+          return async (_event: unknown, data: any) => {
+            const parId = data?.__par_id || 'base'
+            const sesion = registrarSesion(db, 1, parId)
+            if (!sesion.ok) return { success: false, error: sesion.error }
+            return { success: true, usuario: { id: 1, usuario: 'admin' }, sesionToken: sesion.sesionToken }
+          }
+        }
+        if (canal === 'productos:list') {
+          return async (_event: unknown, data: any) => {
+            const fail = checkPermissionOrFail(data, 'productos:list', 'pos_access')
+            if (fail) return fail
+            return [{ id: 1, nombre: 'Producto A' }]
+          }
+        }
+        return undefined
+      },
+      getMaxPcs: () => 5,
+      port: 0,
+    })
+    base = `http://127.0.0.1:${await server.start()}`
+
+    const { codigo } = generarCodigoEnlace(db)
+    const vin = await post('/api/red/vincular', { codigo, nombre: 'Caja 1' })
+    const { par_id } = vin.json
+    const { cert_hash } = db.prepare('SELECT cert_hash FROM pcs_enlazadas WHERE par_id = ?').get(par_id) as { cert_hash: string }
+
+    const login = await post('/api/red/rpc', {
+      canal: 'auth:login',
+      args: [{ usuario: 'admin', contrasena: 'x' }],
+      par_id,
+      cert_hash,
+    })
+    expect(login.status).toBe(200)
+    const token = login.json.response.sesionToken as string
+    expect(token).toMatch(/^[0-9a-f]{32}$/)
+
+    // Con el token de la sesión, el canal de negocio pasa la autorización real
+    const ok = await post('/api/red/rpc', {
+      canal: 'productos:list',
+      args: [{ usuario_id: 1, session_token: token }],
+      par_id,
+      cert_hash,
+    })
+    expect(ok.status).toBe(200)
+    expect(ok.json.response).toEqual([{ id: 1, nombre: 'Producto A' }])
+
+    // Con un token inventado, la misma llamada queda sin autorización: la hija
+    // no puede fabricar credenciales, solo presentar su token real.
+    const falso = await post('/api/red/rpc', {
+      canal: 'productos:list',
+      args: [{ usuario_id: 1, session_token: 'fabricado' }],
+      par_id,
+      cert_hash,
+    })
+    expect(falso.status).toBe(200)
+    expect(falso.json.response.success).toBe(false)
+    expect(falso.json.response.error).toContain('sesión activa')
   })
 
   it('rpc: canal desconocido devuelve 404', async () => {

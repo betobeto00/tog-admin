@@ -402,6 +402,16 @@ export const PERMISSIONS = {
 
 export type PermissionKey = keyof typeof PERMISSIONS
 
+/**
+ * Roles válidos del sistema. Única fuente de verdad: la usan el esquema Zod
+ * (`validations.ts`), la validación de `usuarios:create`/`usuarios:update` y el
+ * formulario de usuarios del renderer (que ya ofrecía los tres).
+ *
+ * Antes el enum estaba duplicado y en dos lugares decía solo `admin | cajero`,
+ * lo que hacía imposible crear o editar un usuario `manager`.
+ */
+export const USER_ROLES = ['admin', 'manager', 'cajero'] as const
+
 // Permisos por defecto para cada rol
 export const ROLE_DEFAULTS: Record<string, PermissionKey[]> = {
   admin: Object.keys(PERMISSIONS) as PermissionKey[], // Admin tiene TODO
@@ -446,23 +456,6 @@ export const ROLE_DEFAULTS: Record<string, PermissionKey[]> = {
     'usuarios_change_own_password',
   ],
 }
-
-// Categorías de permisos (para agrupar en la UI)
-export const PERMISSION_CATEGORIES = [
-  { key: 'Ventas', icon: '🛒', color: 'blue' },
-  { key: 'Caja', icon: '💰', color: 'green' },
-  { key: 'Inventario', icon: '📦', color: 'purple' },
-  { key: 'Compras', icon: '🚚', color: 'orange' },
-  { key: 'Cotizaciones', icon: '📝', color: 'cyan' },
-  { key: 'Reportes', icon: '📊', color: 'indigo' },
-  { key: 'Distribuidor', icon: '🚚', color: 'orange' },
-  { key: 'Restaurant', icon: '🍽️', color: 'yellow' },
-  { key: 'Contabilidad', icon: '📊', color: 'indigo' },
-  { key: 'Recursos Humanos', icon: '👥', color: 'purple' },
-  { key: 'Administración', icon: '⚙️', color: 'red' },
-  { key: 'Impresión', icon: '🖨️', color: 'slate' },
-  { key: 'Hípico', icon: '🐎', color: 'amber' },
-] as const
 
 /**
  * Verifica si un usuario tiene un permiso específico.

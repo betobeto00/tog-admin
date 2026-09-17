@@ -11,6 +11,7 @@
 
 import { getDatabase } from '../../db/database'
 import { guardarConfig, leerConfig } from '../../services/fiscal'
+import { enmascararApiKey } from '../../services/claves-api'
 
 const CLAVE_ODDS_KEY = 'odds_api_key'
 const CLAVE_ODDS_BASE = 'odds_api_base'
@@ -47,12 +48,19 @@ export function guardarConfigOdds(db: ReturnType<typeof getDatabase>, apiKey: st
   if (apiBase) guardarConfig(db, CLAVE_ODDS_BASE, apiBase)
 }
 
+/**
+ * Config de The Odds API **lista para el renderer**: sin la clave.
+ *
+ * La clave se usa sólo en el main (es el main el que llama a la API). Devolverla
+ * al renderer la exponía a cualquier JS de la interfaz; para que el admin sepa
+ * qué hay cargado alcanza con `configurado` + la pista enmascarada.
+ */
 export function leerConfigOdds(db: ReturnType<typeof getDatabase>) {
   const config = obtenerConfig(db)
   return {
-    api_key: config.apiKey,
     api_base: config.apiBase,
     configurado: !!config.apiKey,
+    api_key_masked: enmascararApiKey(config.apiKey),
   }
 }
 

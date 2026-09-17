@@ -5,6 +5,10 @@ import { getDatabase } from '../../db/database'
 import { t } from '../../i18n'
 import { checkPermissionOrFail } from '../../core/auth'
 
+// Tope defensivo: un CSV de productos legítimo no se acerca a este tamaño, y
+// evita que una ruta apuntada a un archivo enorme congele el proceso main.
+const CSV_MAX_BYTES = 20 * 1024 * 1024
+
 export function registerProductosCsvHandlers(): void {
   handleIpc('productos:export-csv', async (_event, data?: any) => {
     const fail = checkPermissionOrFail(data, 'productos:export-csv', 'reportes_export')
@@ -42,10 +46,28 @@ export function registerProductosCsvHandlers(): void {
     }
   })
 
-  handleIpc('productos:import-csv', async (_event, filePath: string, data?: any) => {
+  // `callApi` inyecta `{ usuario_id }` y el renderer agrega la ruta, así que el
+  // orden real de los argumentos no es el de la firma obvia. Se normalizan por
+  // tipo en vez de asumir una posición: con la firma anterior
+  // `(filePath, data)` el canal quedaba inutilizable (la ruta llegaba como
+  // `data` y el chequeo de permisos fallaba siempre).
+  handleIpc('productos:import-csv', async (_event, ...args: unknown[]) => {
+    const filePath = args.find((a): a is string => typeof a === 'string') ?? ''
+    const data = args.find((a) => a !== null && typeof a === 'object' && !Array.isArray(a))
     const fail = checkPermissionOrFail(data, 'productos:import-csv', 'inventario_create')
     if (fail) return fail
     try {
+      // Solo CSV: la ruta viene del renderer, no puede servir para leer
+      // cualquier archivo del sistema (SAM, claves SSH, etc.).
+      if (!/\.csv$/i.test(filePath)) {
+        return { success: false, error: t('errors.csvInvalidExtension') }
+      }
+      if (!fs.existsSync(filePath)) {
+        return { success: false, error: t('errors.fileNotFound') }
+      }
+      if (fs.statSync(filePath).size > CSV_MAX_BYTES) {
+        return { success: false, error: t('errors.csvTooLarge') }
+      }
       const content = fs.readFileSync(filePath, 'utf8')
       const lines = content.split('\n').filter((l) => l.trim())
       if (lines.length < 2) return { success: false, error: t('errors.csvEmpty') }

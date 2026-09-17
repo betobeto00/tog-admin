@@ -52,6 +52,27 @@ function cleanupOldAttempts(): void {
   ).run()
 }
 
+/**
+ * Borra la contraseña inicial del admin en texto plano una vez que el admin
+ * demostró tenerla (primer login exitoso).
+ *
+ * No se borra al revelarla en la UI para no dejar al usuario afuera si cierra
+ * la app antes de entrar; se borra cuando ya entró, que es cuando el archivo
+ * dejó de ser necesario. Lazy require de electron para no arrastrarlo a tests.
+ */
+function discardInitialPasswordFile(): void {
+  try {
+    const { app } = require('electron')
+    const { borrarPasswordInicial } = require('./password-inicial')
+    borrarPasswordInicial(app.getPath('userData'))
+    getDatabase()
+      .prepare("UPDATE admin_initial_password SET shown_at = COALESCE(shown_at, datetime('now')) WHERE id = 1")
+      .run()
+  } catch {
+    // best-effort: no debe romper el login
+  }
+}
+
 export interface LoginInput {
   usuario: string
   contrasena: string
@@ -61,6 +82,13 @@ export interface LoginResult {
   success: boolean
   usuario?: any
   error?: string
+  /**
+   * Token de sesión que el renderer debe mandar en cada llamada IPC. Es la
+   * única prueba de identidad que acepta el main (ver `permissions.ts`).
+   * Vive en la memoria del renderer: no se persiste (la app pide login en cada
+   * arranque) y se pierde al recargar.
+   */
+  sesionToken?: string
 }
 
 export async function login(input: LoginInput, parId = 'base', ip?: string): Promise<LoginResult> {
@@ -99,5 +127,9 @@ export async function login(input: LoginInput, parId = 'base', ip?: string): Pro
     return { success: false, error: sesion.error }
   }
 
-  return { success: true, usuario: usuarioSinPass }
+  if (user.rol === 'admin') {
+    discardInitialPasswordFile()
+  }
+
+  return { success: true, usuario: usuarioSinPass, sesionToken: sesion.sesionToken }
 }

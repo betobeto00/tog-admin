@@ -1398,7 +1398,7 @@
     "password": "Contraseña",
     "passwordHint": "(dejar en blanco para mantener la actual)",
     "passwordPlaceholder": "Ingresa nueva contraseña o deja en blanco",
-    "passwordMinPlaceholder": "Mínimo 6 caracteres",
+    "passwordMinPlaceholder": "Mínimo 8 caracteres",
     "roleLabel": "Rol",
     "cashierRole": "Cajero",
     "managerRole": "Gerente",
@@ -1528,16 +1528,16 @@
     "currentPassword": "Contraseña Actual *",
     "currentPasswordPlaceholder": "Ingresa tu contraseña actual",
     "newPassword": "Nueva Contraseña *",
-    "newPasswordPlaceholder": "Mínimo 6 caracteres",
+    "newPasswordPlaceholder": "Mínimo 8 caracteres",
     "confirmPassword": "Confirmar Nueva Contraseña *",
     "confirmPasswordPlaceholder": "Repite la nueva contraseña",
     "passwordMismatch": "Las contraseñas no coinciden",
-    "passwordLength": "{{count}}/6 caracteres mínimos",
+    "passwordLength": "{{count}}/8 caracteres mínimos",
     "passwordOk": "✓ Longitud adecuada",
     "changeButton": "Cambiar Contraseña",
     "changingButton": "Cambiando...",
     "errorCurrentRequired": "Ingresa tu contraseña actual",
-    "errorMinLength": "La nueva contraseña debe tener al menos 6 caracteres",
+    "errorMinLength": "La nueva contraseña debe tener al menos 8 caracteres",
     "errorMismatch": "Las contraseñas no coinciden",
     "errorDifferent": "La nueva contraseña debe ser diferente a la actual",
     "errorChangeFailed": "Error al cambiar contraseña"
@@ -1575,7 +1575,7 @@
     "max": "Valor máximo: {{max}}",
     "positive": "Debe ser mayor a 0",
     "passwordMismatch": "Las contraseñas no coinciden",
-    "passwordTooShort": "La contraseña debe tener al menos 6 caracteres"
+    "passwordTooShort": "La contraseña debe tener al menos 8 caracteres"
   },
   "errors": {
     "generic": "Ocurrió un error inesperado",

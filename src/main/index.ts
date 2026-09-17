@@ -31,8 +31,10 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      webSecurity: !isDev,
-      allowRunningInsecureContent: isDev,
+      // Siempre activo: desactivar webSecurity permite requests cross-origin y
+      // lectura de file:// desde el renderer, y vuelve inefectivo el CSP.
+      webSecurity: true,
+      allowRunningInsecureContent: false,
     },
     show: false,
   })
@@ -185,7 +187,12 @@ app.whenReady().then(() => {
     logger.info('app', `${i18nT('logs.ipcRegistered')}`)
 
     // CSP headers a nivel Electron (refuerzo al meta tag en index.html)
-    const PROD_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'"
+    // `connect-src 'self'`: el renderer no hace requests externos (todo el
+    // tráfico de red vive en el proceso main, que no está sujeto al CSP). Con
+    // `https:` abierto, un XSS podía exfiltrar la base del negocio a cualquier
+    // dominio. Si alguna vez el renderer necesita un origen externo, se agrega
+    // explícito acá. ¿El porqué de este cambio? Ver docs/INFORME_SEGURIDAD_TOG_ADMIN.md.
+    const PROD_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
       callback({
         responseHeaders: {

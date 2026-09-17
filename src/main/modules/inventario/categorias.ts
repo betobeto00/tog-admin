@@ -1,6 +1,7 @@
 import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
+import { categoriaCreateSchema, categoriaUpdateSchema, validateInput } from '../../../shared/validations'
 
 export function registerCategoriasHandlers(): void {
   handleIpc('categorias:list', async (_event, data: any) => {
@@ -13,6 +14,8 @@ export function registerCategoriasHandlers(): void {
   handleIpc('categorias:create', async (_event, data: any) => {
     const fail = checkPermissionOrFail(data, 'categorias:create', 'inventario_categories')
     if (fail) return fail
+    const invalid = validateInput(categoriaCreateSchema, data)
+    if (!invalid.ok) return { success: false, error: invalid.error }
     const db = getDatabase()
     const result = db.prepare('INSERT INTO categorias (nombre, descripcion) VALUES (?, ?)').run(
       data.nombre,
@@ -24,6 +27,8 @@ export function registerCategoriasHandlers(): void {
   handleIpc('categorias:update', async (_event, data: { id: number; data: any; usuario_id: number }) => {
     const fail = checkPermissionOrFail(data, 'categorias:update', 'inventario_categories')
     if (fail) return fail
+    const invalid = validateInput(categoriaUpdateSchema, data?.data)
+    if (!invalid.ok) return { success: false, error: invalid.error }
     const db = getDatabase()
     db.prepare('UPDATE categorias SET nombre = COALESCE(?, nombre), descripcion = COALESCE(?, descripcion) WHERE id = ?').run(
       data.data.nombre || null,

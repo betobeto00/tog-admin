@@ -11,6 +11,15 @@ interface Usuario {
 
 interface AuthState {
   usuario: Usuario | null
+  /**
+   * Token de sesión emitido por el main en `auth:login`.
+   *
+   * Vive SOLO en memoria: el main no lo emite desde el disco y la app pide
+   * login en cada arranque (`localStorage.removeItem('tog_user')` más abajo),
+   * así que una recarga equivale a cerrar sesión. No persistirlo es intencional:
+   * es la credencial que autoriza cada llamada IPC.
+   */
+  sessionToken: string | null
   isAuthenticated: boolean
   isLoading: boolean
   error: string | null
@@ -21,7 +30,8 @@ interface AuthState {
   changePassword: (contrasenaActual: string, contrasenaNueva: string) => Promise<{ success: boolean; error?: string }>
 }
 
-const authCreator: StateCreator<AuthState> = (set) => ({
+const authCreator: StateCreator<AuthState> = (set, get) => ({
+  sessionToken: null,
   usuario: null,
   isAuthenticated: false,
   isLoading: false,
@@ -31,11 +41,12 @@ const authCreator: StateCreator<AuthState> = (set) => ({
     set({ isLoading: true, error: null })
 
     try {
-      const result = await callApi<{ success: boolean; usuario?: any; error?: string }>('auth:login', { usuario, contrasena })
+      const result = await callApi<{ success: boolean; usuario?: any; error?: string; sesionToken?: string }>('auth:login', { usuario, contrasena })
 
       if (result.success && result.usuario) {
         set({
           usuario: result.usuario,
+          sessionToken: result.sesionToken ?? null,
           isAuthenticated: true,
           isLoading: false,
           error: null,
@@ -57,10 +68,14 @@ const authCreator: StateCreator<AuthState> = (set) => ({
   },
 
   logout: () => {
-    set({ usuario: null, isAuthenticated: false, error: null })
+    // Se captura el token ANTES de limpiar el store: `red:logout` lo necesita
+    // para cerrar exactamente esta sesión (si no, la fila queda viva en la BD
+    // y el usuario no puede volver a entrar en otro equipo).
+    const sessionToken = get().sessionToken
+    set({ usuario: null, sessionToken: null, isAuthenticated: false, error: null })
     localStorage.removeItem('tog_user')
     // Liberar la sesión en la PC Base (red local), best-effort
-    callApi<{ success: boolean }>('red:logout').catch(() => {})
+    callApi<{ success: boolean }>('red:logout', { session_token: sessionToken ?? undefined }).catch(() => {})
   },
 
   changePassword: async (contrasenaActual: string, contrasenaNueva: string) => {

@@ -11,6 +11,7 @@
 
 import { getDatabase } from '../../db/database'
 import { guardarConfig, leerConfig } from '../../services/fiscal'
+import { enmascararApiKey } from '../../services/claves-api'
 
 const CLAVE_API_KEY = 'racing_api_key'
 const CLAVE_API_BASE = 'racing_api_base'
@@ -39,12 +40,16 @@ export function guardarConfigApi(db: ReturnType<typeof getDatabase>, apiKey: str
   if (apiBase) guardarConfig(db, CLAVE_API_BASE, apiBase)
 }
 
+/**
+ * Config de The Racing API **lista para el renderer**: sin la clave.
+ * Mismo criterio que `leerConfigOdds` (ver `services/claves-api.ts`).
+ */
 export function leerConfigApi(db: ReturnType<typeof getDatabase>) {
   const config = obtenerConfig(db)
   return {
-    api_key: config.apiKey,
     api_base: config.apiBase,
     configurado: !!config.apiKey,
+    api_key_masked: enmascararApiKey(config.apiKey),
   }
 }
 

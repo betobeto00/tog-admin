@@ -1,7 +1,7 @@
 export interface PapeleriaAPI {
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
   auth: {
-    login: (data: { usuario: string; contrasena: string }) => Promise<{ success: boolean; usuario?: any; error?: string }>
+    login: (data: { usuario: string; contrasena: string }) => Promise<{ success: boolean; usuario?: any; error?: string; sesionToken?: string }>
   }
   usuarios: {
     list: () => Promise<any[]>

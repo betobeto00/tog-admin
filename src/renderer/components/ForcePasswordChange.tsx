@@ -27,7 +27,7 @@ export default function ForcePasswordChange() {
       setError(t('forcePassword.errorCurrentRequired'))
       return
     }
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
       setError(t('forcePassword.errorMinLength'))
       return
     }
@@ -110,7 +110,7 @@ export default function ForcePasswordChange() {
               <div className="mt-2 flex gap-1">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className={`h-1 flex-1 rounded-full ${
-                    newPassword.length >= i * 3
+                    newPassword.length >= i * 2
                       ? newPassword.length >= 12 ? 'bg-green-500' : newPassword.length >= 8 ? 'bg-yellow-500' : 'bg-orange-400'
                       : 'bg-gray-200'
                   }`} />
@@ -118,7 +118,7 @@ export default function ForcePasswordChange() {
               </div>
             )}
             <p className="text-xs text-gray-400 mt-1">
-              {newPassword.length < 6 ? t('forcePassword.passwordLength', { count: newPassword.length }) : t('forcePassword.passwordOk')}
+              {newPassword.length < 8 ? t('forcePassword.passwordLength', { count: newPassword.length }) : t('forcePassword.passwordOk')}
             </p>
           </div>
 

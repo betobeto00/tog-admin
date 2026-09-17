@@ -1,21 +1,42 @@
 import { z } from 'zod'
+import { USER_ROLES } from './permissions'
+
+/**
+ * Valida `value` contra `schema` y devuelve el primer mensaje de error.
+ *
+ * Importante: **no** se usa el resultado del parse para la lógica del handler,
+ * solo para validar. Zod elimina las claves desconocidas por defecto, así que
+ * reemplazar el payload por `result.data` borraría campos que los handlers
+ * necesitan (por ejemplo `almacen_id` en `caja:abrir`).
+ */
+export function validateInput(
+  schema: z.ZodTypeAny,
+  value: unknown,
+): { ok: true } | { ok: false; error: string } {
+  const result = schema.safeParse(value)
+  if (result.success) return { ok: true }
+  const issue = result.error.issues[0]
+  const path = issue?.path?.length ? `${issue.path.join('.')}: ` : ''
+  return { ok: false, error: `${path}${issue?.message ?? 'Datos inválidos'}` }
+}
 
 // ============================================
 // USUARIOS
 // ============================================
 
 export const usuarioCreateSchema = z.object({
-  usuario: z.string().min(3, 'Mínimo 3 caracteres').max(50).regex(/^[a-zA-Z0-9_]+$/, 'Solo letras, números y guión bajo'),
+  usuario: z.string().min(3, 'Mínimo 3 caracteres').max(50, 'Máximo 50 caracteres').regex(/^[a-zA-Z0-9_]+$/, 'Solo letras, números y guión bajo'),
   contrasena: z.string().min(8, 'Mínimo 8 caracteres').max(128, 'Máximo 128 caracteres'),
-  nombre: z.string().min(1, 'Nombre requerido').max(100),
-  rol: z.enum(['admin', 'cajero']).default('cajero'),
+  nombre: z.string().min(1, 'Nombre requerido').max(100, 'Máximo 100 caracteres'),
+  rol: z.enum(USER_ROLES).default('cajero'),
 })
 
 export const usuarioUpdateSchema = z.object({
-  nombre: z.string().min(1).max(100).optional(),
-  rol: z.enum(['admin', 'cajero']).optional(),
-  activo: z.number().int().min(0).max(1).optional(),
-  contrasena: z.string().min(6).optional(),
+  nombre: z.string().min(1, 'Nombre requerido').max(100, 'Máximo 100 caracteres').optional(),
+  rol: z.enum(USER_ROLES).optional(),
+  activo: z.number().int('Debe ser 0 o 1').min(0, 'Debe ser 0 o 1').max(1, 'Debe ser 0 o 1').optional(),
+  // Se unifica con `usuarioCreateSchema` y `changePasswordSchema`: mínimo 8.
+  contrasena: z.string().min(8, 'Mínimo 8 caracteres').max(128, 'Máximo 128 caracteres').optional(),
 })
 
 // ============================================
@@ -23,18 +44,22 @@ export const usuarioUpdateSchema = z.object({
 // ============================================
 
 export const categoriaCreateSchema = z.object({
-  nombre: z.string().min(1, 'Nombre requerido').max(100),
-  descripcion: z.string().max(500).optional(),
+  nombre: z.string().min(1, 'Nombre requerido').max(100, 'Máximo 100 caracteres'),
+  descripcion: z.string().max(500, 'Máximo 500 caracteres').optional(),
 })
+
+export const categoriaUpdateSchema = categoriaCreateSchema.partial()
 
 // ============================================
 // UNIDADES DE MEDIDA
 // ============================================
 
 export const unidadCreateSchema = z.object({
-  nombre: z.string().min(1, 'Nombre requerido').max(50),
-  abreviatura: z.string().max(10).optional(),
+  nombre: z.string().min(1, 'Nombre requerido').max(50, 'Máximo 50 caracteres'),
+  abreviatura: z.string().max(10, 'Máximo 10 caracteres').optional(),
 })
+
+export const unidadUpdateSchema = unidadCreateSchema.partial()
 
 // ============================================
 // PRODUCTOS
@@ -163,12 +188,14 @@ export const compraCreateSchema = z.object({
 export const cajaAbrirSchema = z.object({
   usuario_id: z.number().int().positive(),
   fondo_inicial: z.number().min(0, 'El fondo inicial no puede ser negativo'),
+  // Opcional: el POS lo manda cuando hay más de un almacén (módulo Almacenes).
+  almacen_id: z.number().int().positive().optional(),
 })
 
 export const cajaCerrarSchema = z.object({
-  caja_id: z.number().int().positive(),
-  total_real: z.number().min(0),
-  notas: z.string().max(500).optional(),
+  caja_id: z.number().int().positive('Caja inválida'),
+  total_real: z.number().min(0, 'El total contado no puede ser negativo'),
+  notas: z.string().max(500, 'Máximo 500 caracteres').optional(),
 })
 
 export const movimientoCajaSchema = z.object({
@@ -210,8 +237,8 @@ export const quoteCreateSchema = z.object({
 // ============================================
 
 export const configSetSchema = z.object({
-  clave: z.string().min(1).max(100),
-  valor: z.string().max(500),
+  clave: z.string().min(1, 'Clave requerida').max(100, 'Máximo 100 caracteres'),
+  valor: z.string().max(500, 'Máximo 500 caracteres'),
 })
 
 // ============================================

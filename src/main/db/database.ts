@@ -1252,6 +1252,20 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
           CREATE INDEX IF NOT EXISTS idx_produccion_detalle_lote ON produccion_lote_detalle(lote_id);
         `,
       },
+      {
+        nombre: '052_intentos_vincular',
+        sql: `
+          -- Intentos de emparejamiento de PCs hijas (código de enlace).
+          -- Persistente a propósito: el límite por IP sobrevive reinicios de la
+          -- app y queda auditable, a diferencia del Map en memoria anterior.
+          CREATE TABLE IF NOT EXISTS intentos_vincular (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ip TEXT NOT NULL,
+            creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+          );
+          CREATE INDEX IF NOT EXISTS idx_intentos_vincular_ip ON intentos_vincular(ip, creado_en);
+        `,
+      },
     ]
 }
 // ============================================
@@ -1263,19 +1277,19 @@ function seedDatabase(db: Database.Database): void {
 
   if (!existeAdmin) {
     const seedInTransaction = db.transaction(() => {
-      // Generate random admin password (12 chars: uppercase + lowercase + digits)
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-      let adminPassword = ''
-      for (let i = 0; i < 12; i++) {
-        adminPassword += chars.charAt(Math.floor(Math.random() * chars.length))
-      }
-      
-      // Store initial password for first login display
-      const initialPasswordPath = require('path').join(
+      // La generación (CSPRNG) y la escritura en disco viven en
+      // `core/auth/password-inicial.ts`, que es testeable por comportamiento.
+      const { generarPasswordInicial, escribirPasswordInicial } = require('../core/auth/password-inicial')
+      const adminPassword: string = generarPasswordInicial()
+
+      // Se escribe en texto plano SOLO para poder mostrarla una vez (la
+      // pantalla de activación la lee con `license:initial-password`). El
+      // archivo se borra en el primer login del admin — ver
+      // `core/auth/auth-service.ts`. Mientras exista, solo el dueño puede leerlo.
+      const initialPasswordPath: string = escribirPasswordInicial(
         require('electron').app.getPath('userData'),
-        'admin-initial-password.txt'
+        adminPassword,
       )
-      require('fs').writeFileSync(initialPasswordPath, adminPassword, 'utf8')
       
       // Hash the password for storage
       const hash = bcrypt.hashSync(adminPassword, 10)

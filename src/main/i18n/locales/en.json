@@ -72,12 +72,13 @@
     "printerError": "Printer error",
     "wrongPassword": "Incorrect password",
     "wrongCurrentPassword": "Current password is incorrect",
-    "passwordMinLength": "New password must be at least 6 characters",
+    "passwordMinLength": "New password must be at least 8 characters",
     "justificationRequired": "Justification is required",
     "cashAlreadyOpen": "A register is already open. Close it before opening another.",
     "dbNotFound": "Database not found",
     "operationCancelled": "Operation cancelled",
     "invalidDbFile": "File does not appear to be a valid SQLite database",
+    "backupIncompatible": "That file is not a TOG Admin backup (missing tables: {{tablas}}). Nothing was restored.",
     "terminalDeclinedByTerminal": "Transaction declined by terminal",
     "csvEmpty": "CSV file is empty or has no data",
     "licenseFileNotFound": "License file (license.key) not found",
@@ -86,7 +87,9 @@
     "licenseNotValid": "File is not a valid license",
     "serialPortNotInstalled": "serialport library not installed. Run: npm install serialport",
     "terminalNotConnected": "VP800 terminal is not connected. Connect the COM port first.",
-    "terminalClientTimeout": "Timeout. Customer did not insert their card."
+    "terminalClientTimeout": "Timeout. Customer did not insert their card.",
+    "csvInvalidExtension": "The file must have a .csv extension",
+    "csvTooLarge": "The CSV file is too large (20 MB max)"
   },
   "logs": {
     "appStarting": "Starting TOG Admin",

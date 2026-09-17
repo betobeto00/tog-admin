@@ -277,3 +277,42 @@ export const PREAUTH_CHANNELS: readonly IpcChannel[] = [
   'red:desvincular',
   'red:heartbeat',
 ] as const
+
+/**
+ * Canales que NUNCA deben despacharse por el RPC de la red local
+ * (`POST /api/red/rpc`), aunque la PC hija esté emparejada.
+ *
+ * Motivo: el RPC remoto es una superficie expuesta a la LAN. Los canales de
+ * esta lista o bien se resuelven localmente en la hija (ver
+ * `HIJA_LOCAL_CHANNELS` en `src/main/ipc-handlers.ts`), o bien exponen
+ * credenciales / reescrituras de licencia que no tienen por qué viajar por la
+ * red. `license:initial-password` era pre-auth y devolvía la contraseña del
+ * admin en texto plano a cualquier PC emparejada.
+ *
+ * Es a propósito una lista independiente de `HIJA_LOCAL_CHANNELS`: significan
+ * cosas distintas ("dónde se resuelve" vs. "qué es servible por red") y pueden
+ * divergir. Si agregás un canal sensible, agregalo acá.
+ */
+export const REMOTE_BLOCKED_CHANNELS: readonly IpcChannel[] = [
+  'app:version',
+  'crash-report:delete',
+  'crash-report:list',
+  'crash-report:open-folder',
+  'crash-report:path',
+  'crash-report:read',
+  'crash-report:save',
+  'db:reset',
+  'feedback:send',
+  'i18n:get-lang',
+  'i18n:set-lang',
+  'license:initial-password',
+  'red:desvincular',
+  'red:generar-codigo',
+  'red:listar-pcs',
+  'red:logout',
+  'red:status',
+  'red:vincular',
+  'update:check',
+  'update:download',
+  'update:install',
+] as const
