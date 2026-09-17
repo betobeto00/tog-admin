@@ -95,7 +95,7 @@ import { construirEscPos, sanearTexto, textoABytes, CMD_FEED, ESC, GS } from './
 import { documentoDeVenta, etiquetaMetodoPago } from './documentos'
 import { getDatosFiscales, siguienteNumeroControl, guardarConfig } from '../../services/fiscal'
 import { registerPrintHandlers } from './handlers'
-import type { LineaTicket } from '@shared/print'
+import type { LineaTicket } from '../../../shared/print'
 
 const lineas: LineaTicket[] = [
   { texto: 'TOG Admin', centrada: true, negrita: true },

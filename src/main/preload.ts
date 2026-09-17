@@ -269,4 +269,4 @@ contextBridge.exposeInMainWorld('api', {
 })
 
 // Declarar tipo global para window.api
-export type { PapeleriaAPI } from '@shared/papeleria-api'
+export type { PapeleriaAPI } from '../shared/papeleria-api'

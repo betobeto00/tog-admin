@@ -14,7 +14,7 @@
  *   ESC p m t  pulso al cajón de dinero (m = 0 pin 2)
  */
 
-import type { LineaTicket } from '@shared/print'
+import type { LineaTicket } from '../../../shared/print'
 
 export const ESC = 0x1b
 export const GS = 0x1d

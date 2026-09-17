@@ -11,7 +11,7 @@
  */
 
 import { getDatabase } from '../db/database'
-import { desgloseFiscal, formatearNumeroControl, type DesgloseFiscal } from '@shared/fiscal'
+import { desgloseFiscal, formatearNumeroControl, type DesgloseFiscal } from '../../shared/fiscal'
 
 export { desgloseFiscal, formatearNumeroControl }
 export type { DesgloseFiscal }

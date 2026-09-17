@@ -18,7 +18,7 @@ import {
   type DocumentoApuesta,
   type AnchoTicket,
   type LineaTicket,
-} from '@shared/print'
+} from '../../../shared/print'
 import { construirEscPos } from './escpos'
 import { enviarEscPos, listarPuertosSerie } from '../../services/printer'
 import { getDatosFiscales, guardarConfig, CLAVES_FISCALES, siguienteNumeroControl } from '../../services/fiscal'

@@ -117,7 +117,7 @@ vi.mock('../../core/auth', () => ({
   },
 }))
 
-import { construirLineasTicketApuesta, type DocumentoApuesta } from '@shared/print'
+import { construirLineasTicketApuesta, type DocumentoApuesta } from '../../../shared/print'
 import {
   apuestaGanadora,
   calcularOddTotal,

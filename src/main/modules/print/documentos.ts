@@ -3,7 +3,7 @@
  * El layout vive en src/shared/print.ts; acá solo se arma la información.
  */
 
-import type { DocumentoVenta, DocumentoApuesta, ItemDocumento } from '@shared/print'
+import type { DocumentoVenta, DocumentoApuesta, ItemDocumento } from '../../../shared/print'
 import { getDatosFiscales, desgloseFiscal } from '../../services/fiscal'
 
 type DbLike = { prepare: (sql: string) => any }
