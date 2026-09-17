@@ -1,11 +1,31 @@
 import { handleIpc } from '../../core/auth/ipc-guard'
 import { validateLicense, getLicenseStatus, saveLicense, resetLicenseState, getMachineId } from '../../services/license'
-import { syncLicenseFromServer, syncLicenseWithAccount } from '../../services/license-sync'
+import { syncLicenseFromServer, syncLicenseWithAccount, type LocalLicenseInfo } from '../../services/license-sync'
 import { checkPermissionOrFail } from '../../core/auth'
 import { startRedServerIfBase } from '../../services/red-server'
 
 const fs = require('fs')
 const path = require('path')
+const { app } = require('electron')
+
+function readLocalLicenseInfo(): LocalLicenseInfo | null {
+  try {
+    const licensePath = app.isPackaged
+      ? path.join(app.getPath('userData'), 'license.key')
+      : path.join(process.cwd(), 'license.key')
+    if (!fs.existsSync(licensePath)) return null
+    const raw = fs.readFileSync(licensePath, 'utf8')
+    const parsed = JSON.parse(raw)
+    if (!parsed.cliente || !parsed.expira) return null
+    return {
+      cliente: parsed.cliente,
+      expira: parsed.expira,
+      modules: Array.isArray(parsed.modules) ? parsed.modules : [],
+    }
+  } catch {
+    return null
+  }
+}
 
 function getInitialPassword(): string | null {
   try {
@@ -39,7 +59,7 @@ export function registerLicenseHandlers(): void {
 
   // Pre-auth (pantalla de bloqueo / sin sesión): descarga la licencia activa
   // desde el backend TOG Platform y la guarda localmente tras validar la firma.
-  handleIpc('license:sync', async (_event, data?: { url?: string; empresa_id?: string | number; api_key?: string; deviceFingerprint?: string; vendedorId?: string }) => {
+  handleIpc('license:sync', async (_event, data?: { url?: string; empresa_id?: string | number; api_key?: string; deviceFingerprint?: string; vendedorId?: string; force?: boolean }) => {
     const result = await syncLicenseFromServer(
       {
         url: data?.url || '',
@@ -47,15 +67,16 @@ export function registerLicenseHandlers(): void {
         apiKey: data?.api_key || '',
         deviceFingerprint: data?.deviceFingerprint,
         vendedorId: data?.vendedorId,
+        force: data?.force,
       },
-      { saveImpl: saveLicense },
+      { saveImpl: saveLicense, checkLocalLicense: readLocalLicenseInfo },
     )
-    if (result.success) await startRedServerIfBase()
+    if (result.success && !('pendingOverwrite' in result)) await startRedServerIfBase()
     return result
   })
 
   // Pre-auth: sincroniza la licencia con la cuenta OmniMargen (email + contraseña).
-  handleIpc('license:sync-account', async (_event, data?: { url?: string; email?: string; password?: string; deviceFingerprint?: string; vendedorId?: string }) => {
+  handleIpc('license:sync-account', async (_event, data?: { url?: string; email?: string; password?: string; deviceFingerprint?: string; vendedorId?: string; force?: boolean }) => {
     const result = await syncLicenseWithAccount(
       {
         url: data?.url || '',
@@ -63,10 +84,11 @@ export function registerLicenseHandlers(): void {
         password: data?.password || '',
         deviceFingerprint: data?.deviceFingerprint,
         vendedorId: data?.vendedorId,
+        force: data?.force,
       },
-      { saveImpl: saveLicense },
+      { saveImpl: saveLicense, checkLocalLicense: readLocalLicenseInfo },
     )
-    if (result.success) await startRedServerIfBase()
+    if (result.success && !('pendingOverwrite' in result)) await startRedServerIfBase()
     return result
   })
 

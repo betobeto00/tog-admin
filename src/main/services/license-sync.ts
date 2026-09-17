@@ -11,6 +11,8 @@ export interface LicenseSyncArgs {
   deviceFingerprint?: string
   /** ID del vendedor que trajo al cliente (OMV-XXXXX). Opcional. */
   vendedorId?: string
+  /** Si es true, sobreescribe la licencia local sin pedir confirmación. */
+  force?: boolean
 }
 
 interface FetchResponseLike {
@@ -19,10 +21,17 @@ interface FetchResponseLike {
   json(): Promise<any>
 }
 
+export interface LocalLicenseInfo {
+  cliente: string
+  expira: string
+  modules: string[]
+}
+
 export interface LicenseSyncDeps {
   timeoutMs?: number
   fetchImpl?: (url: string, init: any) => Promise<FetchResponseLike>
   saveImpl?: (rawLicenseJson: string) => { success: boolean; error?: string }
+  checkLocalLicense?: () => LocalLicenseInfo | null
 }
 
 export type VendedorVinculacion = {
@@ -35,6 +44,7 @@ export type VendedorVinculacion = {
 export type LicenseSyncResult =
   | { success: true; cliente: string; expira: string; modulos: string[]; vendedor?: VendedorVinculacion }
   | { success: false; error: string; deviceMismatch?: boolean; empresaId?: string | number; apiKey?: string }
+  | { success: true; pendingOverwrite: true; cloud: { cliente: string; expira: string; modules: string[] }; local: LocalLicenseInfo }
 
 /** Mismo formato que genera la landing page en /soy-vendedor. */
 export const ID_VENDEDOR_REGEX = /^OMV-[A-Z0-9]{5}$/
@@ -46,6 +56,8 @@ export interface LicenseAccountSyncArgs {
   deviceFingerprint?: string
   /** ID del vendedor que trajo al cliente (OMV-XXXXX). Opcional. */
   vendedorId?: string
+  /** Si es true, sobreescribe la licencia local sin pedir confirmación. */
+  force?: boolean
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000
@@ -120,6 +132,18 @@ export async function syncLicenseFromServer(
     return { success: false, error: 'El servidor no devolvió una licencia firmada' }
   }
 
+  const cloudModules = normalizeModules(licencia.modules)
+  const cloudInfo = { cliente: licencia.cliente ?? '', expira: licencia.expira ?? '', modules: cloudModules }
+
+  // Si ya existe una licencia local y no se pidió force, devolvemos los datos
+  // para que el UI muestre la comparación y el usuario decida.
+  if (!args.force && deps.checkLocalLicense) {
+    const local = deps.checkLocalLicense()
+    if (local) {
+      return { success: true, pendingOverwrite: true, cloud: cloudInfo, local }
+    }
+  }
+
   const raw = JSON.stringify(licencia)
   if (deps.saveImpl) {
     const saved = deps.saveImpl(raw)
@@ -140,9 +164,9 @@ export async function syncLicenseFromServer(
 
   return {
     success: true,
-    cliente: licencia.cliente ?? '',
-    expira: licencia.expira ?? '',
-    modulos: normalizeModules(licencia.modules),
+    cliente: cloudInfo.cliente,
+    expira: cloudInfo.expira,
+    modulos: cloudModules,
     vendedor,
   }
 }
@@ -287,6 +311,7 @@ export async function syncLicenseWithAccount(
       apiKey: empresa.api_key,
       deviceFingerprint: args?.deviceFingerprint,
       vendedorId: args?.vendedorId,
+      force: args?.force,
     },
     deps,
   )
