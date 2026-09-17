@@ -146,7 +146,7 @@ C:\Users\<usuario>\AppData\Roaming\tog-admin\
 
 3. **Abrir la app** por primera vez
    - Se creará la base de datos en `C:\Users\...\AppData\Roaming\tog-admin\tog-admin.db`
-   - El usuario admin por defecto es: `admin` / `admin123`
+   - El usuario admin es `admin`; la contraseña se genera aleatoriamente (CSPRNG) y se muestra una sola vez en la pantalla de activación
 
 4. **La app mostrará la pantalla de bloqueo** de licencia
 

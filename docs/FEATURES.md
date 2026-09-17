@@ -248,13 +248,17 @@
 | # | Feature | Prioridad | Estado | DescripciÃ³n |
 |---|---------|-----------|--------|-------------|
 | SEC1 | Sistema de licencias RSA-2048 | ðŸ”´ | âœ… | Licencias offline con validaciÃ³n de firma + **Sincronizar** (canal pre-auth `license:sync`, re-validaciÃ³n RSA local) |
-| SEC2 | Permisos por usuario (69 permisos) | ðŸŸ¡ | âœ… | 13 categorÃ­as de permisos granulares (incl. `distribuidor_*`, `creditos_*`, `red_manage`, `hipico_*`, `productor_*`, `postventa_*`) |
+| SEC2 | Permisos por usuario (69 permisos en 15 categorías) | 🟡 | ✅ | Roles: admin, manager, cajero. 15 categorías de permisos granulares (incl. `distribuidor_*`, `creditos_*`, `red_manage`, `hipico_*`, `productor_*`, `postventa_*`, `contable_*`, `rrhh_*`) |
 | SEC3 | Rate limiting en login | ðŸ”´ | âœ… | Bloqueo despuÃ©s de 5 intentos |
 | SEC4 | Session timeout | ðŸ”´ | âœ… | 30 min de inactividad |
-| SEC5 | Password hashing (bcrypt) | ðŸ”´ | âœ… | 10 salt rounds |
+| SEC5 | Password hashing (bcrypt) + CSPRNG inicial | 🔴 | ✅ | 10 salt rounds; password admin inicial con `crypto.randomInt` (CSPRNG), borrado en primer login |
 | SEC6 | ErrorBoundary + Crash Reports | ðŸŸ¡ | âœ… | Captura de errores + reportes automÃ¡ticos |
 | SEC7 | CSP headers | ðŸŸ¢ | âœ… | CSP meta: estricta en producciÃ³n (sin inline scripts), relajada en dev vÃ­a `inject-csp` (Vite) |
-| SEC8 | Validar origen IPC | ðŸŸ¢ | âœ… | Guard `handleIpc` (`core/auth/ipc-guard.ts`): solo main-frame + file:// o dev-server; todos los handlers pasan por Ã©l |
+| SEC8 | Validar origen IPC | 🟢 | ✅ | Guard `handleIpc` (`core/auth/ipc-guard.ts`): solo main-frame + file:// o dev-server; todos los handlers pasan por él |
+| SEC9 | Sesión por token CSPRNG | 🟢 | ✅ | Cada llamada IPC resuelve al usuario desde `sesiones_activas` via token; `usuario_id` del cliente se sobrescribe (CRIT-02 cerrado) |
+| SEC10 | Canales bloqueados por red | 🟢 | ✅ | `REMOTE_BLOCKED_CHANNELS` impide ejecución remota de canales sensibles (`license:initial-password`, `db:reset`, etc.) |
+| SEC11 | Claves de API enmascaradas | 🟢 | ✅ | `config:get` filtra claves reservadas; `leerConfigOdds()` devuelve `api_key_masked` |
+| SEC12 | CSP estricto | 🟢 | ✅ | `connect-src 'self'`, `webSecurity: true` siempre; sincronizado en 3 lugares (meta tag, session header, Vite plugin) |
 
 ---
 
@@ -265,7 +269,7 @@
 | INF1 | Auto-update (electron-updater) | ðŸŸ¡ | âœ… | Actualizaciones vÃ­a GitHub Releases |
 | INF2 | NSIS installer | ðŸŸ¡ | âœ… | Instalador Windows con acceso directo |
 | INF3 | i18n (ES/EN) | ðŸŸ¡ | âœ… | ~1,862 keys por idioma (ES/EN, renderer) + ~98 en main |
-| INF4 | Tests automatizados | ðŸŸ¡ | âœ… | 454 tests en 38 archivos (Vitest: validaciones, servicios, handlers IPC, componentes) |
+| INF4 | Tests automatizados | 🟡 | ✅ | 550 tests en 45 archivos (Vitest: validaciones, servicios, handlers IPC, componentes, seguridad) |
 | INF5 | Build portable | ðŸŸ¢ | âœ… | VersiÃ³n sin instalador |
 | INF6 | Instalador X32 | ðŸŸ¡ | â³ | Instalador para arquitectura de 32 bits |
 | INF7 | Logging estructurado (winston) | ðŸŸ¡ | â³ | Logging centralizado en main process |
@@ -287,7 +291,7 @@
 | F8 | Imprimir etiquetas | ðŸŸ¡ | â³ | Etiquetas con cÃ³digo de barras (Fase 3) |
 | F9 | WiFi para VP800 | ðŸŸ¡ | â³ | ComunicaciÃ³n WiFi vÃ­a Valor Connect (Fase 3) |
 | F10 | Reportes modificables visuales | ðŸ”´ | âœ… | **Reportes Visuales** (`/reportes-visuales`): elegir fuente (ventas por dÃ­a, top productos, por categorÃ­a, Ãºltimas ventas), columnas visibles, perÃ­odo â†’ previsualizaciÃ³n + exportar CSV/PDF Â· guardar/cargar/eliminar reportes (migraciÃ³n 025) |
-| F11 | Feedback desde el login | ðŸŸ¢ | âœ… | BotÃ³n en pantalla de login que envÃ­a feedback del cliente a un bot de Telegram del dueÃ±o (token configurable en ConfiguraciÃ³n â†’ Sistema) |
+| F11 | Feedback desde el login | 🟢 | ✅ | Botón en pantalla de login que envía feedback al endpoint `/api/feedback` de la landing-page (token de Telegram server-side, nunca en el cliente) |
 | F12 | Manager remoto | ðŸŸ¡ | âœ… | Rol **manager** (Gerente): ve/exporta reportes, agrega productos y modifica precios sin operar la caja; creable en ConfiguraciÃ³n â†’ Usuarios con permisos por defecto propios (sin POS/caja/configuraciÃ³n) |
 
 ---
@@ -306,6 +310,7 @@
 | NET8 | Logout distribuido | ðŸŸ¡ | âœ… | Al desloguear en la hija se llama `red:logout` (libera sesiones en la Base). Al cerrar la app (`before-quit`) se llama best-effort |
 | NET9 | TLS local | 🟢 | ✅ | Implementado (5-Sep-2026): cert autofirmado generado al primer arranque de la Base (`services/red-cert.ts`), HTTPS en `:3002`, la hija ancla al cert recibido en el handshake |
 | NET10 | Heartbeat 60s para expulsar sesiones huérfanas | 🟢 | ✅ | Implementado (5-Sep-2026): `useRedHeartbeat` en la hija envía heartbeat cada 60s; la Base actualiza `last_heartbeat` y libera sesiones huérfanas (> 5 min) |
+| NET11 | Sesión por token en IPC (CRIT-02 cerrado) | 🟢 | ✅ | Implementado (17-Sep-2026): cada llamada IPC resuelve al usuario desde `sesiones_activas` via CSPRNG token; el `usuario_id` del cliente se sobrescribe y nunca se usa |
 
 ### MÃ³dulo: Producto ( imagen) y Moneda â€” extensiÃ³n del Core (Fase 5)
 
@@ -318,9 +323,9 @@
 
 ## Resumen de Estado
 
-| CategorÃ­a | Total | âœ… Completado | â³ Pendiente |
+| Categoría | Total | ✅ Completado | ⏳ Pendiente |
 |-----------|-------|--------------|-------------|
-| AutenticaciÃ³n | 6 | 6 | 0 |
+| Autenticación | 6 | 6 | 0 |
 | POS | 19 | 18 | 1 |
 | Inventario | 16 | 15 | 1 |
 | Caja | 9 | 9 | 0 |
@@ -329,17 +334,20 @@
 | Proveedores | 3 | 3 | 0 |
 | Distribuidor | 6 | 6 | 0 |
 | Restaurant | 8 | 8 | 0 |
+| Contabilidad | 8 | 6 | 2 |
+| Recursos Humanos | 8 | 6 | 2 |
+| Productor | 9 | 9 | 0 |
 | Cotizaciones | 7 | 7 | 0 |
 | Reportes | 7 | 6 | 1 |
-| ConfiguraciÃ³n | 11 | 11 | 0 |
-| Seguridad | 8 | 8 | 0 |
+| Configuración | 11 | 11 | 0 |
+| Seguridad | 9 | 9 | 0 |
 | Infraestructura | 8 | 5 | 3 |
-| Futuro/ExpansiÃ³n | 12 | 5 | 7 |
-| Red Local (PC Base + hijas) | 10 | 8 | 2 |
+| Futuro/Expansión | 12 | 5 | 7 |
+| Red Local (PC Base + hijas) | 11 | 11 | 0 |
 | Producto (imagen) + Moneda | 2 | 2 | 0 |
-| **TOTAL** | **144** | **131** | **13** |
+| **TOTAL** | **164** | **151** | **13** |
 
-**Porcentaje completado: 91.0%**
+**Porcentaje completado: 92.1%**
 
 ---
 

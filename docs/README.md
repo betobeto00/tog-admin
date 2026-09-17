@@ -35,7 +35,7 @@ Registros, no fuentes de verdad. No se actualizan; se archivan.
 > El estado de red local (TLS + heartbeat) vive en `ARCHITECTURE.md` y
 > `tog-platform/docs/INTERCONEXION-RED.md`.
 
-## Números clave verificados contra código (6-Sep-2026)
+## Números clave verificados contra código (17-Sep-2026)
 
 La fuente de estos números es el código, no la doc. Cuando cambie el código,
 actualiza aquí y en la doc canónica correspondiente:
@@ -43,13 +43,15 @@ actualiza aquí y en la doc canónica correspondiente:
 | Métrica | Valor real | Fuente |
 |---|---|---|
 | Permisos | **69 en 15 categorías** | `src/shared/permissions.ts` (`PERMISSIONS`, `ROLE_DEFAULTS`, `USER_ROLES`) |
-| Tests | **444 tests en 37 archivos** | `npm test` (Vitest) |
-| Migraciones DB | **001–048** | `src/main/db/database.ts` |
-| Páginas renderer | **26** | `src/renderer/pages/*.tsx` |
+| Roles | **3** (admin, manager, cajero) | `src/shared/permissions.ts` (`USER_ROLES`) |
+| Tests | **550 tests en 45 archivos** | `npm test` (Vitest) |
+| Migraciones DB | **001–052** | `src/main/db/database.ts` |
+| Páginas renderer | **28** | `src/renderer/pages/*.tsx` |
 | Módulos main | **17** | `src/main/modules/` |
-| Servicios main | **14** | `src/main/services/` (sin contar `.test.ts`) |
-| i18n renderer | **~1,862 keys/idioma** | `src/renderer/i18n/locales/{es,en}/translation.json` |
-| i18n main | **~98 keys** | `src/main/i18n/locales/{es,en}.json` |
+| Servicios main | **18** | `src/main/services/` (sin contar `.test.ts`) |
+| Canales IPC | **250** | `src/shared/ipc-channels.ts` (`IPC_CHANNELS`) |
+| i18n renderer | **~2,080 keys/idioma** | `src/renderer/i18n/locales/{es,en}/translation.json` |
+| i18n main | **~101 keys** | `src/main/i18n/locales/{es,en}.json` |
 
 ## Reglas para no volver a dispersar
 

@@ -23,7 +23,7 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │              SQLite Database                         │    │
 │  │         (tog-admin.db — archivo local)               │    │
-│  │         51 migraciones · 45+ tablas · 45+ índices     │    │
+│  │         52 migraciones · 50+ tablas · 50+ índices     │    │
 │  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -128,7 +128,7 @@ Router (HashRouter)
 - **Un solo archivo:** `tog-admin.db` en `%APPDATA%/tog-admin/`
 - **Sin servidor:** No necesita MySQL ni nada externo
 - **Respaldo:** Copiar el archivo `.db` = respaldo completo
-- **Migraciones:** Sistema de versionado de esquema (51 migraciones, 001–051)
+- **Migraciones:** Sistema de versionado de esquema (52 migraciones, 001–052)
 - **WAL mode:** Permite lectura mientras escribe
 
 ### 4. Comunicación IPC
@@ -251,7 +251,7 @@ Reglas que hay que respetar al tocar auth o handlers:
 
 ---
 
-## Modelo de Datos (51 Migraciones)
+## Modelo de Datos (52 Migraciones)
 
 ### Migraciones
 
@@ -308,6 +308,7 @@ Reglas que hay que respetar al tocar auth o handlers:
 | 049 | productor_tipo | `productos.tipo_produccion` (`base`/`intermedio`/`final`/NULL) — clasifica insumos, intermedios y productos finales |
 | 050 | cadena_produccion | `cadena_produccion`, `cadena_paso` — recetas/BOM: producto final, pasos con insumos, cantidades, costos |
 | 051 | produccion_lotes | `produccion_lote`, `produccion_lote_detalle` — lotes de producción con descuento de stock de insumos y agregado de stock final |
+| 052 | intentos_vincular | `intentos_vincular` — rate limiting persistente para `/api/red/vincular` (antes en memoria) |
 
 ### Tablas Principales
 
@@ -520,7 +521,7 @@ Estado en memoria (`symbol`, `rate`, `name`) inicializado por `loadCurrency()` d
 | Validación IPC | Schemas Zod cableados en los handlers críticos (usuarios, contraseñas, configuración, caja, inventario) vía `validateInput` |
 | Licencias | RSA-2048 con validación offline |
 | Error handling | ErrorBoundary global + crash reports + logging diagnóstico |
-| Internacionalización | i18n con 2 idiomas (ES/EN), ~1,862 keys por idioma en el renderer (+98 en main) |
+| Internacionalización | i18n con 2 idiomas (ES/EN), ~2,080 keys por idioma en el renderer (+101 en main) |
 | Licencia | RSA-2048 con validación offline |
 | Backup automático | Al cerrar caja se crea backup de la DB |
 | Permisos | 69 permisos en 15 categorías (Impresión, Ventas, Caja, Inventario, Compras, Cotizaciones, Reportes, Administración, Distribuidor, Restaurant, Contabilidad, Recursos Humanos, Productor, Postventa, Hípico), control granular por usuario (incluye `red_manage` para gestión de PC Base) |
@@ -529,6 +530,12 @@ Estado en memoria (`symbol`, `rate`, `name`) inicializado por `loadCurrency()` d
 | Claves de API | Viven solo en el main (`odds_api_key`, `racing_api_key`): los canales de configuración devuelven `api_key_masked` (`services/claves-api.ts`) y `config:get` filtra las claves reservadas |
 | Puerto de impresora | Se valida la forma del nombre (`COM3`, `/dev/...`, sin `..`) y, si se pueden enumerar, que el puerto esté conectado antes de abrirlo (`services/printer.ts`) |
 | Validación origen IPC | `handleIpc` (`core/auth/ipc-guard.ts`): rechaza cualquier sender que no sea main-frame `file://` (empaquetado) o `localhost:5173` (dev) |
+| CSP estricto | `connect-src 'self'`, `webSecurity: true` siempre; sincronizado en meta tag HTML, session header de Electron y Vite plugin |
+| Canales bloqueados por red | `REMOTE_BLOCKED_CHANNELS` impide ejecución remota de canales sensibles (`license:initial-password`, `db:reset`, etc.) |
+| HMAC licencia aleatorio | Clave HMAC de `license.json` generada con `crypto.randomBytes(32)`, no derivada de MAC (HIGH-05 cerrado) |
+| Feedback server-side | Token de Telegram nunca en el cliente; feedback se envía a `/api/feedback` de la landing-page |
+| Password admin CSPRNG | Generado con `crypto.randomInt` (no `Math.random()`), archivo borrado en primer login |
+| Config reservada | `config:set` rechaza claves internas (`red_*`, `*_api_key`); `config:get` las filtra del resultado |
 
 ---
 
@@ -584,8 +591,8 @@ Instalación en cliente:
   2. Siguiente → Siguiente → Instalar
   3. Se crea acceso directo en escritorio
   4. Abrir TOG Admin
-  5. Importar license.key
-  6. Login: admin / admin123
+  5. Importar license.key (o Sincronizar con cuenta)
+  6. Login: admin / <contraseña generada en la activación>
 ```
 
 ### Flujo completo de distribución:
