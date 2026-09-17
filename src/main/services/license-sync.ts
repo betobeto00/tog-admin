@@ -88,7 +88,7 @@ export async function syncLicenseFromServer(
   let response: FetchResponseLike
   try {
     const headers: Record<string, string> = { 'x-api-key': apiKey, Accept: 'application/json' }
-    if (deviceFingerprint) headers['x-device-fingerprint'] = deviceFingerprint
+    if (deviceFingerprint) headers['x-machine-id'] = deviceFingerprint
     response = await fetchImpl!(`${url}/api/empresas/${empresaId}/licencia`, {
       headers,
       signal: controller.signal,

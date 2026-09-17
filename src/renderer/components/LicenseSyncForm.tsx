@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RefreshCw, User, Copy, Check, LogIn, AlertTriangle, Monitor } from 'lucide-react'
+import { RefreshCw, User, Copy, Check, LogIn, AlertTriangle, Monitor, ArrowRightLeft } from 'lucide-react'
 import { useToast } from './ui/Toast'
 import { callApi } from '../lib/api-client'
 
@@ -10,6 +10,12 @@ type SyncResult =
       expira: string
       modulos: string[]
       vendedor?: { vinculado: boolean; id_vendedor?: string; nombre?: string; error?: string }
+    }
+  | {
+      success: true
+      pendingOverwrite: true
+      cloud: { cliente: string; expira: string; modules: string[] }
+      local: { cliente: string; expira: string; modules: string[] }
     }
   | { success: false; error: string; deviceMismatch?: boolean; empresaId?: string | number; apiKey?: string }
 
@@ -31,6 +37,7 @@ export default function LicenseSyncForm({ onSynced, compact }: LicenseSyncFormPr
   const [showRebind, setShowRebind] = useState(false)
   const [rebindData, setRebindData] = useState<{ empresaId: string | number; apiKey: string } | null>(null)
   const [rebinding, setRebinding] = useState(false)
+  const [pendingOverwrite, setPendingOverwrite] = useState<{ cloud: { cliente: string; expira: string; modules: string[] }; local: { cliente: string; expira: string; modules: string[] } } | null>(null)
 
   const doSync = async (fingerprint: string) => {
     setSyncing(true)
@@ -42,7 +49,9 @@ export default function LicenseSyncForm({ onSynced, compact }: LicenseSyncFormPr
         deviceFingerprint: fingerprint,
         vendedorId: vendedorId.trim() || undefined,
       })
-      if (result.success) {
+      if (result.success && 'pendingOverwrite' in result) {
+        setPendingOverwrite({ cloud: result.cloud, local: result.local })
+      } else if (result.success) {
         const modulos = result.modulos.length ? result.modulos.join(', ') : 'base'
         toast.success(`Cuenta sincronizada ✓ — ${result.cliente} (expira ${result.expira}). Módulos: ${modulos}`)
         if (result.vendedor?.vinculado) {
@@ -103,6 +112,35 @@ export default function LicenseSyncForm({ onSynced, compact }: LicenseSyncFormPr
       toast.error('Error re-vinculando: ' + (err?.message || err))
     } finally {
       setRebinding(false)
+    }
+  }
+
+  const handleConfirmOverwrite = async () => {
+    if (!pendingOverwrite) return
+    setPendingOverwrite(null)
+    setSyncing(true)
+    try {
+      const { machineId } = await callApi<{ machineId: string }>('license:machine-id')
+      const result = await callApi<SyncResult>('license:sync-account', {
+        url: DEFAULT_PLATFORM_URL,
+        email: email.trim(),
+        password,
+        deviceFingerprint: machineId,
+        vendedorId: vendedorId.trim() || undefined,
+        force: true,
+      })
+      if (result.success && !('pendingOverwrite' in result)) {
+        const modulos = result.modulos.length ? result.modulos.join(', ') : 'base'
+        toast.success(`Licencia actualizada ✓ — ${result.cliente} (expira ${result.expira}). Módulos: ${modulos}`)
+        window.dispatchEvent(new Event('tog:license-updated'))
+        onSynced?.()
+      } else {
+        toast.error('No se pudo actualizar la licencia')
+      }
+    } catch (err: any) {
+      toast.error('Error sincronizando: ' + (err?.message || err))
+    } finally {
+      setSyncing(false)
     }
   }
 
@@ -168,6 +206,68 @@ export default function LicenseSyncForm({ onSynced, compact }: LicenseSyncFormPr
               <LogIn className="w-4 h-4" />
               Ir al login
             </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (pendingOverwrite) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-5 text-white">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-xl">
+                <ArrowRightLeft className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">Actualizar licencia</h2>
+                <p className="text-sm text-white/80">Ya tenés una licencia local</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-gray-50 rounded-xl p-3 space-y-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase">Local actual</p>
+                <p className="text-sm font-medium text-gray-800">{pendingOverwrite.local.cliente}</p>
+                <p className="text-xs text-gray-500">Expira: {pendingOverwrite.local.expira}</p>
+                <p className="text-xs text-gray-500">
+                  Módulos: {pendingOverwrite.local.modules.length ? pendingOverwrite.local.modules.join(', ') : 'base'}
+                </p>
+              </div>
+              <div className="bg-blue-50 rounded-xl p-3 space-y-2">
+                <p className="text-xs font-semibold text-blue-500 uppercase">Cloud (nueva)</p>
+                <p className="text-sm font-medium text-gray-800">{pendingOverwrite.cloud.cliente}</p>
+                <p className="text-xs text-gray-500">Expira: {pendingOverwrite.cloud.expira}</p>
+                <p className="text-xs text-gray-500">
+                  Módulos: {pendingOverwrite.cloud.modules.length ? pendingOverwrite.cloud.modules.join(', ') : 'base'}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-700">
+              Si confirmás, la licencia local se reemplazá con la de la nube.
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPendingOverwrite(null)}
+                className="px-4 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmOverwrite}
+                disabled={syncing}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 disabled:bg-blue-300"
+              >
+                <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? 'Actualizando...' : 'Sobreescribir con licencia cloud'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

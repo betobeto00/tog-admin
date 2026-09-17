@@ -248,7 +248,7 @@ describe('syncLicenseWithAccount', () => {
       expect(result.vendedor).toEqual({ vinculado: true, id_vendedor: 'OMV-AB12C', nombre: 'Ana' })
     }
     const licenciaCall = fetchImpl.mock.calls[2] as [string, any]
-    expect(licenciaCall[1].headers['x-device-fingerprint']).toBe('pc-123')
+    expect(licenciaCall[1].headers['x-machine-id']).toBe('pc-123')
     const vendedorCall = fetchImpl.mock.calls[3] as [string, any]
     expect(vendedorCall[0]).toBe('https://licencias.ejemplo.com/api/empresas/9/vendedor')
     expect(vendedorCall[1].headers['x-api-key']).toBe('api-key-9')

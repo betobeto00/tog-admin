@@ -118,9 +118,8 @@ export function registerLicenseHandlers(): void {
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': apiKey,
-          'x-device-fingerprint': deviceFingerprint,
         },
-        body: JSON.stringify({ device_fingerprint: deviceFingerprint }),
+        body: JSON.stringify({ desktop_machine_id: deviceFingerprint }),
         signal: controller.signal,
       })
       const body = await res.json().catch(() => ({}))
