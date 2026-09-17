@@ -14,7 +14,7 @@ function checkModuleOrFail(): { success: false; error: string } | null {
 export function registerLoteHandlers(): void {
   // ===== Listar lotes =====
   handleIpc('productor:lote-list', async (_event, data?: { estado?: string; producto_final_id?: number; usuario_id?: number }) => {
-    const fail = checkPermissionOrFail(data, 'productor:lote-list', 'productor_view')
+    const fail = checkPermissionOrFail(data, 'productor:lote-list', 'productor_lotes_view')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
     if (moduleFail) return moduleFail
@@ -39,7 +39,7 @@ export function registerLoteHandlers(): void {
   handleIpc('productor:lote-create', async (_event, data: {
     cadena_id: number; cantidad_producida: number; notas?: string; usuario_id: number
   }) => {
-    const fail = checkPermissionOrFail(data, 'productor:lote-create', 'productor_edit')
+    const fail = checkPermissionOrFail(data, 'productor:lote-create', 'productor_lotes_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
     if (moduleFail) return moduleFail
@@ -135,7 +135,7 @@ export function registerLoteHandlers(): void {
 
   // ===== Completar lote (agrega stock del producto final) =====
   handleIpc('productor:lote-completar', async (_event, data: { id: number; usuario_id: number }) => {
-    const fail = checkPermissionOrFail(data, 'productor:lote-completar', 'productor_edit')
+    const fail = checkPermissionOrFail(data, 'productor:lote-completar', 'productor_lotes_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
     if (moduleFail) return moduleFail
@@ -176,7 +176,7 @@ export function registerLoteHandlers(): void {
 
   // ===== Cancelar lote (devuelve stock de insumos) =====
   handleIpc('productor:lote-cancelar', async (_event, data: { id: number; usuario_id: number }) => {
-    const fail = checkPermissionOrFail(data, 'productor:lote-cancelar', 'productor_edit')
+    const fail = checkPermissionOrFail(data, 'productor:lote-cancelar', 'productor_lotes_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
     if (moduleFail) return moduleFail
@@ -215,7 +215,7 @@ export function registerLoteHandlers(): void {
 
   // ===== Estructura de costos de un producto =====
   handleIpc('productor:costo-estructura', async (_event, data: { producto_id: number; usuario_id?: number }) => {
-    const fail = checkPermissionOrFail(data, 'productor:costo-estructura', 'productor_view')
+    const fail = checkPermissionOrFail(data, 'productor:costo-estructura', 'productor_lotes_view')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
     if (moduleFail) return moduleFail

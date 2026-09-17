@@ -62,8 +62,10 @@ export default function ProductorPage() {
   const toast = useToast()
   const { has } = usePermissions()
   const [tab, setTab] = useState<Tab>('cadenas')
-  const puedeEditar = has('productor_edit')
-  const puedeVer = has('productor_view')
+  const puedeEditarCadenas = has('productor_cadenas_edit')
+  const puedeVerCadenas = has('productor_cadenas_view')
+  const puedeVerLotes = has('productor_lotes_view')
+  const puedeEditarLotes = has('productor_lotes_edit')
   const [loading, setLoading] = useState(false)
 
   // Cadenas state
@@ -173,21 +175,21 @@ export default function ProductorPage() {
           <h1 className="text-2xl font-bold text-gray-900">{t('productor.title')}</h1>
           <p className="text-sm text-gray-500">{t('productor.subtitle')}</p>
         </div>
-        {puedeEditar && (
+        {(puedeEditarCadenas || puedeEditarLotes) && (
           <div className="flex gap-2">
-            {tab === 'cadenas' && (
+            {tab === 'cadenas' && puedeEditarCadenas && (
               <button onClick={() => { setEditingCadena(null); setModalCadena(true) }}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
                 <Plus className="w-4 h-4" /> {t('productor.cadena.newChain')}
               </button>
             )}
-            {tab === 'produccion' && (
+            {tab === 'produccion' && puedeEditarLotes && (
               <button onClick={() => setModalLote(true)}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
                 <Plus className="w-4 h-4" /> {t('productor.lote.newLot')}
               </button>
             )}
-            {tab === 'siembras' && (
+            {tab === 'siembras' && puedeEditarCadenas && (
               <button onClick={() => setModalSiembra(true)}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
                 <Plus className="w-4 h-4" /> {t('productor.newSiembra')}
@@ -225,7 +227,7 @@ export default function ProductorPage() {
       ) : (
         <>
           {tab === 'cadenas' && (
-            <TabCadenas cadenas={cadenas} puedeEditar={puedeEditar}
+            <TabCadenas cadenas={cadenas} puedeEditar={puedeEditarCadenas}
               onEdit={(c) => { setEditingCadena(c); setModalCadena(true) }}
               onDetail={async (c) => { setLoadingDetail(true); try { const d = await callApi<CadenaDetalle>('productor:cadena-detail', { id: c.id, usuario_id: 1 }); setDetailCadena(d); } catch {} finally { setLoadingDetail(false) } }}
               onDelete={async (id) => {
@@ -269,7 +271,7 @@ export default function ProductorPage() {
             />
           )}
           {tab === 'siembras' && (
-            <TabSiembras siembras={siembras} puedeEditar={puedeEditar}
+            <TabSiembras siembras={siembras} puedeEditar={puedeEditarCadenas}
               onCosechar={(s) => setCosechando(s)}
               onAddCosto={(s) => setModalCosto({ siembraId: s.id, cultivo: s.cultivo_nombre })}
             />
@@ -837,8 +839,11 @@ function ModalCadena({ productos, editing, onClose, onSaved }: {
 function ModalDetalleCadena({ cadena, onClose }: { cadena: CadenaDetalle; onClose: () => void }) {
   const { t } = useTranslation()
   const toast = useToast()
+  const { has } = usePermissions()
+  const puedeEditar = has('productor_cadenas_edit')
   const [currentCadena, setCurrentCadena] = useState(cadena)
   const [showAddStep, setShowAddStep] = useState(false)
+  const [editingStep, setEditingStep] = useState<CadenaPaso | null>(null)
   const [productos, setProductos] = useState<Producto[]>([])
   const [stepProductoId, setStepProductoId] = useState('')
   const [stepCantidad, setStepCantidad] = useState('')
@@ -868,6 +873,46 @@ function ModalDetalleCadena({ cadena, onClose }: { cadena: CadenaDetalle; onClos
       setStepProductoId(''); setStepCantidad(''); setStepCosto('')
       await reloadDetail()
     } catch (err: any) { toast.error(err?.message || t('common.error')) }
+  }
+
+  const updateStep = async () => {
+    if (!editingStep) return
+    try {
+      await callApi('productor:cadena-paso-update', {
+        id: editingStep.id, cadena_id: currentCadena.id, producto_base_id: Number(stepProductoId),
+        cantidad: Number(stepCantidad), unidad: stepUnidad || 'unidad',
+        costo_unitario_override: stepCosto ? Number(stepCosto) : null, usuario_id: 1,
+      })
+      toast.success(t('productor.cadena.stepUpdated'))
+      setEditingStep(null)
+      setShowAddStep(false)
+      setStepProductoId(''); setStepCantidad(''); setStepCosto('')
+      await reloadDetail()
+    } catch (err: any) { toast.error(err?.message || t('common.error')) }
+  }
+
+  const deleteStep = async (paso: CadenaPaso) => {
+    if (!confirm(t('productor.cadena.stepDeleteConfirm', { name: paso.base_nombre }))) return
+    try {
+      await callApi('productor:cadena-paso-delete', { id: paso.id, cadena_id: currentCadena.id, usuario_id: 1 })
+      toast.success(t('productor.cadena.stepDeleted'))
+      await reloadDetail()
+    } catch (err: any) { toast.error(err?.message || t('common.error')) }
+  }
+
+  const startEditStep = (paso: CadenaPaso) => {
+    setEditingStep(paso)
+    setStepProductoId(String(paso.producto_base_id))
+    setStepCantidad(String(paso.cantidad))
+    setStepUnidad(paso.unidad)
+    setStepCosto(paso.costo_unitario_override != null ? String(paso.costo_unitario_override) : '')
+    setShowAddStep(true)
+  }
+
+  const cancelStepForm = () => {
+    setEditingStep(null)
+    setShowAddStep(false)
+    setStepProductoId(''); setStepCantidad(''); setStepCosto('')
   }
 
   return (
@@ -910,10 +955,16 @@ function ModalDetalleCadena({ cadena, onClose }: { cadena: CadenaDetalle; onClos
                 <input type="number" value={stepCosto} onChange={e => setStepCosto(e.target.value)} placeholder={t('productor.cadena.stepCostOverride')} min="0" step="0.01"
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
               </div>
-              <button onClick={addStep} disabled={!stepProductoId || !(Number(stepCantidad) > 0)}
-                className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50">
-                {t('productor.cadena.stepAdd')}
-              </button>
+              <div className="flex gap-2">
+                <button onClick={editingStep ? updateStep : addStep} disabled={!stepProductoId || !(Number(stepCantidad) > 0)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50">
+                  {editingStep ? t('common.update') : t('productor.cadena.stepAdd')}
+                </button>
+                <button onClick={cancelStepForm}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300">
+                  {t('common.cancel')}
+                </button>
+              </div>
             </div>
           )}
 
@@ -933,7 +984,19 @@ function ModalDetalleCadena({ cadena, onClose }: { cadena: CadenaDetalle; onClos
                       )}
                     </div>
                   </div>
-                  <span className="font-medium">{formatMoney(p.costo_total_linea)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{formatMoney(p.costo_total_linea)}</span>
+                    {puedeEditar && (
+                      <div className="flex gap-1 ml-2">
+                        <button onClick={() => startEditStep(p)} className="p-1 text-gray-400 hover:text-blue-600" title={t('common.edit')}>
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => deleteStep(p)} className="p-1 text-gray-400 hover:text-red-600" title={t('common.delete')}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

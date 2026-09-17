@@ -14,7 +14,7 @@ function checkModuleOrFail(): { success: false; error: string } | null {
 export function registerCadenaHandlers(): void {
   // ===== Listar cadenas de producción =====
   handleIpc('productor:cadena-list', async (_event, data?: { producto_final_id?: number; incluirInactivos?: boolean; usuario_id?: number }) => {
-    const fail = checkPermissionOrFail(data, 'productor:cadena-list', 'productor_view')
+    const fail = checkPermissionOrFail(data, 'productor:cadena-list', 'productor_cadenas_view')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
     if (moduleFail) return moduleFail
@@ -49,7 +49,7 @@ export function registerCadenaHandlers(): void {
 
   // ===== Detalle de cadena =====
   handleIpc('productor:cadena-detail', async (_event, data: { id: number; usuario_id?: number }) => {
-    const fail = checkPermissionOrFail(data, 'productor:cadena-detail', 'productor_view')
+    const fail = checkPermissionOrFail(data, 'productor:cadena-detail', 'productor_cadenas_view')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
     if (moduleFail) return moduleFail
@@ -65,7 +65,7 @@ export function registerCadenaHandlers(): void {
     tiempo_estimado_minutos?: number; costo_mano_obra_hora?: number
     overhead_porcentaje?: number; usuario_id: number
   }) => {
-    const fail = checkPermissionOrFail(data, 'productor:cadena-create', 'productor_edit')
+    const fail = checkPermissionOrFail(data, 'productor:cadena-create', 'productor_cadenas_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
     if (moduleFail) return moduleFail
@@ -102,7 +102,7 @@ export function registerCadenaHandlers(): void {
       costo_mano_obra_hora?: number; overhead_porcentaje?: number; activo?: number
     }; usuario_id: number
   }) => {
-    const fail = checkPermissionOrFail(data, 'productor:cadena-update', 'productor_edit')
+    const fail = checkPermissionOrFail(data, 'productor:cadena-update', 'productor_cadenas_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
     if (moduleFail) return moduleFail
@@ -124,7 +124,7 @@ export function registerCadenaHandlers(): void {
 
   // ===== Eliminar cadena =====
   handleIpc('productor:cadena-delete', async (_event, data: { id: number; usuario_id: number }) => {
-    const fail = checkPermissionOrFail(data, 'productor:cadena-delete', 'productor_edit')
+    const fail = checkPermissionOrFail(data, 'productor:cadena-delete', 'productor_cadenas_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
     if (moduleFail) return moduleFail
@@ -142,7 +142,7 @@ export function registerCadenaHandlers(): void {
     cadena_id: number; producto_base_id: number; cantidad: number
     unidad?: string; costo_unitario_override?: number; notas?: string; usuario_id: number
   }) => {
-    const fail = checkPermissionOrFail(data, 'productor:cadena-paso-add', 'productor_edit')
+    const fail = checkPermissionOrFail(data, 'productor:cadena-paso-add', 'productor_cadenas_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
     if (moduleFail) return moduleFail
@@ -177,7 +177,7 @@ export function registerCadenaHandlers(): void {
   handleIpc('productor:cadena-paso-update', async (_event, data: {
     id: number; data: { cantidad?: number; unidad?: string; costo_unitario_override?: number; notas?: string; orden?: number }; usuario_id: number
   }) => {
-    const fail = checkPermissionOrFail(data, 'productor:cadena-paso-update', 'productor_edit')
+    const fail = checkPermissionOrFail(data, 'productor:cadena-paso-update', 'productor_cadenas_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
     if (moduleFail) return moduleFail
@@ -197,7 +197,7 @@ export function registerCadenaHandlers(): void {
   })
 
   handleIpc('productor:cadena-paso-delete', async (_event, data: { id: number; usuario_id: number }) => {
-    const fail = checkPermissionOrFail(data, 'productor:cadena-paso-delete', 'productor_edit')
+    const fail = checkPermissionOrFail(data, 'productor:cadena-paso-delete', 'productor_cadenas_edit')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
     if (moduleFail) return moduleFail
@@ -208,7 +208,7 @@ export function registerCadenaHandlers(): void {
 
   // ===== Precio recomendado =====
   handleIpc('productor:precio-recomendado', async (_event, data: { producto_id: number; margen_porcentaje?: number; usuario_id?: number }) => {
-    const fail = checkPermissionOrFail(data, 'productor:precio-recomendado', 'productor_view')
+    const fail = checkPermissionOrFail(data, 'productor:precio-recomendado', 'productor_analisis_view')
     if (fail) return fail
     const moduleFail = checkModuleOrFail()
     if (moduleFail) return moduleFail
