@@ -31,7 +31,7 @@ describe('syncLicenseFromServer', () => {
     )
 
     expect(result.success).toBe(true)
-    if (result.success) {
+    if (result.success && !('pendingOverwrite' in result)) {
       expect(result.cliente).toBe('Corn Flakes LLC')
       expect(result.expira).toBe('2027-12-31')
       expect(result.modulos).toEqual(['distribuidor'])
@@ -148,7 +148,7 @@ describe('syncLicenseWithAccount', () => {
     )
 
     expect(result.success).toBe(true)
-    if (result.success) expect(result.cliente).toBe('Corn Flakes LLC')
+    if (result.success && !('pendingOverwrite' in result)) expect(result.cliente).toBe('Corn Flakes LLC')
     const loginCall = fetchImpl.mock.calls[0] as [string, any]
     expect(loginCall[0]).toBe('https://licencias.ejemplo.com/api/auth/login')
     expect(loginCall[1].headers['Content-Type']).toBe('application/json')
@@ -244,7 +244,7 @@ describe('syncLicenseWithAccount', () => {
     )
 
     expect(result.success).toBe(true)
-    if (result.success) {
+    if (result.success && !('pendingOverwrite' in result)) {
       expect(result.vendedor).toEqual({ vinculado: true, id_vendedor: 'OMV-AB12C', nombre: 'Ana' })
     }
     const licenciaCall = fetchImpl.mock.calls[2] as [string, any]
@@ -278,7 +278,7 @@ describe('vinculación del vendedor (FASE 5)', () => {
     const { fetchImpl, run } = syncConVendedor('omv-zz999')
     const result = await run()
     expect(result.success).toBe(true)
-    if (result.success) expect(result.vendedor?.vinculado).toBe(true)
+    if (result.success && !('pendingOverwrite' in result)) expect(result.vendedor?.vinculado).toBe(true)
     const call = fetchImpl.mock.calls[1] as [string, any]
     expect(call[0]).toBe('http://localhost:3001/api/empresas/4/vendedor')
     expect(JSON.parse(call[1].body).id_vendedor).toBe('OMV-ZZ999')
@@ -288,7 +288,7 @@ describe('vinculación del vendedor (FASE 5)', () => {
     const { fetchImpl, run } = syncConVendedor('12345')
     const result = await run()
     expect(result.success).toBe(true)
-    if (result.success) {
+    if (result.success && !('pendingOverwrite' in result)) {
       expect(result.vendedor?.vinculado).toBe(false)
       expect(result.vendedor?.error).toContain('OMV-XXXXX')
     }
@@ -303,7 +303,7 @@ describe('vinculación del vendedor (FASE 5)', () => {
     })
     const result = await run()
     expect(result.success).toBe(true)
-    if (result.success) {
+    if (result.success && !('pendingOverwrite' in result)) {
       expect(result.vendedor?.vinculado).toBe(false)
       expect(result.vendedor?.error).toContain('No existe un vendedor')
       expect(result.cliente).toBe('Corn Flakes LLC')
@@ -317,7 +317,7 @@ describe('vinculación del vendedor (FASE 5)', () => {
       { fetchImpl, saveImpl: vi.fn(() => ({ success: true })) },
     )
     expect(result.success).toBe(true)
-    if (result.success) expect(result.vendedor).toBeUndefined()
+    if (result.success && !('pendingOverwrite' in result)) expect(result.vendedor).toBeUndefined()
     expect(fetchImpl).toHaveBeenCalledTimes(1)
   })
 })
