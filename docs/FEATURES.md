@@ -133,6 +133,9 @@
 | D4 | NumeraciÃ³n secuencial de pedidos | ðŸ”´ | âœ… | `configuracion.pedido_numero`, idempotente |
 | D5 | Estados de pedido | ðŸ”´ | âœ… | `pendiente` â†’ `despachado` â†’ `entregado`; anulaciÃ³n; validaciÃ³n de transiciones |
 | D6 | Gating por licencia y permisos | ðŸ”´ | âœ… | MenÃº/rutas/handlers solo si el mÃ³dulo viene en la licencia y el usuario tiene permiso `distribuidor_*` |
+| D7 | Remitos con impresiÃ³n detallada | 🔴 | ✅ | Remito desde pedido con numeraciÃ³n propia, estados y observaciones; impresiÃ³n A4 con unidad, precio unitario, subtotal, total y **dos bloques de firma/sello** (empresa y chofer), con datos fiscales de `print:config` |
+| D8 | Listas de precio por cliente | 🔴 | ✅ | Factor global por lista, override de precio por producto y asignaciÃ³n de clientes (`lista_precio_productos`, `cliente_lista_precio`) |
+| D9 | Datos de cliente consistentes | 🔴 | ✅ | Documento (CI/RIF) Ãºnico entre clientes activos, ediciÃ³n parcial validada con Zod (se puede **borrar** un dato enviando `null`), aviso de deuda al eliminar y **deuda pendiente visible** en el listado |
 
 ---
 
@@ -176,6 +179,10 @@
 | RRH4 | Pago de nómina | 🔴 | ✅ | Marca nóminas como pagadas con fecha; recibo imprimible en UI |
 | RRH5 | Gating por licencia y permisos | 🔴 | ✅ | Menú/rutas/handlers solo con módulo `rrhh` en la licencia + permisos `rrhh_view` / `rrhh_edit` / `rrhh_nomina` |
 | RRH8 | Conceptos de nómina | 🔴 | ✅ | Asignaciones/deducciones por nómina (`rrhh:nomina-concepto-add/delete/list`) con recálculo automático del total; bloqueados si la nómina está pagada; listado incluye conceptos + datos extendidos del empleado (experiencia, años de servicio, nivel académico) |
+| RRH9 | Catálogo global de conceptos | 🔴 | ✅ | Conceptos de asignación/deducción reutilizables con monto por defecto (`conceptos_catalogo`, migración 054); CRUD con `rrhh:conceptos-list` / `concepto-save` / `concepto-delete` y desactivación en lugar de borrado si está en uso |
+| RRH10 | Grupos de empleados (capas) | 🔴 | ✅ | Grupos creados por el usuario con miembros y conceptos propios (`empleado_grupos`, `empleado_grupo_miembros`, `grupo_conceptos`): al generar nómina por grupo solo entran sus miembros y se aplican sus conceptos (monto override o el default) |
+| RRH11 | Vista previa de la nómina | 🔴 | ✅ | `rrhh:nomina-preview` (dry-run): calcula los **mismos** montos que la generación (comparten `calcularFilasNomina`) y los muestra por empleado con totales antes de confirmar; no escribe nada |
+| RRH12 | Históricos y recibos | 🔴 | ✅ | Histórico de asistencias con filtros (empleado/rango) e impresión A4, histórico de nómina por trabajador (`rrhh:nomina-por-empleado`), recibos individuales y en lote con datos fiscales de la empresa |
 | RRH6 | Roles y permisos finos por empleado | 🟡 | ⏳ | Los empleados no son usuarios de la app; fase futura |
 | RRH7 | Beneficios legales por país | 🟡 | ⏳ | Vacaciones, utilidades, prestaciones (depende de normativa) |
 
@@ -194,6 +201,34 @@
 | PRD7 | CRUD cadenas + pasos | 🔴 | ✅ | Crear, editar, eliminar cadenas y sus pasos (con protección si tiene lotes) |
 | PRD8 | Gating por licencia y permisos | 🔴 | ✅ | Solo con módulo `productor` en la licencia + permisos `productor_view` / `productor_edit` |
 | PRD9 | Agricultura (siembras/cosechas) | 🟡 | ✅ | Módulo original: cultivos, siembras, cosechas, costos de campo (migración 036) |
+
+---
+
+## Módulo: Impresión y comprobantes 🔴 (adicional por licencia `print`)
+
+| # | Feature | Prioridad | Estado | Descripción |
+|---|---------|-----------|--------|-------------|
+| IMP1 | Ticket térmico ESC/POS | 🔴 | ✅ | Ticket por puerto serie con saneado de texto (se neutralizan los bytes de control después de codificar a latin1 para que un carácter no inyecte comandos) |
+| IMP2 | Comprobante A4 | 🔴 | ✅ | Vista previa A4 del comprobante (`print:documento-venta` + `A4PrintModal`) accesible desde POS (venta recién hecha) y desde Ventas (por fila) |
+| IMP3 | Numeración configurable | 🔴 | ✅ | Próxima factura y N° de control fiscal editables en Configuración → Negocio y en Impresión → datos fiscales (migración 055); numeración **continua**, nunca repite un número, y cambiarla exige rol admin + confirmación |
+| IMP4 | Generador unificado de documentos | 🔴 | ✅ | `renderer/lib/print.ts` (`abrirDocumento`) es el único punto que abre la ventana e inyecta el documento; las 9 páginas imprimibles lo usan y **escapan** los datos del usuario (`escapeHtml`) |
+| IMP5 | Comandas a la impresora de cocina | 🔴 | ✅ | `comandas:print-kitchen` arma el ticket ESC/POS y lo envía al puerto configurado (`impresora_cocina_puerto` / `impresora_cocina_baudrate`); si no hay puerto, avisa y no bloquea la comanda |
+| IMP6 | Datos fiscales y gating | 🔴 | ✅ | RIF, razón social, serie y N° de control desde `print:config`; canales con permiso `print_access` / `print_config` y `print:set-config` con rol admin al tocar numeración |
+
+---
+
+## Módulo: Hípico 🔴 (adicional por licencia `hipico`)
+
+| # | Feature | Prioridad | Estado | Descripción |
+|---|---------|-----------|--------|-------------|
+| HIP1 | Propietarios y caballos | 🔴 | ✅ | CRUD con documento, país, contacto y notas; caballos asociados a propietario (migración 047) |
+| HIP2 | Carreras e inscripciones | 🔴 | ✅ | Carreras con fecha, hipódromo y fuente (manual o importada de API pública); inscripción de caballos con jinete y gualdrapa |
+| HIP3 | Resultados y posiciones | 🔴 | ✅ | Carga de resultados con posición, tiempo y premio; el resultado se refleja en las apuestas |
+| HIP4 | Apuestas | 🔴 | ✅ | Registro de apuestas con monto y cuota (odds), sincronización de odds por API y permisos dedicados (`hipico_*`, `hipico_apuestas_admin`) |
+| HIP5 | Liquidación de premios | 🔴 | ✅ | Al cerrar el resultado se liquidan las apuestas ganadoras (pago calculado con cuota) y se conserva el historial por día local |
+| HIP6 | Comprobante de apuesta | 🔴 | ✅ | Impresión del comprobante con el generador unificado (`documentoDeApuesta`) |
+| HIP7 | Gating por licencia y permisos | 🔴 | ✅ | Menú/rutas/handlers solo con el módulo `hipico` en la licencia y permisos `hipico_view` / `hipico_edit` / `hipico_apuestas` / `hipico_apuestas_admin` |
+| HIP8 | APIs de datos | 🔴 | ✅ | Claves de `odds_api_key` / `racing_api_key` viven **solo** en el main (`services/claves-api.ts`); el renderer recibe `configurado` + clave enmascarada |
 
 ---
 
@@ -248,7 +283,7 @@
 | # | Feature | Prioridad | Estado | DescripciÃ³n |
 |---|---------|-----------|--------|-------------|
 | SEC1 | Sistema de licencias RSA-2048 | ðŸ”´ | âœ… | Licencias offline con validaciÃ³n de firma + **Sincronizar** (canal pre-auth `license:sync`, re-validaciÃ³n RSA local) |
-| SEC2 | Permisos por usuario (69 permisos en 15 categorías) | 🟡 | ✅ | Roles: admin, manager, cajero. 15 categorías de permisos granulares (incl. `distribuidor_*`, `creditos_*`, `red_manage`, `hipico_*`, `productor_*`, `postventa_*`, `contable_*`, `rrhh_*`) |
+| SEC2 | Permisos por usuario (69 permisos en 16 categorías) | 🟡 | ✅ | Roles: admin, manager, cajero. 16 categorías de permisos granulares (incl. `distribuidor_*`, `distribuidor_clientes_*`, `creditos_*`, `red_manage`, `hipico_*`, `productor_*`, `postventa_*`, `contable_*`, `rrhh_*`) |
 | SEC3 | Rate limiting en login | ðŸ”´ | âœ… | Bloqueo despuÃ©s de 5 intentos |
 | SEC4 | Session timeout | ðŸ”´ | âœ… | 30 min de inactividad |
 | SEC5 | Password hashing (bcrypt) + CSPRNG inicial | 🔴 | ✅ | 10 salt rounds; password admin inicial con `crypto.randomInt` (CSPRNG), borrado en primer login |
@@ -268,8 +303,8 @@
 |---|---------|-----------|--------|-------------|
 | INF1 | Auto-update (electron-updater) | ðŸŸ¡ | âœ… | Actualizaciones vÃ­a GitHub Releases |
 | INF2 | NSIS installer | ðŸŸ¡ | âœ… | Instalador Windows con acceso directo |
-| INF3 | i18n (ES/EN) | ðŸŸ¡ | âœ… | ~1,862 keys por idioma (ES/EN, renderer) + ~98 en main |
-| INF4 | Tests automatizados | 🟡 | ✅ | 550 tests en 45 archivos (Vitest: validaciones, servicios, handlers IPC, componentes, seguridad) |
+| INF3 | i18n (ES/EN) | ðŸŸ¡ | âœ… | ~2,143 keys por idioma (ES/EN, renderer) + ~101 en main |
+| INF4 | Tests automatizados | 🟡 | ✅ | 633 tests en 56 archivos (Vitest: validaciones, servicios, handlers IPC, componentes, seguridad, impresión, nómina por capas y flujos de cotas de la UI) |
 | INF5 | Build portable | ðŸŸ¢ | âœ… | VersiÃ³n sin instalador |
 | INF6 | Instalador X32 | ðŸŸ¡ | â³ | Instalador para arquitectura de 32 bits |
 | INF7 | Logging estructurado (winston) | ðŸŸ¡ | â³ | Logging centralizado en main process |
@@ -308,7 +343,7 @@
 | NET6 | Setup screen para PC Hija | ðŸ”´ | âœ… | `SetupPage` (pantalla de bloqueo â†’ botÃ³n "Conectar a una PC Base"): pide IP, cÃ³digo y nombre. Se renderiza desde `LicenseGate` cuando la licencia no es vÃ¡lida localmente |
 | NET7 | Permiso `red_manage` | ðŸŸ¡ | âœ… | Solo admin puede generar cÃ³digos y ver PCs enlazadas |
 | NET8 | Logout distribuido | ðŸŸ¡ | âœ… | Al desloguear en la hija se llama `red:logout` (libera sesiones en la Base). Al cerrar la app (`before-quit`) se llama best-effort |
-| NET9 | TLS local | 🟢 | ✅ | Implementado (5-Sep-2026): cert autofirmado generado al primer arranque de la Base (`services/red-cert.ts`), HTTPS en `:3002`, la hija ancla al cert recibido en el handshake |
+| NET9 | TLS local | 🟢 | ✅ | Cert autofirmado generado al primer arranque de la Base (`services/red-cert.ts`), HTTPS en `:3002`, la hija ancla al cert recibido en el handshake. **Corregido (19-Sep-2026)**: en el binario empaquetado la generación fallaba (`Cannot get OID for name type ''` porque `selfsigned` 5.x no reconoce `organizationalUnitName`) y el servidor caía a modo hija/local. Ahora se pasa `OU` y hay tests que generan el certificado real |
 | NET10 | Heartbeat 60s para expulsar sesiones huérfanas | 🟢 | ✅ | Implementado (5-Sep-2026): `useRedHeartbeat` en la hija envía heartbeat cada 60s; la Base actualiza `last_heartbeat` y libera sesiones huérfanas (> 5 min) |
 | NET11 | Sesión por token en IPC (CRIT-02 cerrado) | 🟢 | ✅ | Implementado (17-Sep-2026): cada llamada IPC resuelve al usuario desde `sesiones_activas` via CSPRNG token; el `usuario_id` del cliente se sobrescribe y nunca se usa |
 
@@ -332,22 +367,39 @@
 | Ventas | 8 | 8 | 0 |
 | Compras | 4 | 4 | 0 |
 | Proveedores | 3 | 3 | 0 |
-| Distribuidor | 6 | 6 | 0 |
+| Distribuidor | 9 | 9 | 0 |
 | Restaurant | 8 | 8 | 0 |
 | Contabilidad | 8 | 6 | 2 |
-| Recursos Humanos | 8 | 6 | 2 |
+| Recursos Humanos | 12 | 10 | 2 |
 | Productor | 9 | 9 | 0 |
 | Cotizaciones | 7 | 7 | 0 |
 | Reportes | 7 | 6 | 1 |
 | Configuración | 11 | 11 | 0 |
-| Seguridad | 9 | 9 | 0 |
+| Seguridad | 12 | 12 | 0 |
 | Infraestructura | 8 | 5 | 3 |
 | Futuro/Expansión | 12 | 5 | 7 |
 | Red Local (PC Base + hijas) | 11 | 11 | 0 |
+| Impresión y comprobantes | 6 | 6 | 0 |
+| Hípico | 8 | 8 | 0 |
 | Producto (imagen) + Moneda | 2 | 2 | 0 |
-| **TOTAL** | **164** | **151** | **13** |
+| **TOTAL** | **195** | **178** | **17** |
 
-**Porcentaje completado: 92.1%**
+**Porcentaje completado: 91.3%** (178 de 195)
+
+---
+
+## Cambios recientes (19-Sep-2026) — release v1.3.0
+
+Lote grande sobre el feedback del usuario (ver `docs/ROADMAP_TOG_ADMINFeedback.md` en la raíz del workspace) + auditoría de seguridad y de impresión:
+
+- **Fechas de negocio en hora local** (`src/main/utils/time.ts`, migración 053): las ventas de la noche ya no caen en el día UTC siguiente (era la causa de "libro de ventas / flujo de efectivo / análisis financiero vacíos").
+- **Numeración de comprobantes configurable** (migración 055): continua, fijable por el cliente, solo admin + confirmación; sale en ticket, A4 y reimpresión.
+- **Nómina por capas** (migración 054): catálogo de conceptos, grupos con conceptos propios, vista previa dry-run, históricos y recibos individuales/A4.
+- **Clientes**: documento único, edición parcial validada (se puede borrar un dato), deuda pendiente visible y aviso al eliminar.
+- **Impresión**: generador único con escapado, vista A4 del comprobante desde POS/Ventas, comandas por ESC/POS a la cocina y auditoría antiinyección (XSS en documentos, CSV injection, latin1 en ESC/POS).
+- **Seguridad**: 27 hallazgos del informe certificados y cerrados (sesión por token CSPRNG en IPC, canales bloqueados por LAN, CSP, secretos fuera del cliente).
+- **Red local**: el certificado TLS ya se genera en el binario empaquetado (bug de `selfsigned` 5.x con `organizationalUnitName`).
+- **Auto-update**: los assets del release deben llamarse como declara `latest.yml` (guiones), si no el updater recibe 404 (ver `UPDATER_NOTES.md`).
 
 ---
 

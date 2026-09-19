@@ -25,14 +25,16 @@ Desktop app construida con Electron + React + TypeScript + SQLite. Una PC, una c
 - 📈 Reports with charts: daily sales, top products, payment methods
 - 🏬 **Multi-warehouse** — `almacenes` + `producto_almacen` (stock por depósito)
 - 📋 **Price lists** — listas de precio con factor global, overrides por producto y asignación por cliente
-- 📦 **Distribuidor module** (license-gated): client registry (international tax/reg. document) + sales orders with sequential numbering and states (pendiente → → despachado/entregado/anulado)
+- 🧾 **Clientes con deuda a la vista y datos validados** — la lista muestra el saldo pendiente del fiado; el documento (CI/RIF) no se puede repetir entre clientes activos y la edición permite **borrar** datos
+- 🧮 **Numeración de comprobantes configurable** — la próxima factura y el N° de control fiscal se fijan desde Configuración → Negocio o Impresión (solo admin + confirmación); la numeración es continua, nunca se repite y sale en ticket y A4
+- 📦 **Distribuidor module** (license-gated): client registry (international tax/reg. document) + sales orders with sequential numbering and states (pendiente → despachado/entregado/anulado), remitos con impresión detallada y listas de precio por cliente
 - 🍽️ **Restaurant module** (license-gated): tables, table-side orders, kitchen screen, table billing
 - 📊 **Accounting module** (license-gated `administracion`): executive summary, sales/purchases/inventory books, journal ledger with automatic entries
-- 👥 **HR module** (license-gated `rrhh`): employees CRUD, attendance tracking, payroll processing, paystubs
+- 👥 **HR module** (license-gated `rrhh`): employees CRUD, attendance tracking, payroll processing con **vista previa antes de confirmar**, paystubs; **nómina por capas** (catálogo de conceptos, grupos de empleados con sus propios conceptos, históricos de asistencia y de nómina por trabajador) e impresión A4 de asistencias y recibos
 - 🌾 **Producer module** (license-gated `productor`): crops, plantings, harvests, field costs
 - 🔄 **After-sales module** (license-gated `postventa`): support tickets, returns, warranties
 - 🐎 **Racing module** (license-gated `hipico`): owners, horses, races, results, betting system with odds
-- 🖨️ **Print module** (license-gated): thermal ticket printing, A4 document printing, fiscal data configuration
+- 🖨️ **Print module** (license-gated): thermal ticket printing (ESC/POS), A4 document printing con vista previa del comprobante desde POS y Ventas, comandas a la impresora de cocina y datos fiscales configurables. Un único generador de documentos imprime y **escapa** todos los datos del usuario
 - 🖼️ **Product image on filesystem** — JPG/PNG/WebP, máx.2MB, magic-byte validation
 - 💱 **Currency symbol + exchange rate** — `currency_symbol` + `currency_name` + `tasa_cambio` se aplican a toda la app
 - 🔐 **Licensing v2**: offline RSA-2048 keys **and** a **Sincronizar** button that downloads the active license from the TOG Platform backend and re-validates its signature locally. Soporta `max_pcs` (1–20) para activar el módulo de red local
@@ -49,13 +51,13 @@ Desktop app construida con Electron + React + TypeScript + SQLite. Una PC, una c
 - 🐛 **Crash reports** — automatic error reports with system info
 - 🔑 **License sync** — pre-auth channel `license:sync` (works from the lock screen): URL + empresa ID + api key → download → RSA re-validation → save
 - 🔐 **Validación de origen IPC** — `handleIpc` (`core/auth/ipc-guard.ts`): solo main-frame `file://` (producción) o `localhost:5173` (dev); un origen ajeno lanza error y no ejecuta el handler
-- ✅ **454 automated tests** — validations, services, IPC handlers, React components, sesión única, servidor HTTP de red local
+- ✅ **633 automated tests** — validations, services, IPC handlers, React components, sesión única, servidor HTTP de red local, nómina por capas e impresión
 
 ### UI/UX
 - 🎨 **Hero background** — imagen de fondo en pantalla de login
 - 🏷️ **Logo real** — logo de la empresa en Login, Sidebar e instalador
 - 🖼️ **Icono transparente** — icono sin fondo para el instalador
-- 🌐 **i18n (Internationalization)** — English/Spanish with ~1,862 translation keys per language
+- 🌐 **i18n (Internationalization)** — English/Spanish with ~2,143 translation keys per language
 - 📋 **Release Notes** — historial de versiones visible desde el login
 - 🖧 **PC Hija setup screen** — al instalar el `.exe` sin licencia, la pantalla de bloqueo ofrece "Conectar a una PC Base" con input de IP + código + nombre
 
@@ -86,7 +88,7 @@ npm install
 # Ejecutar en modo desarrollo
 npm run dev
 
-# Ejecutar tests (Vitest: 454 tests en 38 archivos)
+# Ejecutar tests (Vitest: 633 tests en 56 archivos)
 npm test
 
 # Tests en watch mode
@@ -137,18 +139,23 @@ git push origin v1.0.x
 # 4. Build del instalador (genera .exe + latest.yml + .blockmap)
 npm run build:installer
 
-# 5. Crear Release en GitHub
-gh release create v1.0.x --repo betobeto00/tog-admin --title "TOG Admin v1.0.x" --notes-file release/RELEASE_NOTES.md
+# 5. Subir los TRES archivos con el nombre que declara latest.yml
+#    (electrón-builder escribe el asset con guiones; GitHub los espacios los
+#    convierte en puntos y el updater pide guiones -> 404 si no coincide)
+mkdir -p release/_upload
+cp "release/TOG Admin Setup 1.0.x.exe" "release/_upload/TOG-Admin-Setup-1.0.x-x64.exe"
+cp "release/TOG Admin Setup 1.0.x.exe.blockmap" "release/_upload/TOG-Admin-Setup-1.0.x-x64.exe.blockmap"
+cp release/latest.yml release/_upload/latest.yml
 
-# 6. Subir los TRES archivos (no solo el .exe)
-gh release upload v1.0.x \
-  "release/TOG Admin Setup 1.0.x.exe" \
-  "release/latest.yml" \
-  "release/TOG Admin Setup 1.0.x.exe.blockmap" \
-  --repo betobeto00/tog-admin --clobber
+# 6. Crear el Release con esos nombres
+gh release create v1.0.x --repo betobeto00/tog-admin --title "TOG Admin v1.0.x" \
+  --notes-file release/RELEASE_NOTES.md \
+  "release/_upload/TOG-Admin-Setup-1.0.x-x64.exe" \
+  "release/_upload/TOG-Admin-Setup-1.0.x-x64.exe.blockmap" \
+  "release/_upload/latest.yml"
 ```
 
-> ⚠️ **Crítico**: el paso 6 debe subir `latest.yml` y `.blockmap` además del `.exe`. Sin estos archivos, electron-updater no detecta la actualización. Ver [docs/UPDATER_NOTES.md](docs/UPDATER_NOTES.md) para detalles.
+> ⚠️ **Crítico**: subir `latest.yml` y `.blockmap` además del `.exe` — sin ellos electron-updater no detecta la actualización — y **respetar el nombre del asset**: si el `.exe` queda como `TOG.Admin.Setup.1.0.x.x64.exe` (puntos, lo que hace GitHub con los espacios) la URL que pide el updater (`TOG-Admin-Setup-1.0.x-x64.exe`, guiones) responde **404** y la app no puede actualizarse. Ver [docs/UPDATER_NOTES.md](docs/UPDATER_NOTES.md).
 
 Para más detalles, ver [docs/GUIA_DESARROLLADOR.md](docs/GUIA_DESARROLLADOR.md).
 
@@ -181,7 +188,7 @@ tog-admin/
 │   │   ├── core/auth/       # auth-service.ts + permissions.ts (checkPermissionOrFail) + ipc-guard.ts (handleIpc, origen seguro)
 │   │   ├── modules/         # Handlers IPC por módulo (inventario, ventas, configuracion, caja-extra, license, terminal, distribuidor, restaurant, administracion, rrhh, productor, postventa, hipico, print, red, shared…)
 │   │   ├── db/
-│   │   │   ├── database.ts  # SQLite + 52 migraciones + seeds
+│   │   │   ├── database.ts  # SQLite + 55 migraciones (001–055) + seeds
 │   │   │   └── migrate.ts
 │   │   ├── i18n/            # Traducciones main process
 │   │   │   └── locales/     # es.json, en.json
@@ -214,7 +221,7 @@ tog-admin/
 │       ├── types.ts
 │       ├── papeleria-api.d.ts  # Tipos de la API expuesta al renderer
 │       ├── validations.ts   # Schemas Zod
-│       ├── permissions.ts   # Catálogo de 69 permisos en 15 categorías
+│       ├── permissions.ts   # Catálogo de 69 permisos en 16 categorías
 │       ├── permissions.test.ts
 │       ├── ipc-channels.ts  # Canales IPC + PREAUTH_CHANNELS
 │       ├── ipc-channels.test.ts
@@ -266,6 +273,8 @@ tog-admin/
 - ✅ **bcrypt** password hashing (10 salt rounds)
 - ✅ **contextIsolation** + contextBridge (Electron IPC seguro)
 - ✅ **Validación de origen IPC** — `handleIpc` rechaza cualquier sender que no sea main-frame `file://` (producción) o `localhost:5173` (dev)
+- ✅ **Sesión por token (CSPRNG)** — cada llamada IPC resuelve al usuario desde `sesiones_activas`; el `usuario_id` que manda el renderer se sobrescribe y nunca se usa para autorizar
+- ✅ **Certificado TLS del servidor de red** — autofirmado, generado y persistido al primer arranque de la PC Base (`services/red-cert.ts`)
 - ✅ **Rate limiting** — 5 intentos fallidos → bloqueo 15 min
 - ✅ **Session timeout** — 30 min auto-logout por inactividad
 - ✅ **Sesión única en red local** — un usuario solo puede estar activo en una PC del grupo a la vez (`services/red-session.ts`)

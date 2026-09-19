@@ -66,26 +66,30 @@ npm run build:installer
 ```
 
 Esto tarda ~5-10 minutos y genera en `release/`:
-- `TOG Admin Setup 1.0.x.exe` (~94 MB)
-- `latest.yml`
+- `TOG Admin Setup 1.0.x.exe` (~100 MB, con espacios)
+- `latest.yml` (declara el nombre con **guiones**: `TOG-Admin-Setup-1.0.x-x64.exe`)
 - `TOG Admin Setup 1.0.x.exe.blockmap`
+
+> Renombra los dos binarios al nombre que declara `latest.yml` **antes** de subirlos (ver “Gotcha: nombres de archivo”).
 
 ### 4. Crear la release en GitHub
 
 **Opción A — Manual con `gh` (recomendado para control fino):**
 ```bash
+# 1. Copiar los 3 archivos con el nombre EXACTO que declara latest.yml
+mkdir -p release/_upload
+cp "release/TOG Admin Setup 1.0.x.exe" "release/_upload/TOG-Admin-Setup-1.0.x-x64.exe"
+cp "release/TOG Admin Setup 1.0.x.exe.blockmap" "release/_upload/TOG-Admin-Setup-1.0.x-x64.exe.blockmap"
+cp release/latest.yml release/_upload/latest.yml
+
+# 2. Crear la release subiendo los 3 assets (no solo el .exe)
 gh release create v1.0.x \
   --repo betobeto00/tog-admin \
   --title "TOG Admin v1.0.x" \
-  --notes-file release/RELEASE_NOTES.md
-
-# Subir los 3 assets (no solo el .exe)
-gh release upload v1.0.x \
-  "release/TOG Admin Setup 1.0.x.exe" \
-  "release/latest.yml" \
-  "release/TOG Admin Setup 1.0.x.exe.blockmap" \
-  --repo betobeto00/tog-admin \
-  --clobber
+  --notes-file release/RELEASE_NOTES.md \
+  "release/_upload/TOG-Admin-Setup-1.0.x-x64.exe" \
+  "release/_upload/TOG-Admin-Setup-1.0.x-x64.exe.blockmap" \
+  "release/_upload/latest.yml"
 ```
 
 **Opción B — electron-builder hace todo (un solo paso):**
@@ -96,9 +100,17 @@ Esto compila, crea la release en GitHub y sube todos los assets automáticamente
 
 ### ⚠️ Gotcha: nombres de archivo
 
-electron-builder genera el instalador con espacios en el nombre (ej: `TOG Admin Setup 1.0.8.exe`), pero publica el asset y escribe el `latest.yml` con puntos en el nombre (ej: `TOG.Admin.Setup.1.0.8.exe`).
+electron-builder genera el instalador **con espacios** (`TOG Admin Setup 1.0.x x64.exe`) pero escribe `latest.yml` con **guiones**:
 
-El `latest.yml` generado contiene la URL con puntos. electron-updater descarga por esa URL, **así que el asset subido debe llamarse exactamente como el `url` del .yml** (con puntos), no como el archivo local (con espacios).
+```yaml
+path: TOG-Admin-Setup-1.0.x-x64.exe
+files:
+  - url: TOG-Admin-Setup-1.0.x-x64.exe
+```
+
+electron-updater resuelve la descarga con `p.replace(/ /g, "-")` (`electron-updater/out/providers/GitHubProvider.js`), o sea que **pide guiones**. GitHub, en cambio, convierte los **espacios en puntos** al guardar el asset.
+
+**Regla:** el asset subido debe llamarse **igual que el `path` de `latest.yml` (guiones)**. Si se sube con el nombre local (espacios → puntos) la URL del updater responde **404** y la app no puede descargar la actualización, aunque `latest.yml` se descargue bien y la release exista.
 
 ## Verificación rápida
 
@@ -108,17 +120,32 @@ gh release view v1.0.x --repo betobeto00/tog-admin --json assets \
   --jq '.assets[].name'
 ```
 
-Debe listar:
+Debe listar exactamente los nombres que declara `latest.yml`:
 ```
-TOG.Admin.Setup.1.0.x.exe
+TOG-Admin-Setup-1.0.x-x64.exe
+TOG-Admin-Setup-1.0.x-x64.exe.blockmap
 latest.yml
-TOG.Admin.Setup.1.0.x.exe.blockmap
 ```
 
-Si solo aparece el .exe, falta el metadata y los usuarios no recibirán la actualización.
+Y la URL que usa el updater debe responder 200:
+```bash
+curl -s -o /dev/null -L -I -w '%{http_code}\n' \
+  "https://github.com/betobeto00/tog-admin/releases/download/v1.0.x/TOG-Admin-Setup-1.0.x-x64.exe"
+```
 
-## Lección aprendida (v1.0.7)
+Si solo aparece el .exe, falta el metadata y los usuarios no recibirán la actualización. Si el nombre no coincide, la descarga da 404.
 
-En el primer build de v1.0.7 solo se subió el `.exe` con `gh release upload "release/TOG Admin Setup 1.0.7.exe"`. Resultado: los usuarios con v1.0.6 instalada recibieron "up to date" al hacer Check Updates. Se tuvo que re-subir manualmente `latest.yml` y `.blockmap` para arreglarlo.
+## Lecciones aprendidas
+
+**v1.0.7 — faltaba el metadata.** En el primer build de v1.0.7 solo se subió el `.exe` con `gh release upload "release/TOG Admin Setup 1.0.7.exe"`. Resultado: los usuarios con v1.0.6 instalada recibieron "up to date" al hacer Check Updates. Se tuvo que re-subir manualmente `latest.yml` y `.blockmap` para arreglarlo.
+
+**v1.3.0 — el nombre del asset no coincidía (404 en la descarga).** Las releases anteriores (1.0.x–1.2.1) subieron los binarios con el nombre local, así que GitHub los guardó como `TOG.Admin.Setup.1.2.1.x64.exe` mientras `latest.yml` pedía `TOG-Admin-Setup-1.2.1-x64.exe`. Verificado el 19-Sep-2026:
+
+| URL | Código |
+|-----|--------|
+| `.../v1.2.1/TOG-Admin-Setup-1.2.1-x64.exe` (lo que pide el updater) | **404** |
+| `.../v1.2.1/TOG.Admin.Setup.1.2.1.x64.exe` (el asset real) | 200 |
+
+Desde v1.3.0 los assets se suben con el nombre con guiones y la URL del updater responde 200 (`TOG-Admin-Setup-1.3.0-x64.exe` + su `.blockmap`). Las releases viejas quedaron como están; los usuarios en ≤1.2.1 se actualizan correctamente a v1.3.0 porque el `latest.yml` de v1.3.0 ya apunta a un asset que existe.
 
 **Desde entonces**: usar el comando de 3-asset upload documentado arriba.

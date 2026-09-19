@@ -35,22 +35,23 @@ Registros, no fuentes de verdad. No se actualizan; se archivan.
 > El estado de red local (TLS + heartbeat) vive en `ARCHITECTURE.md` y
 > `tog-platform/docs/INTERCONEXION-RED.md`.
 
-## Números clave verificados contra código (17-Sep-2026)
+## Números clave verificados contra código (19-Sep-2026)
 
 La fuente de estos números es el código, no la doc. Cuando cambie el código,
 actualiza aquí y en la doc canónica correspondiente:
 
 | Métrica | Valor real | Fuente |
 |---|---|---|
-| Permisos | **69 en 15 categorías** | `src/shared/permissions.ts` (`PERMISSIONS`, `ROLE_DEFAULTS`, `USER_ROLES`) |
+| Versión | **1.3.0** | `package.json` (tag `v1.3.0`) |
+| Permisos | **69 en 16 categorías** | `src/shared/permissions.ts` (`PERMISSIONS`, `ROLE_DEFAULTS`, `USER_ROLES`) |
 | Roles | **3** (admin, manager, cajero) | `src/shared/permissions.ts` (`USER_ROLES`) |
-| Tests | **550 tests en 45 archivos** | `npm test` (Vitest) |
-| Migraciones DB | **001–052** | `src/main/db/database.ts` |
+| Tests | **633 tests en 56 archivos** | `npm test` (Vitest) |
+| Migraciones DB | **001–055** (54 migraciones; `011` nunca existió) | `src/main/db/database.ts` |
 | Páginas renderer | **28** | `src/renderer/pages/*.tsx` |
 | Módulos main | **17** | `src/main/modules/` |
 | Servicios main | **18** | `src/main/services/` (sin contar `.test.ts`) |
-| Canales IPC | **250** | `src/shared/ipc-channels.ts` (`IPC_CHANNELS`) |
-| i18n renderer | **~2,080 keys/idioma** | `src/renderer/i18n/locales/{es,en}/translation.json` |
+| Canales IPC | **265** (18 pre-auth, 21 bloqueados por LAN) | `src/shared/ipc-channels.ts` (`IPC_CHANNELS`, `PREAUTH_CHANNELS`, `REMOTE_BLOCKED_CHANNELS`) |
+| i18n renderer | **~2,143 keys/idioma** | `src/renderer/i18n/locales/{es,en}/translation.json` |
 | i18n main | **~101 keys** | `src/main/i18n/locales/{es,en}.json` |
 
 ## Reglas para no volver a dispersar

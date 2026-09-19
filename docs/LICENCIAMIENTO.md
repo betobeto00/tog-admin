@@ -1,8 +1,8 @@
 # 🔐 Sistema de Licencias TOG Admin — Guía Completa
 
-**Versión:** 1.2.0  
+**Versión:** 1.3.0  
 **Fecha:** 28 de agosto de 2026  
-**Última actualización:** 6 de septiembre de 2026
+**Última actualización:** 19 de septiembre de 2026
 
 ---
 

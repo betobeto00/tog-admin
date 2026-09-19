@@ -224,12 +224,17 @@ gh release create v1.0.6 --repo betobeto00/tog-admin --title "TOG Admin v1.0.6" 
 
 ⚠️ **Importante**: subir 3 archivos (no solo el `.exe`): el instalador, `latest.yml` y el `.exe.blockmap`. Sin los últimos dos, electron-updater no detecta la actualización.
 
-Recomendado: un comando por archivo para evitar problemas de quoting en PowerShell con paths con espacios.
+⚠️ **Y con el nombre correcto**: `latest.yml` declara el asset con **guiones** (`TOG-Admin-Setup-1.0.3-x64.exe`). GitHub convierte los espacios en puntos, así que hay que subirlo renombrado; si no, la URL que pide el updater da **404**. Ver `docs/UPDATER_NOTES.md` → “Gotcha: nombres de archivo”.
 
 ```bash
-gh release upload v1.0.3 "release/TOG Admin Setup 1.0.3.exe" --repo betobeto00/tog-admin --clobber
-gh release upload v1.0.3 "release/latest.yml" --repo betobeto00/tog-admin --clobber
-gh release upload v1.0.3 "release/TOG Admin Setup 1.0.3.exe.blockmap" --repo betobeto00/tog-admin --clobber
+mkdir -p release/_upload
+cp "release/TOG Admin Setup 1.0.3.exe" "release/_upload/TOG-Admin-Setup-1.0.3-x64.exe"
+cp "release/TOG Admin Setup 1.0.3.exe.blockmap" "release/_upload/TOG-Admin-Setup-1.0.3-x64.exe.blockmap"
+cp release/latest.yml release/_upload/latest.yml
+
+gh release upload v1.0.3 "release/_upload/TOG-Admin-Setup-1.0.3-x64.exe" --repo betobeto00/tog-admin --clobber
+gh release upload v1.0.3 "release/_upload/TOG-Admin-Setup-1.0.3-x64.exe.blockmap" --repo betobeto00/tog-admin --clobber
+gh release upload v1.0.3 "release/_upload/latest.yml" --repo betobeto00/tog-admin --clobber
 ```
 
 `--clobber` reemplaza el archivo si ya existía. Sustituye `v1.0.3` por tu número de versión.

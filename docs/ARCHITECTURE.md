@@ -23,7 +23,7 @@ TOG Admin es una **plataforma POS adaptable** que se configura según la necesid
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │              SQLite Database                         │    │
 │  │         (tog-admin.db — archivo local)               │    │
-│  │         52 migraciones · 50+ tablas · 50+ índices     │    │
+│  │         55 migraciones · 60+ tablas · 60+ índices     │    │
 │  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -96,7 +96,7 @@ cada llamada remota (ver “Autorización y sesión”).
 | `services/configCache.ts` | Cache de configuración |
 | `i18n/` | Traducciones ES/EN para main process |
 
-El **catálogo de permisos** vive en `src/shared/permissions.ts` (fuente única: 69 permisos en 15 categorías `PERMISSIONS` + `ROLE_DEFAULTS`; el admin tiene todas las claves). Los canales IPC se tipan en `src/shared/ipc-channels.ts` (`IpcChannel` + `PREAUTH_CHANNELS`). Ya **no** existe `services/permissions.ts`: la lógica de autorización es `core/auth/permissions.ts` y se invoca desde cada handler con `checkPermissionOrFail(data, channel, permission)`.
+El **catálogo de permisos** vive en `src/shared/permissions.ts` (fuente única: 69 permisos en 16 categorías `PERMISSIONS` + `ROLE_DEFAULTS`; el admin tiene todas las claves). Los canales IPC se tipan en `src/shared/ipc-channels.ts` (`IpcChannel` + `PREAUTH_CHANNELS`). Ya **no** existe `services/permissions.ts`: la lógica de autorización es `core/auth/permissions.ts` y se invoca desde cada handler con `checkPermissionOrFail(data, channel, permission)`.
 
 ### 2. Process de Renderizado (Renderer Process)
 **Responsabilidad:** UI completamente en React.
@@ -128,7 +128,7 @@ Router (HashRouter)
 - **Un solo archivo:** `tog-admin.db` en `%APPDATA%/tog-admin/`
 - **Sin servidor:** No necesita MySQL ni nada externo
 - **Respaldo:** Copiar el archivo `.db` = respaldo completo
-- **Migraciones:** Sistema de versionado de esquema (52 migraciones, 001–052)
+- **Migraciones:** Sistema de versionado de esquema (54 migraciones, 001–055; `011` nunca existió)
 - **WAL mode:** Permite lectura mientras escribe
 
 ### 4. Comunicación IPC
@@ -309,6 +309,9 @@ Reglas que hay que respetar al tocar auth o handlers:
 | 050 | cadena_produccion | `cadena_produccion`, `cadena_paso` — recetas/BOM: producto final, pasos con insumos, cantidades, costos |
 | 051 | produccion_lotes | `produccion_lote`, `produccion_lote_detalle` — lotes de producción con descuento de stock de insumos y agregado de stock final |
 | 052 | intentos_vincular | `intentos_vincular` — rate limiting persistente para `/api/red/vincular` (antes en memoria) |
+| 053 | fechas_negocio_local | Corrige las fechas de negocio ya guardadas en UTC a hora local y deja los defaults en `datetime('now','localtime')` (una sola vez) |
+| 054 | rrhh_capas | `conceptos_catalogo`, `empleado_grupos`, `empleado_grupo_miembros`, `grupo_conceptos` — nómina por capas (catálogo de conceptos y grupos de empleados) |
+| 055 | numero_factura_continua | Siembra la numeración continua de facturas (`numero_factura_siguiente` = última emitida + 1) y su default en el seed |
 
 ### Tablas Principales
 
@@ -524,7 +527,7 @@ Estado en memoria (`symbol`, `rate`, `name`) inicializado por `loadCurrency()` d
 | Internacionalización | i18n con 2 idiomas (ES/EN), ~2,080 keys por idioma en el renderer (+101 en main) |
 | Licencia | RSA-2048 con validación offline |
 | Backup automático | Al cerrar caja se crea backup de la DB |
-| Permisos | 69 permisos en 15 categorías (Impresión, Ventas, Caja, Inventario, Compras, Cotizaciones, Reportes, Administración, Distribuidor, Restaurant, Contabilidad, Recursos Humanos, Productor, Postventa, Hípico), control granular por usuario (incluye `red_manage` para gestión de PC Base) |
+| Permisos | 69 permisos en 16 categorías (Impresión, Ventas, Caja, Inventario, Compras, Cotizaciones, Reportes, Administración, Comercializador, Distribuidor, Restaurant, Contabilidad, Recursos Humanos, Productor, Postventa, Hípico), control granular por usuario (incluye `red_manage` para gestión de PC Base) |
 | Sesión única en red local | Un usuario solo puede estar activo en una PC del grupo a la vez (`services/red-session.ts`) |
 | Sesiones huérfanas | Barrido de la PC Base (60 s) que libera las sesiones de las terminales sin latido por más de 5 min: sin él, la sesión única dejaba al usuario fuera para siempre si apagaba la PC sin cerrar sesión |
 | Claves de API | Viven solo en el main (`odds_api_key`, `racing_api_key`): los canales de configuración devuelven `api_key_masked` (`services/claves-api.ts`) y `config:get` filtra las claves reservadas |
