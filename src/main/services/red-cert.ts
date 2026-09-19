@@ -59,10 +59,14 @@ export interface GenerateCertOptions {
 export async function generateCert(opts: GenerateCertOptions = {}): Promise<TlsMaterial> {
   const validityDays = opts.validityDays ?? CERT_VALIDITY_DAYS
   const cn = opts.commonName ?? 'tog-admin-red-base'
-  const attrs: Array<{ name: string; value: string }> = [
+  // `selfsigned` 5.x solo reconoce nombres cortos/largos de su tabla
+  // (commonName→CN, organizationName→O, OU…). Un nombre fuera de esa tabla deja el
+  // subject sin OID y la generación falla con "Cannot get OID for name type ''",
+  // que rompía el arranque del servidor de red en producción.
+  const attrs: Array<{ name?: string; shortName?: string; value: string }> = [
     { name: 'commonName', value: cn },
     { name: 'organizationName', value: 'OmniMargen / TOG Admin' },
-    { name: 'organizationalUnitName', value: 'Red Local' },
+    { shortName: 'OU', value: 'Red Local' },
   ]
   const pems = await selfsigned.generate(attrs, {
     keySize: CERT_KEY_SIZE,

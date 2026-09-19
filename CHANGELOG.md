@@ -79,6 +79,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   y el saldo, y la UI lo advierte.
 - **Ayuda del límite de crédito**: decía "0 = sin crédito" cuando el código trata `0`
   como **sin límite** (`limite_credito > 0` es la única condición que aplica el tope).
+- **Servidor de red: no arrancaba en producción.** `selfsigned` 5.x solo reconoce los
+  nombres de atributo de su tabla (CN, O, OU…), y `organizationalUnitName` no está en
+  ella: el subject quedaba sin OID y la generación del certificado fallaba con
+  `Cannot get OID for name type ''`. El servidor TLS hacía fallback a "modo hija/local",
+  así que una instalación nueva no podía actuar como base para las demás PCs.
+  Ahora el atributo se pasa como `OU` y hay tests que generan el certificado real.
 - **Libro de ventas vacío / flujo de efectivo en cero / análisis financiero en cero**:
   la causa raíz era guardar las fechas de negocio en UTC. Una venta de las 22:00
   (UTC−4) quedaba con la fecha del día UTC siguiente y desaparecía de los reportes
