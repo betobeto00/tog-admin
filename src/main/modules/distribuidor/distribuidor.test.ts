@@ -45,6 +45,17 @@ const { db, handles, state } = vi.hoisted(() => {
       limite_credito REAL NOT NULL DEFAULT 0,
       notas TEXT,
       activo INTEGER NOT NULL DEFAULT 1,
+      creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+      actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE creditos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      venta_id INTEGER,
+      cliente_id INTEGER REFERENCES clientes(id),
+      deudor_nombre TEXT NOT NULL,
+      monto_total REAL NOT NULL DEFAULT 0,
+      saldo REAL NOT NULL DEFAULT 0,
+      estado TEXT NOT NULL DEFAULT 'pendiente',
       creado_en TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE TABLE productos (
@@ -154,6 +165,7 @@ const send = (ch: string, data: any) => handles[ch](null, data)
 
 describe('clientes (Distribuidor)', () => {
   beforeEach(() => {
+    db.prepare('DELETE FROM creditos').run()
     db.prepare('DELETE FROM clientes').run()
   })
 
@@ -209,6 +221,79 @@ describe('clientes (Distribuidor)', () => {
     expect(rows).toHaveLength(0)
     const raw: any = db.prepare('SELECT activo FROM clientes WHERE id = ?').get(created.id)
     expect(raw.activo).toBe(0)
+  })
+
+  it('permite borrar un dato opcional enviando null (antes se ignoraba)', async () => {
+    const created = await send('clientes:create', {
+      usuario_id: 1, nombre: 'Con Teléfono', telefono: '555-111', email: 'a@b.com', direccion: 'Calle 1', notas: 'nota',
+    })
+    const res = await send('clientes:update', {
+      usuario_id: 1,
+      id: created.id,
+      data: { telefono: null, email: null, direccion: null, notas: null },
+    })
+    expect(res.success).toBe(true)
+    const row: any = db.prepare('SELECT * FROM clientes WHERE id = ?').get(created.id)
+    expect(row.telefono).toBeNull()
+    expect(row.email).toBeNull()
+    expect(row.direccion).toBeNull()
+    expect(row.notas).toBeNull()
+    expect(row.nombre).toBe('Con Teléfono') // no se tocó
+  })
+
+  it('valida la edición (email inválido, límite negativo, nombre vacío)', async () => {
+    const created = await send('clientes:create', { usuario_id: 1, nombre: 'Validar' })
+    const email = await send('clientes:update', { usuario_id: 1, id: created.id, data: { email: 'no-es-mail' } })
+    expect(email.success).toBe(false)
+    const limite = await send('clientes:update', { usuario_id: 1, id: created.id, data: { limite_credito: -5 } })
+    expect(limite.success).toBe(false)
+    const nombre = await send('clientes:update', { usuario_id: 1, id: created.id, data: { nombre: '' } })
+    expect(nombre.success).toBe(false)
+    const row: any = db.prepare('SELECT * FROM clientes WHERE id = ?').get(created.id)
+    expect(row.nombre).toBe('Validar')
+  })
+
+  it('rechaza editar un cliente inexistente', async () => {
+    const res = await send('clientes:update', { usuario_id: 1, id: 999, data: { nombre: 'Fantasma' } })
+    expect(res.success).toBe(false)
+    expect(res.error).toContain('no existe')
+  })
+
+  it('no permite dos clientes activos con el mismo documento', async () => {
+    await send('clientes:create', { usuario_id: 1, nombre: 'Uno', documento: 'J-12345678-9' })
+    const dup = await send('clientes:create', { usuario_id: 1, nombre: 'Dos', documento: ' j-12345678-9 ' })
+    expect(dup.success).toBe(false)
+    expect(dup.error).toContain('documento')
+
+    // Cambiar un documento libre a uno ya usado también se rechaza
+    const libre = await send('clientes:create', { usuario_id: 1, nombre: 'Tres', documento: 'V-1' })
+    const res = await send('clientes:update', { usuario_id: 1, id: libre.id, data: { documento: 'J-12345678-9' } })
+    expect(res.success).toBe(false)
+    // Pero guardar el mismo documento que ya tenía no se bloquea
+    const igual = await send('clientes:update', { usuario_id: 1, id: libre.id, data: { documento: 'V-1', nombre: 'Tres bis' } })
+    expect(igual.success).toBe(true)
+  })
+
+  it('expone la deuda pendiente del fiado en el listado', async () => {
+    const c = await send('clientes:create', { usuario_id: 1, nombre: 'Deudor' })
+    const c2 = await send('clientes:create', { usuario_id: 1, nombre: 'Al día' })
+    db.prepare("INSERT INTO creditos (cliente_id, deudor_nombre, monto_total, saldo, estado) VALUES (?, 'Deudor', 100, 40, 'pendiente')").run(c.id)
+    db.prepare("INSERT INTO creditos (cliente_id, deudor_nombre, monto_total, saldo, estado) VALUES (?, 'Deudor', 50, 0, 'pagado')").run(c.id)
+    db.prepare("INSERT INTO creditos (cliente_id, deudor_nombre, monto_total, saldo, estado) VALUES (?, 'Al día', 20, 0, 'pagado')").run(c2.id)
+
+    const rows: any[] = await list('clientes:list')
+    expect(rows.find((r) => r.nombre === 'Deudor').deuda).toBe(40)
+    expect(rows.find((r) => r.nombre === 'Al día').deuda).toBe(0)
+  })
+
+  it('avisa la deuda pendiente al eliminar un cliente', async () => {
+    const c = await send('clientes:create', { usuario_id: 1, nombre: 'A Eliminar con Deuda' })
+    db.prepare("INSERT INTO creditos (cliente_id, deudor_nombre, monto_total, saldo, estado) VALUES (?, 'A Eliminar con Deuda', 100, 60, 'pendiente')").run(c.id)
+
+    const res = await send('clientes:delete', { usuario_id: 1, id: c.id })
+    expect(res.success).toBe(true)
+    expect(res.creditosPendientes).toBe(1)
+    expect(res.saldoPendiente).toBe(60)
   })
 
   it('bloquea las operaciones si el módulo no está activo en la licencia', async () => {

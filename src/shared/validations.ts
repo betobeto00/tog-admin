@@ -260,16 +260,23 @@ export const changePasswordSchema = z.object({
 // DISTRIBUIDOR
 // ============================================
 
-export const clienteCreateSchema = z.object({
+// Campos de cliente compartidos por alta y edición. Los opcionales aceptan `null`
+// para poder **borrar** el dato desde el formulario (ver `clientes:update`).
+const clienteCampos = {
   nombre: z.string().min(1, 'Nombre del cliente requerido').max(200),
   // Documento de registro/tributario libre: RIF, RFC, EIN, CUIT… (mercado internacional)
-  documento: z.string().max(40).optional().or(z.literal('')),
-  telefono: z.string().max(30).optional(),
-  email: z.string().email('Email inválido').max(200).optional().or(z.literal('')),
-  direccion: z.string().max(500).optional(),
-  limite_credito: z.number().min(0).default(0).optional(),
-  notas: z.string().max(1000).optional(),
-})
+  documento: z.string().max(40).nullable().optional().or(z.literal('')),
+  telefono: z.string().max(30).nullable().optional(),
+  email: z.string().email('Email inválido').max(200).nullable().optional().or(z.literal('')),
+  direccion: z.string().max(500).nullable().optional(),
+  limite_credito: z.number().min(0, 'El límite de crédito no puede ser negativo').nullable().default(0).optional(),
+  notas: z.string().max(1000).nullable().optional(),
+}
+
+export const clienteCreateSchema = z.object(clienteCampos)
+
+/** Edición parcial: solo se escribe lo que llega definido (`undefined` = no tocar). */
+export const clienteUpdateSchema = z.object(clienteCampos).partial()
 
 export const pedidoCreateSchema = z.object({
   cliente_id: z.number().int().positive('Selecciona un cliente'),

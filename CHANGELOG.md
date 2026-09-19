@@ -45,6 +45,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   venta → asiento contable → libro (incluida la reversión al anular). Suite: **621 tests**.
 
 ### Changed
+- **Clientes (auditoría end-to-end)**: el listado expone la **deuda pendiente** del
+  fiado (subconsulta sobre `creditos`), la edición es parcial y validada con Zod, y
+  `clientes:create` devuelve `success` como el resto de los canales.
 - **Fechas de negocio en hora local**: nuevo `main/utils/time.ts`
   (`localDateStr`/`localDateTimeStr`); `ventas`, `compras`, `caja`, `movimientos`,
   `creditos`, `abonos`, `ajustes`, `productor` y `rrhh` guardan y comparan fechas
@@ -58,6 +61,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Imports con alias `@shared` reemplazados por rutas relativas en el proceso main.
 
 ### Fixed
+- **Clientes: `clientes:update` no se validaba y no se podía borrar un dato**
+  (`COALESCE` con `undefined` = "no tocar", así que vaciar teléfono/email/dirección/notas
+  no guardaba nada). Además no se comprobaba que el cliente existiera y
+  `limite_credito` aceptaba cualquier valor. Ahora la edición es parcial validada
+  (`clienteUpdateSchema`), `null` borra el campo y se rechaza un cliente inexistente.
+- **Clientes: el renderer se comía los errores** — `save()`, `loadData()` y `remove()`
+  llamaban a `callApi` sin `catch`: un email inválido o un documento duplicado dejaban
+  el modal abierto sin ningún mensaje (mismo problema que el bug #7 de usuarios).
+  Ahora muestran el error del backend y confirman el guardado.
+- **Clientes: se permitían dos clientes activos con el mismo documento**, lo que hacía
+  que el POS eligiera al cliente equivocado y partiera su historial de crédito. El alta
+  y el cambio de documento ahora lo rechazan (en edición solo si el documento cambia,
+  para no bloquear datos legados).
+- **Clientes: al eliminar un cliente con fiado pendiente la app no avisaba**: la baja
+  sigue siendo lógica (la deuda es cobrable) pero ahora devuelve los créditos pendientes
+  y el saldo, y la UI lo advierte.
+- **Ayuda del límite de crédito**: decía "0 = sin crédito" cuando el código trata `0`
+  como **sin límite** (`limite_credito > 0` es la única condición que aplica el tope).
 - **Libro de ventas vacío / flujo de efectivo en cero / análisis financiero en cero**:
   la causa raíz era guardar las fechas de negocio en UTC. Una venta de las 22:00
   (UTC−4) quedaba con la fecha del día UTC siguiente y desaparecía de los reportes

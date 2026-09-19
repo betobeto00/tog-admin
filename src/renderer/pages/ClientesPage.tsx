@@ -1,21 +1,25 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Search, Edit2, Trash2, Contact, Phone, Mail, MapPin } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, Contact, Phone, Mail, MapPin, AlertTriangle } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import { useToast } from '../components/ui/Toast'
 import { callApi } from '../lib/api-client'
+import { formatMoney } from '../services/currency'
 import { useActiveModules } from '../hooks/useModules'
 
 interface Cliente {
   id: number; nombre: string; documento: string | null; telefono: string | null
   email: string | null; direccion: string | null; limite_credito: number | null
   notas: string | null; activo: number; creado_en: string
+  deuda?: number
 }
 
 const emptyForm = { nombre: '', documento: '', telefono: '', email: '', direccion: '', limite_credito: '', notas: '' }
 
 export default function ClientesPage() {
   const { t } = useTranslation()
+  const toast = useToast()
   const { isActive } = useActiveModules()
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [search, setSearch] = useState('')
@@ -28,7 +32,11 @@ export default function ClientesPage() {
   useEffect(() => { loadData() }, [])
 
   const loadData = async () => {
-    setClientes(await callApi<Cliente[]>('clientes:list'))
+    try {
+      setClientes(await callApi<Cliente[]>('clientes:list'))
+    } catch (err: any) {
+      toast.error(err?.message || t('common.error'))
+    }
   }
 
   const filtered = clientes.filter((c) =>
@@ -53,21 +61,39 @@ export default function ClientesPage() {
     if (!form.nombre.trim()) return
     setSaving(true)
     try {
+      // null (no undefined) para que el backend pueda **borrar** un dato opcional.
       const data = {
-        ...form,
-        documento: form.documento || undefined, telefono: form.telefono || undefined,
-        email: form.email || undefined, direccion: form.direccion || undefined,
-        limite_credito: form.limite_credito ? Number(form.limite_credito) : undefined,
-        notas: form.notas || undefined,
+        nombre: form.nombre.trim(),
+        documento: form.documento.trim() || null,
+        telefono: form.telefono.trim() || null,
+        email: form.email.trim() || null,
+        direccion: form.direccion.trim() || null,
+        limite_credito: form.limite_credito ? Number(form.limite_credito) : 0,
+        notas: form.notas.trim() || null,
       }
       if (editing) { await callApi('clientes:update', { id: editing.id, data }) }
       else { await callApi('clientes:create', data) }
       setModalOpen(false)
       await loadData()
+      toast.success(t('clientes.saved'))
+    } catch (err: any) {
+      toast.error(err?.message || t('common.error'))
     } finally { setSaving(false) }
   }
 
-  const remove = async (id: number) => { await callApi('clientes:delete', { id }); await loadData() }
+  const remove = async (id: number) => {
+    try {
+      const res = await callApi<{ success: boolean; creditosPendientes?: number; saldoPendiente?: number }>('clientes:delete', { id })
+      setDeleteTarget(null)
+      await loadData()
+      // La baja es lógica: si aún debe, hay que poder cobrarle igual.
+      if (res?.creditosPendientes) {
+        toast.warning(t('clientes.debtPending', { count: res.creditosPendientes, amount: formatMoney(res.saldoPendiente || 0) }))
+      }
+    } catch (err: any) {
+      toast.error(err?.message || t('common.error'))
+    }
+  }
 
   if (!isActive('comercializador')) {
     return (
@@ -123,7 +149,14 @@ export default function ClientesPage() {
               {!!c.limite_credito && (
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <span>{t('clientes.creditLimit')}:</span>
-                  <span className="font-medium text-gray-700">{c.limite_credito}</span>
+                  <span className="font-medium text-gray-700">{formatMoney(c.limite_credito)}</span>
+                </div>
+              )}
+              {!!c.deuda && (
+                <div className="flex items-center gap-2 text-xs font-semibold text-red-600 pt-1 border-t border-gray-100 mt-1">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <span>{t('clientes.debt')}:</span>
+                  <span>{formatMoney(c.deuda)}</span>
                 </div>
               )}
             </div>
