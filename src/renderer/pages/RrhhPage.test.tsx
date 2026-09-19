@@ -160,6 +160,55 @@ const NOMINA = {
   conceptos: [{ nombre: 'Bono Alimentación', monto: 50, tipo: 'asignacion' }],
 }
 
+describe('RrhhPage — vista previa de nómina', () => {
+  beforeEach(() => {
+    apiMock.mockImplementation((channel: string) => {
+      if (channel === 'rrhh:empleados-list') return Promise.resolve(EMPLEADOS)
+      if (channel === 'rrhh:grupos-list') return Promise.resolve(GRUPOS)
+      if (channel === 'rrhh:nomina-list') return Promise.resolve([])
+      if (channel === 'rrhh:asistencia-list') return Promise.resolve({ fecha: '2026-09-19', registros: [] })
+      if (channel === 'rrhh:nomina-preview') {
+        return Promise.resolve({
+          success: true,
+          filas: [{
+            empleado_id: 1, empleado_nombre: 'Ana Pérez', empleado_documento: null, empleado_cargo: 'Cajera',
+            salario_base: 300, dias_trabajados: 30, bonos: 50, deducciones: 10, total_pagar: 340,
+            conceptos: [{ nombre: 'Bono Alimentación', tipo: 'asignacion', monto: 50, orden: 1 }],
+          }],
+          totales: { bruto: 350, deducciones: 10, neto: 340 },
+        })
+      }
+      if (channel === 'rrhh:nomina-generar') return Promise.resolve({ success: true, nominas: [] })
+      return Promise.resolve(null)
+    })
+  })
+
+  it('previsualiza los montos y solo genera al confirmar', async () => {
+    render(<RrhhPage />)
+    irA('rrhh.tabPayroll')
+    await waitFor(() => expect(apiMock).toHaveBeenCalledWith('rrhh:grupos-list', {}))
+
+    fireEvent.click(screen.getByText('rrhh.preview'))
+
+    await waitFor(() =>
+      expect(apiMock).toHaveBeenCalledWith('rrhh:nomina-preview', expect.objectContaining({ grupo_id: undefined })),
+    )
+    expect(await screen.findByText('rrhh.previewTitle')).toBeInTheDocument()
+    expect(screen.getByText('+ Bono Alimentación: $50.00')).toBeInTheDocument()
+    expect(screen.getAllByText('$340.00').length).toBeGreaterThan(0)
+
+    // Todavía no se generó nada: la vista previa es un dry-run.
+    expect(apiMock).not.toHaveBeenCalledWith('rrhh:nomina-generar', expect.anything())
+
+    fireEvent.click(screen.getByText('rrhh.confirmGenerate'))
+    await waitFor(() =>
+      expect(apiMock).toHaveBeenCalledWith('rrhh:nomina-generar', expect.objectContaining({ periodo_inicio: expect.any(String) })),
+    )
+    // Al confirmar, el modal se cierra.
+    await waitFor(() => expect(screen.queryByText('rrhh.previewTitle')).not.toBeInTheDocument())
+  })
+})
+
 describe('RrhhPage — impresión', () => {
   beforeEach(() => {
     apiMock.mockImplementation((channel: string) => {

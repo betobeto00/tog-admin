@@ -36,6 +36,100 @@ function listarNominas(db: DatabaseLike, periodo_inicio?: string, periodo_fin?: 
   })
 }
 
+type NominaInput = {
+  periodo_inicio: string
+  periodo_fin: string
+  tipo_pago?: 'semanal' | 'quincenal' | 'mensual'
+  salario_base_activo?: boolean
+  bonos_globales?: number
+  deducciones_globales?: number
+  bonos?: Record<number, number>
+  deducciones?: Record<number, number>
+  grupo_id?: number
+}
+
+type ConceptoNomina = { nombre: string; tipo: 'asignacion' | 'deduccion'; monto: number; orden: number }
+
+type FilaNomina = {
+  empleado_id: number
+  empleado_nombre: string
+  empleado_documento: string | null
+  empleado_cargo: string | null
+  salario_base: number
+  dias_trabajados: number
+  bonos: number
+  deducciones: number
+  total_pagar: number
+  conceptos: ConceptoNomina[]
+}
+
+const FACTOR_TIPO_PAGO: Record<string, number> = { mensual: 1, quincenal: 0.5, semanal: 0.25 }
+
+/**
+ * Calcula las filas de una nómina SIN escribir en la base (dry-run).
+ * `rrhh:nomina-preview` las muestra para confirmar y `rrhh:nomina-generar` persiste
+ * exactamente estos mismos valores, así que la vista previa nunca puede diferir de
+ * la nómina que se guarda.
+ */
+function calcularFilasNomina(db: DatabaseLike, data: NominaInput): { filas: FilaNomina[]; error?: string } {
+  // Con grupo: la nómina solo incluye los miembros del grupo y se le aplican
+  // los conceptos asignados al grupo (capa 3). Sin grupo: todos los activos.
+  const empleados = (data.grupo_id
+    ? db.prepare(`SELECT e.id, e.nombre, e.documento, e.cargo, e.salario_mensual
+        FROM empleados e JOIN empleado_grupo_miembros m ON m.empleado_id = e.id
+        WHERE m.grupo_id = ? AND e.activo = 1 ORDER BY e.nombre`).all(data.grupo_id)
+    : db.prepare('SELECT id, nombre, documento, cargo, salario_mensual FROM empleados WHERE activo = 1 ORDER BY nombre').all()) as any[]
+  if (empleados.length === 0) return { filas: [], error: 'No hay empleados activos' }
+
+  const grupoConceptos = (data.grupo_id
+    ? db.prepare(`SELECT gc.monto, c.nombre, c.tipo, c.monto_default
+        FROM grupo_conceptos gc JOIN conceptos_catalogo c ON c.id = gc.concepto_id
+        WHERE gc.grupo_id = ? AND c.activo = 1 ORDER BY c.tipo, c.nombre`).all(data.grupo_id)
+    : []) as any[]
+
+  const factor = (data.tipo_pago && FACTOR_TIPO_PAGO[data.tipo_pago]) || 1
+  const bonosGlobales = data.bonos_globales !== undefined ? data.bonos_globales : 0
+  const deduccionesGlobales = data.deducciones_globales !== undefined ? data.deducciones_globales : 0
+  const contarDias = db.prepare(`
+    SELECT COUNT(*) as dias FROM asistencia
+    WHERE empleado_id = ? AND fecha BETWEEN ? AND ? AND estado IN ('presente', 'tarde')
+  `)
+
+  const filas = empleados.map((e) => {
+    const dias = contarDias.get(e.id, data.periodo_inicio, data.periodo_fin) as any
+    const dias_trabajados = dias?.dias || 0
+    const salario_base = data.salario_base_activo && e.salario_mensual
+      ? Number(e.salario_mensual) * factor * (dias_trabajados / DIAS_NOMINA)
+      : 0
+    let bonos = (data.bonos?.[e.id] || 0) + bonosGlobales
+    let deducciones = (data.deducciones?.[e.id] || 0) + deduccionesGlobales
+    const conceptos: ConceptoNomina[] = grupoConceptos.map((c, i) => ({
+      nombre: c.nombre as string,
+      tipo: c.tipo as 'asignacion' | 'deduccion',
+      monto: c.monto !== null && c.monto !== undefined ? Number(c.monto) : (Number(c.monto_default) || 0),
+      orden: i + 1,
+    }))
+    if (data.grupo_id) {
+      // Capa 3: los conceptos del grupo reemplazan a los globales y a los mapas por empleado.
+      bonos = conceptos.filter((c) => c.tipo === 'asignacion').reduce((s, c) => s + c.monto, 0)
+      deducciones = conceptos.filter((c) => c.tipo !== 'asignacion').reduce((s, c) => s + c.monto, 0)
+    }
+    return {
+      empleado_id: e.id as number,
+      empleado_nombre: e.nombre as string,
+      empleado_documento: (e.documento ?? null) as string | null,
+      empleado_cargo: (e.cargo ?? null) as string | null,
+      salario_base,
+      dias_trabajados,
+      bonos,
+      deducciones,
+      total_pagar: salario_base + bonos - deducciones,
+      conceptos,
+    }
+  })
+  return { filas }
+}
+
 export function registerRrhhHandlers(): void {
   handleIpc('rrhh:empleados-list', async (_event, data?: { incluirInactivos?: boolean; usuario_id?: number }) => {
     const fail = checkPermissionOrFail(data, 'rrhh:empleados-list', 'rrhh_view')
@@ -157,69 +251,30 @@ export function registerRrhhHandlers(): void {
     if (!data.periodo_inicio || !data.periodo_fin) return { success: false, error: 'Indica el período de la nómina' }
     if (data.periodo_fin < data.periodo_inicio) return { success: false, error: 'El período es inválido' }
     const db = getDatabase()
-    // Con grupo: la nómina solo incluye los miembros del grupo y se le aplican
-    // los conceptos asignados al grupo (capa 3). Sin grupo: todos los activos.
-    const empleados = data.grupo_id
-      ? db.prepare(`SELECT e.id, e.salario_mensual, e.experiencia, e.anos_servicio, e.nivel_academico
-          FROM empleados e JOIN empleado_grupo_miembros m ON m.empleado_id = e.id
-          WHERE m.grupo_id = ? AND e.activo = 1 ORDER BY e.nombre`).all(data.grupo_id) as any[]
-      : db.prepare('SELECT id, salario_mensual, experiencia, anos_servicio, nivel_academico FROM empleados WHERE activo = 1').all() as any[]
-    if (empleados.length === 0) return { success: false, error: 'No hay empleados activos' }
+    const { filas, error: errorCalculo } = calcularFilasNomina(db, data)
+    if (errorCalculo) return { success: false, error: errorCalculo }
 
-    const grupoConceptos = data.grupo_id
-      ? db.prepare(`SELECT gc.monto, c.nombre, c.tipo, c.monto_default
-          FROM grupo_conceptos gc JOIN conceptos_catalogo c ON c.id = gc.concepto_id
-          WHERE gc.grupo_id = ? AND c.activo = 1 ORDER BY c.tipo, c.nombre`).all(data.grupo_id) as any[]
-      : []
-    const factorMap: Record<string, number> = { mensual: 1, quincenal: 0.5, semanal: 0.25 }
-    const factor = (data.tipo_pago && factorMap[data.tipo_pago]) || 1
     const generar = db.transaction(() => {
-      const ids: number[] = []
-      for (const e of empleados) {
-        const dias = db.prepare(`
-          SELECT COUNT(*) as dias FROM asistencia
-          WHERE empleado_id = ? AND fecha BETWEEN ? AND ? AND estado IN ('presente', 'tarde')
-        `).get(e.id, data.periodo_inicio, data.periodo_fin) as any
-        const dias_trabajados = dias.dias || 0
-        let salario_base = 0
-        if (data.salario_base_activo && e.salario_mensual) {
-          salario_base = e.salario_mensual * factor * (dias_trabajados / DIAS_NOMINA)
-        }
-        const bonos = data.bonos?.[e.id] || 0
-        const deducciones = data.deducciones?.[e.id] || 0
-        const bonosGlobales = data.bonos_globales !== undefined ? data.bonos_globales : 0
-        const deduccionesGlobales = data.deducciones_globales !== undefined ? data.deducciones_globales : 0
-        const total = salario_base + bonos + bonosGlobales - deducciones - deduccionesGlobales
-        db.prepare(`
-          INSERT INTO nominas (empleado_id, periodo_inicio, periodo_fin, salario_base, dias_trabajados, bonos, deducciones, total_pagar, usuario_id, tipo_pago, salario_base_activo)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT(empleado_id, periodo_inicio, periodo_fin) DO UPDATE SET
-            salario_base = excluded.salario_base, dias_trabajados = excluded.dias_trabajados,
-            bonos = excluded.bonos, deducciones = excluded.deducciones, total_pagar = excluded.total_pagar,
-            usuario_id = excluded.usuario_id, tipo_pago = excluded.tipo_pago, salario_base_activo = excluded.salario_base_activo
-        `).run(e.id, data.periodo_inicio, data.periodo_fin, salario_base, dias_trabajados, bonos + bonosGlobales, deducciones + deduccionesGlobales, total, data.usuario_id, data.tipo_pago ?? null, data.salario_base_activo ? 1 : 0)
-
-        // Capa 3: conceptos del grupo → filas de detalle + recálculo del neto.
+      const upsert = db.prepare(`
+        INSERT INTO nominas (empleado_id, periodo_inicio, periodo_fin, salario_base, dias_trabajados, bonos, deducciones, total_pagar, usuario_id, tipo_pago, salario_base_activo)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(empleado_id, periodo_inicio, periodo_fin) DO UPDATE SET
+          salario_base = excluded.salario_base, dias_trabajados = excluded.dias_trabajados,
+          bonos = excluded.bonos, deducciones = excluded.deducciones, total_pagar = excluded.total_pagar,
+          usuario_id = excluded.usuario_id, tipo_pago = excluded.tipo_pago, salario_base_activo = excluded.salario_base_activo
+      `)
+      const buscarNomina = db.prepare('SELECT id FROM nominas WHERE empleado_id = ? AND periodo_inicio = ? AND periodo_fin = ?')
+      const borrarConceptos = db.prepare('DELETE FROM nomina_conceptos WHERE nomina_id = ?')
+      const insC = db.prepare('INSERT INTO nomina_conceptos (nomina_id, nombre, tipo, monto, orden) VALUES (?, ?, ?, ?, ?)')
+      for (const f of filas) {
+        upsert.run(f.empleado_id, data.periodo_inicio, data.periodo_fin, f.salario_base, f.dias_trabajados, f.bonos, f.deducciones, f.total_pagar, data.usuario_id, data.tipo_pago ?? null, data.salario_base_activo ? 1 : 0)
+        // Capa 3: conceptos del grupo → filas de detalle de la nómina.
         if (data.grupo_id) {
-          const nominaRow = db.prepare('SELECT id FROM nominas WHERE empleado_id = ? AND periodo_inicio = ? AND periodo_fin = ?')
-            .get(e.id, data.periodo_inicio, data.periodo_fin) as any
-          db.prepare('DELETE FROM nomina_conceptos WHERE nomina_id = ?').run(nominaRow.id)
-          const insC = db.prepare('INSERT INTO nomina_conceptos (nomina_id, nombre, tipo, monto, orden) VALUES (?, ?, ?, ?, ?)')
-          let bonosGrupo = 0
-          let deduccionesGrupo = 0
-          grupoConceptos.forEach((c, i) => {
-            const monto = c.monto !== null && c.monto !== undefined ? Number(c.monto) : (c.monto_default || 0)
-            insC.run(nominaRow.id, c.nombre, c.tipo, monto, i + 1)
-            if (c.tipo === 'asignacion') bonosGrupo += monto
-            else deduccionesGrupo += monto
-          })
-          const totalGrupo = salario_base + bonosGrupo - deduccionesGrupo
-          db.prepare('UPDATE nominas SET bonos = ?, deducciones = ?, total_pagar = ? WHERE id = ?')
-            .run(bonosGrupo, deduccionesGrupo, totalGrupo, nominaRow.id)
+          const nominaRow = buscarNomina.get(f.empleado_id, data.periodo_inicio, data.periodo_fin) as any
+          borrarConceptos.run(nominaRow.id)
+          for (const c of f.conceptos) insC.run(nominaRow.id, c.nombre, c.tipo, c.monto, c.orden)
         }
-        ids.push(e.id)
       }
-      return ids
     })
     generar()
     const nominas = db.prepare(`
@@ -229,6 +284,24 @@ export function registerRrhhHandlers(): void {
       ORDER BY e.nombre
     `).all(data.periodo_inicio, data.periodo_fin)
     return { success: true, nominas }
+  })
+
+  // Vista previa (dry-run): mismos números que `rrhh:nomina-generar`, sin escribir nada.
+  handleIpc('rrhh:nomina-preview', async (_event, data: NominaInput & { usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'rrhh:nomina-preview', 'rrhh_nomina')
+    if (fail) return fail
+    const moduleFail = checkModuleOrFail()
+    if (moduleFail) return moduleFail
+    if (!data.periodo_inicio || !data.periodo_fin) return { success: false, error: 'Indica el período de la nómina' }
+    if (data.periodo_fin < data.periodo_inicio) return { success: false, error: 'El período es inválido' }
+    const { filas, error } = calcularFilasNomina(getDatabase(), data)
+    if (error) return { success: false, error }
+    const totales = filas.reduce((acc, f) => ({
+      bruto: acc.bruto + f.salario_base + f.bonos,
+      deducciones: acc.deducciones + f.deducciones,
+      neto: acc.neto + f.total_pagar,
+    }), { bruto: 0, deducciones: 0, neto: 0 })
+    return { success: true, filas, totales }
   })
 
   handleIpc('rrhh:nomina-list', async (_event, data: { periodo_inicio?: string; periodo_fin?: string; usuario_id: number }) => {

@@ -119,6 +119,7 @@ export const IPC_CHANNELS = [
   'rrhh:asistencia-list',
   'rrhh:asistencia-registrar',
   'rrhh:nomina-generar',
+  'rrhh:nomina-preview',
   'rrhh:nomina-list',
   'rrhh:nomina-pagar',
   'rrhh:nomina-conceptos-list',

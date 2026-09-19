@@ -7,9 +7,10 @@ interface ModalProps {
   title: string
   children: React.ReactNode
   wide?: boolean
+  extraWide?: boolean
 }
 
-export default function Modal({ open, onClose, title, children, wide }: ModalProps) {
+export default function Modal({ open, onClose, title, children, wide, extraWide }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -34,7 +35,7 @@ export default function Modal({ open, onClose, title, children, wide }: ModalPro
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
       onClick={(e) => e.target === overlayRef.current && onClose()}
     >
-      <div className={`bg-white rounded-2xl shadow-2xl w-full ${wide ? 'max-w-2xl' : 'max-w-lg'} mx-4 max-h-[90vh] flex flex-col`}>
+      <div className={`bg-white rounded-2xl shadow-2xl w-full ${extraWide ? 'max-w-4xl' : wide ? 'max-w-2xl' : 'max-w-lg'} mx-4 max-h-[90vh] flex flex-col`}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">{title}</h2>

@@ -54,6 +54,8 @@ const { db, handles, state } = vi.hoisted(() => {
       unidad TEXT NOT NULL DEFAULT 'unidad',
       imagen TEXT,
       activo INTEGER NOT NULL DEFAULT 1,
+      costo_real REAL,
+      es_combo INTEGER NOT NULL DEFAULT 0,
       creado_en TEXT NOT NULL DEFAULT (datetime('now')),
       actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -217,6 +219,19 @@ const { db, handles, state } = vi.hoisted(() => {
       PRIMARY KEY (producto_id, almacen_id),
       FOREIGN KEY (almacen_id) REFERENCES almacenes(id)
     );
+    CREATE TABLE asientos_contables (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      fecha TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+      tipo TEXT NOT NULL,
+      descripcion TEXT NOT NULL,
+      referencia_tipo TEXT,
+      referencia_id INTEGER,
+      cuenta TEXT NOT NULL,
+      debe REAL NOT NULL DEFAULT 0,
+      haber REAL NOT NULL DEFAULT 0,
+      usuario_id INTEGER,
+      creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `)
   db.prepare("INSERT INTO configuracion (clave, valor) VALUES ('ticket_numero_venta', '0')").run()
   const handles: Record<string, (event: any, data: any) => Promise<any>> = {}
@@ -247,6 +262,7 @@ vi.mock('../../services/license', () => ({
   getActiveModules: () => state.active,
 }))
 
+import { localDateStr } from '../../utils/time'
 import { registerVentasHandlers } from './ventas'
 import { registerCreditosHandlers } from './creditos'
 import { registerProductosHandlers } from '../inventario/productos'
@@ -777,6 +793,72 @@ describe('combos / productos compuestos', () => {
         expect.objectContaining({ componente_id: queso, cantidad: 2, nombre: 'Queso' }),
       ]),
     )
+  })
+})
+
+describe('venta → asiento contable (integración ventas + asientos)', () => {
+  beforeEach(() => {
+    db.prepare('DELETE FROM asientos_contables').run()
+    db.prepare('DELETE FROM venta_detalles').run()
+    db.prepare('DELETE FROM ventas').run()
+    db.prepare('DELETE FROM creditos').run()
+    db.prepare('DELETE FROM productos').run()
+    db.exec("DELETE FROM sqlite_sequence WHERE name IN ('productos','ventas','venta_detalles','creditos','asientos_contables')")
+  })
+
+  const asientosDe = (ventaId: number) => db.prepare(
+    'SELECT * FROM asientos_contables WHERE referencia_tipo = ? AND referencia_id = ? ORDER BY id',
+  ).all('venta', ventaId) as any[]
+
+  it('registra caja / ingresos / costo con la fecha de negocio local', async () => {
+    const producto = crearProducto({ nombre: 'Harina', precio_venta: 10, precio_compra: 4, stock: 20 })
+    const venta = await send('ventas:create', baseVenta({
+      metodo_pago: 'efectivo', subtotal: 20, total: 20, impuesto: 0, monto_pagado: 20,
+      detalles: [{ producto_id: producto, cantidad: 2, precio_unitario: 10, descuento: 0, subtotal: 20 }],
+    }))
+    expect(venta.success).toBe(true)
+
+    const fila: any = db.prepare('SELECT fecha FROM ventas WHERE id = ?').get(venta.id)
+    const asientos = asientosDe(venta.id)
+    const caja = asientos.find((a) => a.cuenta === 'caja')
+    const ingresos = asientos.find((a) => a.cuenta === 'ingresos')
+    const costo = asientos.find((a) => a.cuenta === 'costo')
+
+    expect(caja.debe).toBe(20)
+    expect(ingresos.haber).toBe(20)
+    expect(costo.debe).toBe(8) // 2 unidades × precio_compra 4
+    // El asiento usa la misma fecha de negocio (local) que la venta: si no, el
+    // libro del día quedaría vacío de noche (bug #11/#13/#14).
+    expect(caja.fecha).toBe(fila.fecha)
+    expect(caja.fecha.startsWith(localDateStr())).toBe(true)
+  })
+
+  it('una venta fiada asienta la parte cobrada en caja y el saldo en cxc', async () => {
+    const producto = crearProducto({ nombre: 'Arroz', precio_venta: 10, precio_compra: 3, stock: 20 })
+    const venta = await send('ventas:create', baseVenta({
+      metodo_pago: 'fiado', monto_pagado: 30, total: 100, subtotal: 100,
+      deudor_nombre: 'Juan Pérez',
+      detalles: [{ producto_id: producto, cantidad: 10, precio_unitario: 10, descuento: 0, subtotal: 100 }],
+    }))
+    expect(venta.success).toBe(true)
+
+    const asientos = asientosDe(venta.id)
+    expect(asientos.find((a) => a.cuenta === 'caja').debe).toBe(30)
+    expect(asientos.find((a) => a.cuenta === 'cxc').debe).toBe(70)
+    expect(asientos.find((a) => a.cuenta === 'ingresos').haber).toBe(100)
+  })
+
+  it('anular la venta revierte sus asientos', async () => {
+    const producto = crearProducto({ nombre: 'Café', precio_venta: 10, precio_compra: 2, stock: 20 })
+    const venta = await send('ventas:create', baseVenta({
+      metodo_pago: 'efectivo', subtotal: 100, total: 100, monto_pagado: 100,
+      detalles: [{ producto_id: producto, cantidad: 10, precio_unitario: 10, descuento: 0, subtotal: 100 }],
+    }))
+    expect(asientosDe(venta.id).length).toBeGreaterThan(0)
+
+    const anulada = await send('ventas:anular', { usuario_id: 1, id: venta.id })
+    expect(anulada.success).toBe(true)
+    expect(asientosDe(venta.id)).toHaveLength(0)
   })
 })
 

@@ -491,3 +491,70 @@ describe('RRHH: grupos y nómina por capas', () => {
   })
 })
 
+describe('RRHH: vista previa de nómina (dry-run)', () => {
+  it('calcula sin escribir y coincide con la nómina que se genera', async () => {
+    const emp = await call('rrhh:empleado-create', { nombre: 'Ana', salario_mensual: 300 })
+    for (let d = 1; d <= 30; d++) {
+      await call('rrhh:asistencia-registrar', { empleado_id: emp.id, fecha: `2026-08-${String(d).padStart(2, '0')}`, estado: 'presente' })
+    }
+
+    const preview = await call('rrhh:nomina-preview', {
+      periodo_inicio: '2026-08-01', periodo_fin: '2026-08-31', salario_base_activo: true, bonos_globales: 25, deducciones_globales: 5,
+    })
+    expect(preview.success).toBe(true)
+    expect(preview.filas).toHaveLength(1)
+    expect(preview.filas[0].empleado_nombre).toBe('Ana')
+    expect(preview.filas[0].dias_trabajados).toBe(30)
+    expect(preview.filas[0].salario_base).toBeCloseTo(300, 5)
+    expect(preview.filas[0].total_pagar).toBeCloseTo(320, 5)
+    expect(preview.totales.bruto).toBeCloseTo(325, 5)
+    expect(preview.totales.deducciones).toBeCloseTo(5, 5)
+    expect(preview.totales.neto).toBeCloseTo(320, 5)
+
+    // La vista previa no persiste nada.
+    const antes = await call('rrhh:nomina-list', { periodo_inicio: '2026-08-01', periodo_fin: '2026-08-31' }) as any[]
+    expect(antes).toHaveLength(0)
+
+    const generada = await call('rrhh:nomina-generar', {
+      periodo_inicio: '2026-08-01', periodo_fin: '2026-08-31', salario_base_activo: true, bonos_globales: 25, deducciones_globales: 5,
+    })
+    expect(generada.nominas[0].total_pagar).toBeCloseTo(preview.filas[0].total_pagar, 5)
+    expect(generada.nominas[0].salario_base).toBeCloseTo(preview.filas[0].salario_base, 5)
+  })
+
+  it('detalla los conceptos del grupo en la vista previa', async () => {
+    const ana = await call('rrhh:empleado-create', { nombre: 'Ana', salario_mensual: 300 })
+    await call('rrhh:empleado-create', { nombre: 'Luis', salario_mensual: 200 })
+    const asignacion = await call('rrhh:concepto-save', { nombre: 'Bono Alimentación', tipo: 'asignacion', monto_default: 50 })
+    const deduccion = await call('rrhh:concepto-save', { nombre: 'Seguro Social', tipo: 'deduccion', monto_default: 10 })
+    const grupo = await call('rrhh:grupo-save', { nombre: 'Fijos' })
+    await call('rrhh:grupo-miembros-set', { grupo_id: grupo.id, empleado_ids: [ana.id] })
+    await call('rrhh:grupo-conceptos-set', { grupo_id: grupo.id, conceptos: [{ concepto_id: asignacion.id }, { concepto_id: deduccion.id }] })
+
+    const preview = await call('rrhh:nomina-preview', {
+      periodo_inicio: '2026-09-01', periodo_fin: '2026-09-30', grupo_id: grupo.id, salario_base_activo: false,
+    })
+    expect(preview.success).toBe(true)
+    // Solo los miembros del grupo, con los conceptos del grupo (capa 3).
+    expect(preview.filas).toHaveLength(1)
+    expect(preview.filas[0].empleado_nombre).toBe('Ana')
+    expect(preview.filas[0].bonos).toBe(50)
+    expect(preview.filas[0].deducciones).toBe(10)
+    expect(preview.filas[0].total_pagar).toBe(40)
+    expect(preview.filas[0].conceptos.map((c: any) => c.nombre)).toEqual(['Bono Alimentación', 'Seguro Social'])
+    expect(preview.totales.neto).toBe(40)
+  })
+
+  it('valida el período y la ausencia de empleados sin escribir', async () => {
+    const sinEmpleados = await call('rrhh:nomina-preview', { periodo_inicio: '2026-09-01', periodo_fin: '2026-09-30' })
+    expect(sinEmpleados.success).toBe(false)
+
+    await call('rrhh:empleado-create', { nombre: 'Ana' })
+    const invertido = await call('rrhh:nomina-preview', { periodo_inicio: '2026-09-30', periodo_fin: '2026-09-01' })
+    expect(invertido.success).toBe(false)
+
+    const sinPeriodo = await call('rrhh:nomina-preview', { periodo_inicio: '', periodo_fin: '' })
+    expect(sinPeriodo.success).toBe(false)
+  })
+})
+

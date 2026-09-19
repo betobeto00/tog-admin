@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  Users, CalendarCheck, Banknote, Plus, Edit2, Trash2, Save, X, CheckCircle2, Printer, FileText
+  Users, CalendarCheck, Banknote, Plus, Edit2, Trash2, Save, X, CheckCircle2, Printer, FileText, Eye
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
@@ -41,6 +41,16 @@ interface GrupoEmpleado {
 interface AsistenciaHistorial {
   id: number; fecha: string; estado: string; notas: string | null
   empleado_id: number; empleado_nombre: string; empleado_cargo: string | null
+}
+interface FilaNominaPreview {
+  empleado_id: number; empleado_nombre: string; empleado_documento: string | null; empleado_cargo: string | null
+  salario_base: number; dias_trabajados: number; bonos: number; deducciones: number; total_pagar: number
+  conceptos: { nombre: string; tipo: 'asignacion' | 'deduccion'; monto: number; orden: number }[]
+}
+interface PreviewNomina {
+  success: boolean
+  filas: FilaNominaPreview[]
+  totales: { bruto: number; deducciones: number; neto: number }
 }
 
 const ESTADOS_ASISTENCIA = ['presente', 'ausente', 'tarde', 'permiso', 'descanso'] as const
@@ -94,6 +104,11 @@ export default function RrhhPage() {
 
   // Generar nómina por grupo
   const [nominaGrupoId, setNominaGrupoId] = useState<string>('')
+
+  // Vista previa de la nómina (dry-run antes de confirmar)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [preview, setPreview] = useState<PreviewNomina | null>(null)
+  const [previewando, setPreviewando] = useState(false)
 
   // Históricos
   const [histAsistencia, setHistAsistencia] = useState<AsistenciaHistorial[]>([])
@@ -239,25 +254,45 @@ export default function RrhhPage() {
     }
   }
 
-  const generarNomina = async () => {
-    setGenerando(true)
+  // La vista previa y la generación envían exactamente los mismos parámetros,
+  // así el usuario confirma los números que se van a guardar.
+  const nominaPayload = () => {
     const porGrupo = nominaGrupoId !== ''
     const parseMap = (m: Record<number, string>) =>
       Object.fromEntries(Object.entries(m).map(([k, v]) => [Number(k), parseFloat(v) || 0]))
+    return {
+      periodo_inicio: nominaDesde,
+      periodo_fin: nominaHasta,
+      tipo_pago: tipoPago,
+      salario_base_activo: salarioBaseActivo,
+      grupo_id: porGrupo ? Number(nominaGrupoId) : undefined,
+      // Con grupo, los conceptos vienen del grupo: no enviar globales ni mapas.
+      bonos_globales: porGrupo || bonosGlobales.trim() === '' ? undefined : parseFloat(bonosGlobales) || 0,
+      deducciones_globales: porGrupo || deduccionesGlobales.trim() === '' ? undefined : parseFloat(deduccionesGlobales) || 0,
+      bonos: porGrupo ? {} : parseMap(bonos),
+      deducciones: porGrupo ? {} : parseMap(deducciones),
+    }
+  }
+
+  const verPreviewNomina = async () => {
+    setPreviewando(true)
     try {
-      const res = await callApi<{ success: boolean; nominas: Nomina[]; error?: string }>('rrhh:nomina-generar', {
-        periodo_inicio: nominaDesde,
-        periodo_fin: nominaHasta,
-        tipo_pago: tipoPago,
-        salario_base_activo: salarioBaseActivo,
-        grupo_id: porGrupo ? Number(nominaGrupoId) : undefined,
-        // Con grupo, los conceptos vienen del grupo: no enviar globales ni mapas.
-        bonos_globales: porGrupo || bonosGlobales.trim() === '' ? undefined : parseFloat(bonosGlobales) || 0,
-        deducciones_globales: porGrupo || deduccionesGlobales.trim() === '' ? undefined : parseFloat(deduccionesGlobales) || 0,
-        bonos: porGrupo ? {} : parseMap(bonos),
-        deducciones: porGrupo ? {} : parseMap(deducciones),
-      })
+      const res = await callApi<PreviewNomina>('rrhh:nomina-preview', nominaPayload())
+      setPreview(res)
+      setPreviewOpen(true)
+    } catch (err: any) {
+      toast.error(err?.message || t('common.error'))
+    } finally {
+      setPreviewando(false)
+    }
+  }
+
+  const generarNomina = async () => {
+    setGenerando(true)
+    try {
+      const res = await callApi<{ success: boolean; nominas: Nomina[]; error?: string }>('rrhh:nomina-generar', nominaPayload())
       setNominas(res.nominas || [])
+      setPreviewOpen(false)
       toast.success(t('rrhh.payrollGenerated'))
     } catch (err: any) {
       toast.error(err?.message || t('common.error'))
@@ -728,6 +763,10 @@ export default function RrhhPage() {
                   <input type="date" value={nominaHasta} onChange={(e) => setNominaHasta(e.target.value)}
                     className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
                 </div>
+                <button onClick={verPreviewNomina} disabled={previewando}
+                  className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-60 flex items-center gap-2">
+                  <Eye className="w-4 h-4" /> {previewando ? t('common.loading') : t('rrhh.preview')}
+                </button>
                 <button onClick={generarNomina} disabled={generando}
                   className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300">
                   {generando ? t('common.saving') : t('rrhh.generatePayroll')}
@@ -1141,6 +1180,76 @@ export default function RrhhPage() {
             <button onClick={saveEmp} disabled={!empForm.nombre.trim()}
               className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 flex items-center gap-2">
               <Save className="w-4 h-4" /> {t('common.save')}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={previewOpen} onClose={() => setPreviewOpen(false)} title={t('rrhh.previewTitle')} extraWide>
+        <div className="space-y-4">
+          <p className="text-xs text-gray-500">{t('rrhh.previewHint')}</p>
+          <div className="text-sm text-gray-700">
+            {t('rrhh.period')}: <strong>{nominaDesde}</strong> — <strong>{nominaHasta}</strong>
+            {' · '}
+            {nominaGrupoId !== '' ? (grupos.find((g) => String(g.id) === nominaGrupoId)?.nombre || '') : t('rrhh.allEmployees')}
+          </div>
+          <div className="border border-gray-100 rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">{t('rrhh.employee')}</th>
+                  <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase">{t('rrhh.daysWorked')}</th>
+                  <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase">{t('rrhh.baseSalary')}</th>
+                  <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase">{t('rrhh.assignments')}</th>
+                  <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase">{t('rrhh.deductions')}</th>
+                  <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase">{t('rrhh.totalToPay')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {(preview?.filas || []).length === 0 ? (
+                  <tr><td colSpan={6} className="text-center py-8 text-gray-400">{t('rrhh.noRecords')}</td></tr>
+                ) : preview!.filas.map((f) => (
+                  <tr key={f.empleado_id} className="hover:bg-gray-50">
+                    <td className="px-3 py-2">
+                      <div className="font-medium text-gray-800">{f.empleado_nombre}</div>
+                      {f.conceptos.length > 0 && (
+                        <ul className="mt-1 space-y-0.5">
+                          {f.conceptos.map((c) => (
+                            <li key={`${c.orden}-${c.nombre}`} className="text-xs text-gray-500">
+                              {c.tipo === 'asignacion' ? '+' : '−'} {c.nombre}: {formatMoney(c.monto)}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right text-gray-600">{f.dias_trabajados}</td>
+                    <td className="px-3 py-2 text-right text-gray-700">{formatMoney(f.salario_base)}</td>
+                    <td className="px-3 py-2 text-right text-gray-700">{formatMoney(f.bonos)}</td>
+                    <td className="px-3 py-2 text-right text-gray-700">{formatMoney(f.deducciones)}</td>
+                    <td className="px-3 py-2 text-right font-semibold text-gray-900">{formatMoney(f.total_pagar)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              {preview && preview.filas.length > 0 && (
+                <tfoot className="bg-gray-50 border-t border-gray-200">
+                  <tr>
+                    <td colSpan={2} className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase">{t('rrhh.previewTotals')}</td>
+                    <td colSpan={2} className="px-3 py-2 text-right font-semibold text-gray-800">{formatMoney(preview.totales.bruto)}</td>
+                    <td className="px-3 py-2 text-right font-semibold text-gray-800">{formatMoney(preview.totales.deducciones)}</td>
+                    <td className="px-3 py-2 text-right font-bold text-gray-900">{formatMoney(preview.totales.neto)}</td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setPreviewOpen(false)}
+              className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+              {t('common.cancel')}
+            </button>
+            <button onClick={generarNomina} disabled={generando}
+              className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300">
+              {generando ? t('common.saving') : t('rrhh.confirmGenerate')}
             </button>
           </div>
         </div>
