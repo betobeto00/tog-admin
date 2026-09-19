@@ -18,6 +18,30 @@ export function formatCurrency(amount: number | undefined | null, symbol: string
 }
 
 /**
+ * Fecha local `YYYY-MM-DD`.
+ *
+ * No usar `toISOString().slice(0, 10)`: convierte a UTC y de noche (p. ej.
+ * 20:00–23:59 en UTC-4) devuelve el día siguiente, adelantando los reportes
+ * y los filtros por un día.
+ */
+export function localDateStr(d: Date = new Date()): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+/**
+ * Escapa texto para insertarlo en HTML. Se usa al generar documentos
+ * imprimibles con `document.write`, donde un nombre de cliente o una nota
+ * podrían inyectar script (XSS).
+ */
+export function escapeHtml(value: unknown): string {
+  const map: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }
+  return String(value ?? '').replace(/[&<>"']/g, (c) => map[c] || c)
+}
+
+/**
  * Formatea una fecha ISO a formato local.
  */
 export function formatDate(isoString: string): string {

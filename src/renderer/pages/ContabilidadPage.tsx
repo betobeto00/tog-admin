@@ -5,6 +5,9 @@ import { useToast } from '../components/ui/Toast'
 import { usePermissions } from '../hooks/usePermissions'
 import { formatMoney } from '../services/currency'
 import { callApi } from '../lib/api-client'
+import { escapeHtml, localDateStr } from '../lib/utils'
+import { abrirDocumento } from '../lib/print'
+import { celdaCsv } from '@shared/csv'
 import type { IpcChannel } from '@shared/ipc-channels'
 
 type Tab = 'resumen' | 'ventas' | 'compras' | 'inventario' | 'diario' | 'mayor' | 'balance' | 'flujo' | 'analisis'
@@ -18,7 +21,7 @@ function mesActual(): Periodo {
   const hoy = new Date()
   const y = hoy.getFullYear()
   const m = String(hoy.getMonth() + 1).padStart(2, '0')
-  return { desde: `${y}-${m}-01`, hasta: hoy.toISOString().slice(0, 10) }
+  return { desde: `${y}-${m}-01`, hasta: localDateStr(hoy) }
 }
 
 function descargarCSV(nombre: string, csv: string): void {
@@ -51,19 +54,15 @@ async function cargarEmpresa(): Promise<EmpresaHeader> {
 function headerHTML(h: EmpresaHeader): string {
   if (!h.nombre && !h.tax && !h.direccion && !h.telefono) return ''
   return `<div style="text-align:center;margin-bottom:14px;border-bottom:2px solid #1f2937;padding-bottom:8px">
-    ${h.nombre ? `<div style="font-weight:bold;font-size:16px;color:#1f2937">${h.nombre}</div>` : ''}
-    ${h.tax ? `<div style="font-size:11px;color:#4b5563">${h.tax}</div>` : ''}
-    ${h.direccion ? `<div style="font-size:11px;color:#4b5563">${h.direccion}</div>` : ''}
-    ${h.telefono ? `<div style="font-size:11px;color:#4b5563">${h.telefono}</div>` : ''}
+    ${h.nombre ? `<div style="font-weight:bold;font-size:16px;color:#1f2937">${escapeHtml(h.nombre)}</div>` : ''}
+    ${h.tax ? `<div style="font-size:11px;color:#4b5563">${escapeHtml(h.tax)}</div>` : ''}
+    ${h.direccion ? `<div style="font-size:11px;color:#4b5563">${escapeHtml(h.direccion)}</div>` : ''}
+    ${h.telefono ? `<div style="font-size:11px;color:#4b5563">${escapeHtml(h.telefono)}</div>` : ''}
   </div>`
 }
 
 function headerCSV(h: EmpresaHeader): string {
-  const lines: string[] = []
-  if (h.nombre) lines.push(h.nombre)
-  if (h.tax) lines.push(h.tax)
-  if (h.direccion) lines.push(h.direccion)
-  if (h.telefono) lines.push(h.telefono)
+  const lines = [h.nombre, h.tax, h.direccion, h.telefono].filter(Boolean).map((v) => celdaCsv(v))
   return lines.length ? lines.join('\n') + '\n\n' : ''
 }
 
@@ -236,7 +235,13 @@ export default function ContabilidadPage() {
     const titulo = tabs.find((x) => x.id === tab)?.label || ''
     const periodoStr = `${periodo.desde} → ${periodo.hasta}`
     const body = renderCuerpoParaPDF(tab, data)
-    const html = `<!DOCTYPE html><html><head><title>${titulo}</title><style>
+    const abierto = abrirDocumento({
+      titulo,
+      ancho: 900,
+      alto: 700,
+      // La app no imprime sola: el documento trae su propio botón.
+      imprimir: false,
+      estilos: `
       body{font-family:Arial,Helvetica,sans-serif;color:#1f2937;margin:0;padding:24px;background:#fff;font-size:11px}
       h2{font-size:14px;margin:8px 0 4px}
       .period{color:#6b7280;margin-bottom:12px}
@@ -252,20 +257,19 @@ export default function ContabilidadPage() {
       .card{border:1px solid #e5e7eb;border-radius:6px;padding:8px}
       .card .label{font-size:10px;color:#6b7280;text-transform:uppercase}
       .card .value{font-size:14px;font-weight:bold;margin-top:2px}
-      @media print{body{padding:12px}.no-print{display:none}}
-    </style></head><body>
-      ${headerHTML(h)}
-      <h2>${titulo}</h2>
-      <div class="period">${periodoStr}</div>
-      ${body}
-      <div class="no-print" style="text-align:center;margin-top:18px">
-        <button onclick="window.print()" style="padding:8px 18px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">${t('contable.printNow')}</button>
-      </div>
-    </body></html>`
-    const win = window.open('', '_blank', 'width=900,height=700')
-    if (!win) { toast.error(t('common.error')); return }
-    win.document.write(html)
-    win.document.close()
+      @media print{body{padding:12px}}
+      `,
+      cuerpo: `
+        ${headerHTML(h)}
+        <h2>${titulo}</h2>
+        <div class="period">${periodoStr}</div>
+        ${body}
+        <div class="no-print" style="text-align:center;margin-top:18px">
+          <button onclick="window.print()" style="padding:8px 18px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">${t('contable.printNow')}</button>
+        </div>
+      `,
+    })
+    if (!abierto) toast.error(t('common.error'))
   }
 
   const tabs: { id: Tab; icon: any; label: string }[] = [

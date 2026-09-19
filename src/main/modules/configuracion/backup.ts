@@ -108,6 +108,11 @@ export function registerBackupHandlers(): void {
 
       closeDatabase()
 
+      // Limpiar archivos WAL/SHM de la DB antigua para evitar que SQLite
+      // mezcle datos viejos con los del backup al reabrir.
+      try { fs.unlinkSync(dbPath + '-wal') } catch {}
+      try { fs.unlinkSync(dbPath + '-shm') } catch {}
+
       if (fs.existsSync(dbPath)) {
         fs.copyFileSync(dbPath, dbPath + '.bak')
       }

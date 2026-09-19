@@ -423,10 +423,10 @@ describe('crédito / fiado', () => {
     expect(excedida.error).toContain('Límite de crédito excedido')
   })
 
-  it('bloquea fiado a cliente si el módulo Distribuidor no está activo', async () => {
+  it('bloquea fiado a cliente si el módulo Comercializador no está activo', async () => {
     const cliente = crearCliente(1000)
     crearProducto({ stock: 100 })
-    state.active = ['comercializador']
+    state.active = []
     const res = await send('ventas:create', baseVenta({
       metodo_pago: 'fiado',
       monto_pagado: 0,
@@ -609,6 +609,18 @@ describe('ventas:resumen-dia — distribución por método configurado', () => {
     const efectivo = res.por_metodo.find((p: any) => p.clave === 'efectivo')
     expect(efectivo?.total).toBe(100)
   })
+
+  it('guarda la fecha de la venta en hora local, no en UTC', async () => {
+    crearProducto()
+    const venta = await send('ventas:create', baseVenta({ metodo_pago: 'efectivo', monto_pagado: 100, total: 100 }))
+    expect(venta.success).toBe(true)
+
+    const fila: any = db.prepare('SELECT fecha FROM ventas WHERE id = ?').get(venta.id)
+    const ahora = new Date()
+    const local = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')} ${String(ahora.getHours()).padStart(2, '0')}`
+    // Antes se guardaba datetime('now') (UTC): en UTC-4 la hora almacenada era local+4.
+    expect(fila.fecha.slice(0, 13)).toBe(local)
+  })
 })
 
 describe('combos / productos compuestos', () => {
@@ -765,5 +777,50 @@ describe('combos / productos compuestos', () => {
         expect.objectContaining({ componente_id: queso, cantidad: 2, nombre: 'Queso' }),
       ]),
     )
+  })
+})
+
+describe('ventas:create — numeración de facturas', () => {
+  beforeEach(() => {
+    db.prepare('DELETE FROM venta_detalles').run()
+    db.prepare('DELETE FROM ventas').run()
+    db.prepare('DELETE FROM creditos').run()
+    db.prepare('DELETE FROM movimientos_caja').run()
+    db.prepare('DELETE FROM productos').run()
+    db.exec("DELETE FROM sqlite_sequence WHERE name IN ('productos','ventas','venta_detalles','creditos')")
+    db.prepare("DELETE FROM configuracion WHERE clave = 'numero_factura_siguiente'").run()
+  })
+
+  it('numera de forma continua (no reinicia cada día)', async () => {
+    crearProducto({ nombre: 'Café', stock: 50 })
+    const a = await send('ventas:create', baseVenta())
+    const b = await send('ventas:create', baseVenta())
+    const c = await send('ventas:create', baseVenta())
+
+    expect([a.numero_venta, b.numero_venta, c.numero_venta]).toEqual([1, 2, 3])
+    const cfg: any = db.prepare("SELECT valor FROM configuracion WHERE clave = 'numero_factura_siguiente'").get()
+    expect(Number(cfg.valor)).toBe(4)
+  })
+
+  it('arranca desde el número configurado (cliente que viene de otro sistema)', async () => {
+    db.prepare("INSERT OR REPLACE INTO configuracion (clave, valor) VALUES ('numero_factura_siguiente', '2325')").run()
+    crearProducto({ nombre: 'Café', stock: 50 })
+
+    const a = await send('ventas:create', baseVenta())
+    const b = await send('ventas:create', baseVenta())
+
+    expect(a.numero_venta).toBe(2325)
+    expect(b.numero_venta).toBe(2326)
+  })
+
+  it('nunca repite un número aunque el configurado quede atrás', async () => {
+    crearProducto({ nombre: 'Café', stock: 50 })
+    const a = await send('ventas:create', baseVenta())
+    expect(a.numero_venta).toBe(1)
+
+    // Un número menor al ya usado no puede reutilizarse
+    db.prepare("INSERT OR REPLACE INTO configuracion (clave, valor) VALUES ('numero_factura_siguiente', '1')").run()
+    const b = await send('ventas:create', baseVenta())
+    expect(b.numero_venta).toBe(2)
   })
 })

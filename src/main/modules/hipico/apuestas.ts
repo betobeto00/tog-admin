@@ -38,7 +38,8 @@ interface SeleccionEntrada {
 }
 
 export function generarNumeroTicket(db: DbLike): string {
-  const hoy = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+  const d = new Date()
+  const hoy = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
   const ultimo = db
     .prepare('SELECT numero_ticket FROM hipico_apuestas WHERE numero_ticket LIKE ? ORDER BY id DESC LIMIT 1')
     .get(`AP-${hoy}-%`) as any
@@ -342,8 +343,8 @@ export function registerApuestasHandlers(): void {
            JOIN hipico_carreras c ON a.carrera_id = c.id
           WHERE (? IS NULL OR a.carrera_id = ?)
             AND (? IS NULL OR a.estado = ?)
-            AND (? IS NULL OR date(a.creado_en) >= date(?))
-            AND (? IS NULL OR date(a.creado_en) <= date(?))
+            AND (? IS NULL OR date(a.creado_en, 'localtime') >= date(?))
+            AND (? IS NULL OR date(a.creado_en, 'localtime') <= date(?))
           ORDER BY a.creado_en DESC`,
       )
       .all(carreraId, carreraId, estado, estado, desde, desde, hasta, hasta)
@@ -427,13 +428,14 @@ export function registerApuestasHandlers(): void {
     const fail = checkPermissionOrFail(data, 'hipico:apuestas-stats', 'hipico_apuestas')
     if (fail) return fail
     const db = getDatabase()
-    const hoy = new Date().toISOString().split('T')[0]
+    const d = new Date()
+    const hoy = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
     const pendientes = db
       .prepare("SELECT COUNT(*) as total, COALESCE(SUM(monto), 0) as monto FROM hipico_apuestas WHERE estado = 'pendiente'")
       .get() as any
     const hoyStats = db
-      .prepare('SELECT COUNT(*) as total, COALESCE(SUM(monto), 0) as monto FROM hipico_apuestas WHERE date(creado_en) = date(?)')
+      .prepare("SELECT COUNT(*) as total, COALESCE(SUM(monto), 0) as monto FROM hipico_apuestas WHERE date(creado_en, 'localtime') = date(?)")
       .get(hoy) as any
     const ganadas = db
       .prepare("SELECT COUNT(*) as total, COALESCE(SUM(ganancia), 0) as total_ganado FROM hipico_apuestas WHERE estado = 'ganada'")

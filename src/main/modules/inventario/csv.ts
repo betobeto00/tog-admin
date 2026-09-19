@@ -4,6 +4,7 @@ import fs from 'fs'
 import { getDatabase } from '../../db/database'
 import { t } from '../../i18n'
 import { checkPermissionOrFail } from '../../core/auth'
+import { aCsv } from '../../../shared/csv'
 
 // Tope defensivo: un CSV de productos legítimo no se acerca a este tamaño, y
 // evita que una ruta apuntada a un archivo enorme congele el proceso main.
@@ -32,14 +33,14 @@ export function registerProductosCsvHandlers(): void {
         ORDER BY p.nombre
       `).all() as any[]
 
-      const header = 'codigo_barras,sku,nombre,descripcion,categoria,precio_compra,precio_venta,stock,stock_minimo,unidad'
+      const headers = ['codigo_barras', 'sku', 'nombre', 'descripcion', 'categoria', 'precio_compra', 'precio_venta', 'stock', 'stock_minimo', 'unidad']
       const rows = productos.map((p) => [
         p.codigo_barras || '', p.sku || '', p.nombre, p.descripcion || '',
         p.categoria || '', p.precio_compra, p.precio_venta,
         p.stock, p.stock_minimo, p.unidad,
-      ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      ])
 
-      fs.writeFileSync(result.filePath, [header, ...rows].join('\n'), 'utf8')
+      fs.writeFileSync(result.filePath, aCsv([headers, ...rows]), 'utf8')
       return { success: true, path: result.filePath, count: productos.length }
     } catch (err: any) {
       return { success: false, error: err.message }

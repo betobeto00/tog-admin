@@ -16,9 +16,19 @@ import LicenseSyncForm from '../components/LicenseSyncForm'
 import { usePermissions } from '../hooks/usePermissions'
 import { callApi } from '../lib/api-client'
 import { setCurrency } from '../services/currency'
+import { useAuthStore } from '@core/auth/store'
 
 interface Config { clave: string; valor: string; descripcion: string | null }
 interface Usuario { id: number; usuario: string; nombre: string; rol: string; activo: number }
+
+/** Numeración de comprobantes (factura propia + N° de control SENIAT). */
+interface Numeracion {
+  proxima_factura: number
+  ultima_factura: number
+  serie: string
+  proximo_numero_control: number
+  numero_control_formateado: string
+}
 
 export default function ConfigPage() {
   const { t } = useTranslation()
@@ -68,6 +78,15 @@ export default function ConfigPage() {
   const [printerName, setPrinterName] = useState('')
   const [fondoDefault, setFondoDefault] = useState('')
 
+  // Numeración de comprobantes
+  const [numeracion, setNumeracion] = useState<Numeracion | null>(null)
+  const [proximaFactura, setProximaFactura] = useState('')
+  const [proximoControl, setProximoControl] = useState('')
+  const [guardandoNumeracion, setGuardandoNumeracion] = useState(false)
+  const [confirmNumeracion, setConfirmNumeracion] = useState(false)
+  const rolActual = useAuthStore((s) => s.usuario?.rol)
+  const esAdmin = rolActual === 'admin'
+
   // Métodos de pago personalizables
   const [metodosPago, setMetodosPago] = useState<any[]>([]) 
   const [metodoModalOpen, setMetodoModalOpen] = useState(false)
@@ -81,6 +100,59 @@ export default function ConfigPage() {
   const [codeLoading, setCodeLoading] = useState(false)
 
   useEffect(() => { loadData() }, [])
+  useEffect(() => { cargarNumeracion() }, [])
+
+  // ======== NUMERACIÓN DE COMPROBANTES ========
+  // La app avanza los correlativos sola en cada venta. Acá solo se fija el
+  // punto de partida (cliente que viene de otro sistema) y, por eso mismo,
+  // cambiarlo es irreversible: solo el dueño (admin) y con confirmación.
+  const cargarNumeracion = async () => {
+    try {
+      const res = await callApi<{ success: boolean; numeracion?: Numeracion; error?: string }>('facturacion:numeracion')
+      if (res?.success && res.numeracion) {
+        setNumeracion(res.numeracion)
+        setProximaFactura(String(res.numeracion.proxima_factura))
+        setProximoControl(String(res.numeracion.proximo_numero_control))
+      }
+    } catch {
+      // Sin permiso de impresión la sección queda oculta
+    }
+  }
+
+  const guardarNumeracion = async () => {
+    setGuardandoNumeracion(true)
+    try {
+      const res = await callApi<{ success: boolean; numeracion?: Numeracion; error?: string }>(
+        'facturacion:set-numeracion',
+        { proxima_factura: Number(proximaFactura), proximo_numero_control: Number(proximoControl) },
+      )
+      if (res?.success && res.numeracion) {
+        setNumeracion(res.numeracion)
+        setProximaFactura(String(res.numeracion.proxima_factura))
+        setProximoControl(String(res.numeracion.proximo_numero_control))
+        toast.success(t('config.numberingSaved'))
+      } else {
+        toast.error(res?.error || t('common.error'))
+      }
+    } catch (err: any) {
+      toast.error(err?.message || t('common.error'))
+    } finally {
+      setGuardandoNumeracion(false)
+    }
+  }
+
+  const numeracionCambio =
+    !!numeracion &&
+    (Number(proximaFactura) !== numeracion.proxima_factura ||
+      Number(proximoControl) !== numeracion.proximo_numero_control)
+
+  const pedirGuardarNumeracion = () => {
+    if (!numeracionCambio) {
+      toast.info(t('config.numberingNoChanges'))
+      return
+    }
+    setConfirmNumeracion(true)
+  }
 
   const loadRed = async () => {
     try {
@@ -230,19 +302,22 @@ const ts = await callApi('terminal:estado')
 
   const saveUser = async () => {
     if (!userForm.usuario.trim() || !userForm.nombre.trim()) return
-    if (editingUser) {
-      const data: any = { nombre: userForm.nombre, rol: userForm.rol }
-      // Solo actualizar contraseña si se escribió una nueva
-      if (userForm.contrasena.trim()) {
-        data.contrasena = userForm.contrasena
+    try {
+      if (editingUser) {
+        const data: any = { nombre: userForm.nombre, rol: userForm.rol }
+        if (userForm.contrasena.trim()) {
+          data.contrasena = userForm.contrasena
+        }
+        await callApi('usuarios:update', { id: editingUser.id, data })
+      } else {
+        if (!userForm.contrasena) return
+        await callApi('usuarios:create', userForm)
       }
-      await callApi('usuarios:update', { id: editingUser.id, data })
-    } else {
-      if (!userForm.contrasena) return
-      await callApi('usuarios:create', userForm)
+      setUserModalOpen(false)
+      await loadData()
+    } catch (err: any) {
+      toast.error(err?.message || t('common.error'))
     }
-    setUserModalOpen(false)
-    await loadData()
   }
 
   const deleteUser_ = async (id: number) => {
@@ -494,6 +569,63 @@ const ts = await callApi('terminal:estado')
             <p className="text-xs">{t('config.commonTaxRates')}</p>
           </div>
 
+          {/* ======== NUMERACIÓN DE COMPROBANTES ======== */}
+          {numeracion && (
+            <>
+              <h3 className="font-semibold text-gray-900 pt-4 border-t border-gray-100 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-purple-600" /> {t('config.invoiceNumbering')}
+              </h3>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('config.invoiceNext')}</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={proximaFactura}
+                    onChange={(e) => setProximaFactura(e.target.value.replace(/\D/g, ''))}
+                    disabled={!esAdmin}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">{t('config.invoiceNextHelp')}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('config.controlNext')}</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={proximoControl}
+                    onChange={(e) => setProximoControl(e.target.value.replace(/\D/g, ''))}
+                    disabled={!esAdmin}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    {t('config.controlNextHelp', {
+                      formatted: `${numeracion.serie}-${String(Number(proximoControl) || 0).padStart(8, '0')}`,
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-500">
+                {t('config.lastInvoice', { numero: numeracion.ultima_factura })}
+              </p>
+              <p className={`text-xs ${esAdmin ? 'text-gray-500' : 'text-amber-600'}`}>
+                {esAdmin ? t('config.invoiceNumberingHelp') : t('config.invoiceNumberingAdminOnly')}
+              </p>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={pedirGuardarNumeracion}
+                  disabled={!esAdmin || guardandoNumeracion}
+                  className="px-5 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:bg-purple-300 flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" /> {guardandoNumeracion ? t('config.saving') : t('config.saveNumbering')}
+                </button>
+              </div>
+            </>
+          )}
+
           <div className="flex justify-end pt-4 border-t border-gray-100">
             <button onClick={saveConfig} disabled={saving || !form.nombre_negocio.trim()}
               className="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 flex items-center gap-2">
@@ -633,6 +765,12 @@ const ts = await callApi('terminal:estado')
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog open={confirmNumeracion} onClose={() => setConfirmNumeracion(false)}
+        onConfirm={guardarNumeracion}
+        title={t('config.confirmNumberingTitle')}
+        message={t('config.confirmNumberingMessage', { factura: proximaFactura, control: proximoControl })}
+        confirmText={t('config.saveNumbering')} danger />
 
       <ConfirmDialog open={!!deleteUser} onClose={() => setDeleteUser(null)}
         onConfirm={() => { if (deleteUser) deleteUser_(deleteUser) }}
@@ -815,7 +953,7 @@ const ts = await callApi('terminal:estado')
                   try {
                     const result = await callApi<{ success: boolean; path?: string; count?: number; error?: string }>('backup:create')
                     if (result?.success) {
-                      toast.success(`{t('caja.backupCreated')}`) 
+                      toast.success(t('caja.backupCreated'))
                     } else if (result?.error !== t('common.operationCancelled')) {
                       toast.error(`Error: ${result?.error}`)
                     }

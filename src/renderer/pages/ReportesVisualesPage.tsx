@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { BarChart3, Download, FileDown, Play, CalendarRange, Save, FolderOpen, Trash2 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import { useToast } from '../components/ui/Toast'
-import { formatDate } from '../lib/utils'
+import { formatDate, escapeHtml } from '../lib/utils'
+import { abrirDocumento } from '../lib/print'
+import { aCsv } from '@shared/csv'
 import { formatMoney } from '../services/currency'
 import { callApi } from '../lib/api-client'
 
@@ -206,15 +208,10 @@ export default function ReportesVisualesPage() {
 
   const exportCsv = () => {
     if (rows.length === 0) return
-    const header = visibleFields.map((f) => t(f.labelKey).replace(/"/g, '""')).join(',')
-    const lines = rows.map((r) =>
-      visibleFields.map((f) => {
-        const v = r[f.key]
-        const s = v === null || v === undefined ? '' : String(v)
-        return `"${s.replace(/"/g, '""')}"`
-      }).join(','),
-    )
-    const csv = [header, ...lines].join('\n')
+    const csv = aCsv([
+      visibleFields.map((f) => t(f.labelKey)),
+      ...rows.map((r) => visibleFields.map((f) => r[f.key])),
+    ])
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -228,11 +225,13 @@ export default function ReportesVisualesPage() {
     if (rows.length === 0) return
     const head = visibleFields.map((f) => `<th>${t(f.labelKey)}</th>`).join('')
     const body = rows
-      .map((r) => `<tr>${visibleFields.map((f) => `<td>${formatCell(r[f.key], f.type)}</td>`).join('')}</tr>`)
+      .map((r) => `<tr>${visibleFields.map((f) => `<td>${escapeHtml(formatCell(r[f.key], f.type))}</td>`).join('')}</tr>`)
       .join('')
-    const win = window.open('', '_blank', 'width=840,height=640')
-    if (!win) return
-    win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>${t('reportesVisuales.title')} — TOG Admin</title><style>
+    abrirDocumento({
+      titulo: `${t('reportesVisuales.title')} — TOG Admin`,
+      ancho: 840,
+      alto: 640,
+      estilos: `
       body{font-family:Arial,Helvetica,sans-serif;color:#1f2937;margin:0;padding:32px;background:#f3f4f6}
       .page{max-width:780px;margin:0 auto;background:#fff;padding:32px;border:1px solid #e5e7eb}
       h1{font-size:20px;border-bottom:2px solid #3b82f6;padding-bottom:8px;margin:0 0 6px}
@@ -241,14 +240,13 @@ export default function ReportesVisualesPage() {
       th{background:#f3f4f6;text-align:left;padding:8px;border:1px solid #e5e7eb;text-transform:uppercase;font-size:11px;color:#6b7280}
       td{padding:8px;border:1px solid #e5e7eb}
       @media print{body{background:#fff;padding:0}.page{box-shadow:none;border:none}}
-    </style></head><body><div class="page">
-      <h1>${t('reportesVisuales.title')} — ${t(src.labelKey)}</h1>
-      <p>${src.needsRange ? `${t('reportesVisuales.dateRange')}: ${fechaInicio} → ${fechaFin} · ` : ''}${t('reportesVisuales.generated')}: ${new Date().toLocaleString()} · ${rows.length} ${t('reportesVisuales.rows')}</p>
-      <table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
-    </div></body></html>`)
-    win.document.close()
-    win.focus()
-    win.print()
+      `,
+      cuerpo: `<div class="page">
+        <h1>${t('reportesVisuales.title')} — ${t(src.labelKey)}</h1>
+        <p>${src.needsRange ? `${t('reportesVisuales.dateRange')}: ${fechaInicio} → ${fechaFin} · ` : ''}${t('reportesVisuales.generated')}: ${new Date().toLocaleString()} · ${rows.length} ${t('reportesVisuales.rows')}</p>
+        <table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
+      </div>`,
+    })
   }
 
   return (

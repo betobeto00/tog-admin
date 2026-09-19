@@ -85,6 +85,34 @@ const { db, handles, state } = vi.hoisted(() => {
       creado_en TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE INDEX idx_nomina_conceptos_nomina ON nomina_conceptos(nomina_id);
+    CREATE TABLE conceptos_catalogo (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre TEXT NOT NULL,
+      tipo TEXT NOT NULL CHECK(tipo IN ('asignacion', 'deduccion')),
+      monto_default REAL NOT NULL DEFAULT 0,
+      activo INTEGER NOT NULL DEFAULT 1,
+      creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+      actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE empleado_grupos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre TEXT NOT NULL UNIQUE,
+      descripcion TEXT,
+      activo INTEGER NOT NULL DEFAULT 1,
+      creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE empleado_grupo_miembros (
+      grupo_id INTEGER NOT NULL,
+      empleado_id INTEGER NOT NULL,
+      PRIMARY KEY (grupo_id, empleado_id)
+    );
+    CREATE TABLE grupo_conceptos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      grupo_id INTEGER NOT NULL,
+      concepto_id INTEGER NOT NULL,
+      monto REAL NOT NULL DEFAULT 0,
+      UNIQUE(grupo_id, concepto_id)
+    );
   `)
   const handles: Record<string, (event: any, data: any) => Promise<any>> = {}
   const state = { active: ['comercializador', 'administracion'] as string[] }
@@ -124,7 +152,11 @@ beforeEach(() => {
   db.prepare('DELETE FROM nominas').run()
   db.prepare('DELETE FROM asistencia').run()
   db.prepare('DELETE FROM empleados').run()
-  db.prepare("DELETE FROM sqlite_sequence WHERE name IN ('empleados')").run()
+  db.prepare('DELETE FROM conceptos_catalogo').run()
+  db.prepare('DELETE FROM empleado_grupos').run()
+  db.prepare('DELETE FROM empleado_grupo_miembros').run()
+  db.prepare('DELETE FROM grupo_conceptos').run()
+  db.prepare("DELETE FROM sqlite_sequence WHERE name IN ('empleados','conceptos_catalogo','empleado_grupos','grupo_conceptos')").run()
 })
 
 describe('RRHH: empleados', () => {
@@ -342,3 +374,120 @@ describe('RRHH: gating y permisos', () => {
     expect(res.success).toBe(false)
   })
 })
+
+describe('RRHH: histórico de asistencias', () => {
+  it('filtra por empleado y rango de fechas', async () => {
+    const ana = await call('rrhh:empleado-create', { nombre: 'Ana' })
+    const luis = await call('rrhh:empleado-create', { nombre: 'Luis' })
+    await call('rrhh:asistencia-registrar', { empleado_id: ana.id, fecha: '2026-09-01', estado: 'presente' })
+    await call('rrhh:asistencia-registrar', { empleado_id: ana.id, fecha: '2026-09-15', estado: 'tarde' })
+    await call('rrhh:asistencia-registrar', { empleado_id: luis.id, fecha: '2026-09-10', estado: 'ausente' })
+
+    const todas = await call('rrhh:asistencia-historial', {}) as any[]
+    expect(todas).toHaveLength(3)
+
+    const soloAna = await call('rrhh:asistencia-historial', { empleado_id: ana.id }) as any[]
+    expect(soloAna).toHaveLength(2)
+
+    const rango = await call('rrhh:asistencia-historial', { desde: '2026-09-05', hasta: '2026-09-20' }) as any[]
+    expect(rango).toHaveLength(2)
+    expect(rango.every((r) => r.fecha >= '2026-09-05' && r.fecha <= '2026-09-20')).toBe(true)
+  })
+})
+
+describe('RRHH: catálogo de conceptos globales', () => {
+  it('crea, actualiza y lista conceptos', async () => {
+    const c = await call('rrhh:concepto-save', { nombre: 'Prima de Transporte', tipo: 'asignacion', monto_default: 30 })
+    expect(c.id).toBeTruthy()
+
+    await call('rrhh:concepto-save', { id: c.id, nombre: 'Prima Transporte', tipo: 'asignacion', monto_default: 35 })
+    const list = await call('rrhh:conceptos-list', {}) as any[]
+    expect(list).toHaveLength(1)
+    expect(list[0].monto_default).toBe(35)
+  })
+
+  it('rechaza montos negativos y tipos inválidos', async () => {
+    const malTipo = await call('rrhh:concepto-save', { nombre: 'X', tipo: 'otro' })
+    expect(malTipo.success).toBe(false)
+    const malMonto = await call('rrhh:concepto-save', { nombre: 'X', tipo: 'deduccion', monto_default: -5 })
+    expect(malMonto.success).toBe(false)
+  })
+
+  it('desactiva (no borra) un concepto usado por un grupo', async () => {
+    const cat = await call('rrhh:concepto-save', { nombre: 'Seguro', tipo: 'deduccion', monto_default: 10 })
+    const grupo = await call('rrhh:grupo-save', { nombre: 'Obreros' })
+    await call('rrhh:grupo-conceptos-set', { grupo_id: grupo.id, conceptos: [{ concepto_id: cat.id }] })
+
+    const res = await call('rrhh:concepto-delete', { id: cat.id })
+    expect(res.desactivado).toBe(true)
+    expect((await call('rrhh:conceptos-list', {}) as any[])).toHaveLength(0)
+    expect((await call('rrhh:conceptos-list', { incluirInactivos: true }) as any[])).toHaveLength(1)
+  })
+})
+
+describe('RRHH: grupos y nómina por capas', () => {
+  it('guarda miembros y conceptos del grupo', async () => {
+    const ana = await call('rrhh:empleado-create', { nombre: 'Ana' })
+    const luis = await call('rrhh:empleado-create', { nombre: 'Luis' })
+    const cat = await call('rrhh:concepto-save', { nombre: 'Bono Alimentación', tipo: 'asignacion', monto_default: 40 })
+    const grupo = await call('rrhh:grupo-save', { nombre: 'Fijos' })
+
+    await call('rrhh:grupo-miembros-set', { grupo_id: grupo.id, empleado_ids: [ana.id, luis.id] })
+    await call('rrhh:grupo-conceptos-set', { grupo_id: grupo.id, conceptos: [{ concepto_id: cat.id, monto: 50 }] })
+
+    const grupos = await call('rrhh:grupos-list', {}) as any[]
+    expect(grupos).toHaveLength(1)
+    expect(grupos[0].miembros).toBe(2)
+    expect(grupos[0].empleado_ids.sort()).toEqual([ana.id, luis.id].sort())
+    expect(grupos[0].conceptos_detalle).toHaveLength(1)
+    expect(grupos[0].conceptos_detalle[0].monto).toBe(50)
+  })
+
+  it('genera nómina solo para el grupo y aplica sus conceptos', async () => {
+    const ana = await call('rrhh:empleado-create', { nombre: 'Ana', salario_mensual: 300 })
+    await call('rrhh:empleado-create', { nombre: 'Luis', salario_mensual: 200 })
+    const asignacion = await call('rrhh:concepto-save', { nombre: 'Bono Alimentación', tipo: 'asignacion', monto_default: 50 })
+    const deduccion = await call('rrhh:concepto-save', { nombre: 'Seguro Social', tipo: 'deduccion', monto_default: 10 })
+    const grupo = await call('rrhh:grupo-save', { nombre: 'Fijos' })
+    await call('rrhh:grupo-miembros-set', { grupo_id: grupo.id, empleado_ids: [ana.id] })
+    await call('rrhh:grupo-conceptos-set', { grupo_id: grupo.id, conceptos: [
+      { concepto_id: asignacion.id },
+      { concepto_id: deduccion.id },
+    ] })
+
+    const res = await call('rrhh:nomina-generar', {
+      periodo_inicio: '2026-09-01', periodo_fin: '2026-09-30', grupo_id: grupo.id, salario_base_activo: false,
+    })
+    expect(res.success).toBe(true)
+    expect(res.nominas).toHaveLength(1)
+    expect(res.nominas[0].empleado_nombre).toBe('Ana')
+
+    const nominas = await call('rrhh:nomina-list', { periodo_inicio: '2026-09-01', periodo_fin: '2026-09-30' }) as any[]
+    expect(nominas).toHaveLength(1)
+    expect(nominas[0].bonos).toBe(50)
+    expect(nominas[0].deducciones).toBe(10)
+    expect(nominas[0].total_pagar).toBe(40)
+    expect(nominas[0].conceptos).toHaveLength(2)
+  })
+
+  it('rechaza grupo inexistente y nombre duplicado', async () => {
+    await call('rrhh:grupo-save', { nombre: 'Fijos' })
+    const dup = await call('rrhh:grupo-save', { nombre: 'Fijos' })
+    expect(dup.success).toBe(false)
+
+    const sinGrupo = await call('rrhh:grupo-miembros-set', { grupo_id: 999, empleado_ids: [1] })
+    expect(sinGrupo.success).toBe(false)
+  })
+
+  it('histórico de nómina por empleado acumula totales', async () => {
+    const ana = await call('rrhh:empleado-create', { nombre: 'Ana', salario_mensual: 300 })
+    await call('rrhh:nomina-generar', { periodo_inicio: '2026-08-01', periodo_fin: '2026-08-31', salario_base_activo: false, bonos: { [ana.id]: 100 } })
+    await call('rrhh:nomina-generar', { periodo_inicio: '2026-09-01', periodo_fin: '2026-09-30', salario_base_activo: false, bonos: { [ana.id]: 50 } })
+
+    const res = await call('rrhh:nomina-por-empleado', { empleado_id: ana.id })
+    expect(res.nominas).toHaveLength(2)
+    expect(res.totales.asignaciones).toBe(150)
+    expect(res.totales.neto).toBe(150)
+  })
+})
+

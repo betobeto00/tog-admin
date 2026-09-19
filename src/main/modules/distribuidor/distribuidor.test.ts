@@ -212,7 +212,7 @@ describe('clientes (Distribuidor)', () => {
   })
 
   it('bloquea las operaciones si el módulo no está activo en la licencia', async () => {
-    state.active = ['comercializador']
+    state.active = []
     const res = await send('clientes:create', { usuario_id: 1, nombre: 'X' })
     expect(res.success).toBe(false)
     expect(res.error).toContain('no está activo')

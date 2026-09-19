@@ -4,9 +4,11 @@ import { useAuthStore } from '@core/auth/store'
 import {
   Search, ShoppingCart, Plus, Minus, Trash2, X,
   DollarSign, CreditCard, Smartphone, Check, Printer,
-  Package, AlertTriangle, ScanBarcode, Wallet, Banknote, Globe, HandCoins, Receipt
+  Package, AlertTriangle, ScanBarcode, Wallet, Banknote, Globe, HandCoins, Receipt, UserPlus, FileText
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
+import A4PrintModal from '../components/print/A4PrintModal'
+import type { DocumentoVenta } from '@shared/print'
 import CartItem from '../components/pos/CartItem'
 import ProductImage from '../components/ProductImage'
 import { formatTicketNumber } from '../lib/utils'
@@ -81,6 +83,14 @@ export default function POSPage() {
   const [clienteFacturaId, setClienteFacturaId] = useState<string>('')
   const [clienteFacturaQuery, setClienteFacturaQuery] = useState('')
 
+  // Modal de creación rápida de cliente desde POS
+  const [clienteModalOpen, setClienteModalOpen] = useState(false)
+  const [nuevoClienteNombre, setNuevoClienteNombre] = useState('')
+  const [nuevoClienteDocumento, setNuevoClienteDocumento] = useState('')
+  const [nuevoClienteTelefono, setNuevoClienteTelefono] = useState('')
+  const [nuevoClienteEmail, setNuevoClienteEmail] = useState('')
+  const [nuevoClienteGuardando, setNuevoClienteGuardando] = useState(false)
+
   // Tipo de comprobante: 'factura' (default) o 'nota_entrega' (sin valor fiscal)
   const [tipoComprobante, setTipoComprobante] = useState<'factura' | 'nota_entrega'>('factura')
 
@@ -93,6 +103,27 @@ export default function POSPage() {
   const [ticketOpen, setTicketOpen] = useState(false)
   const [ultimoTicket, setUltimoTicket] = useState<any>(null)
   const [imprimiendoTicketera, setImprimiendoTicketera] = useState(false)
+
+  // Vista A4 del comprobante recién emitido (mismo documento que el ticket).
+  const [a4Open, setA4Open] = useState(false)
+  const [documentoA4, setDocumentoA4] = useState<DocumentoVenta | null>(null)
+
+  const verA4 = async (ventaId: number) => {
+    try {
+      const res = await callApi<{ success: boolean; documento?: DocumentoVenta; error?: string }>(
+        'print:documento-venta',
+        { venta_id: ventaId },
+      )
+      if (res?.success && res.documento) {
+        setDocumentoA4(res.documento)
+        setA4Open(true)
+      } else {
+        toast.error(res?.error || t('print.printError'))
+      }
+    } catch (err: any) {
+      toast.error(err?.message || t('print.printError'))
+    }
+  }
 
   /** Imprime el ticket ya guardado en la ticketera configurada (ESC/POS). */
   const imprimirEnTicketera = async (ventaId: number) => {
@@ -203,13 +234,17 @@ export default function POSPage() {
   const subtotalConGlobal = subtotal - descuentoGlobalMonto
   const [taxRate, setTaxRate] = useState(0)
   useEffect(() => {
-    callApi<any[]>('config:get').then((cfg: any[]) => {
-      const rate = cfg.find((c: any) => c.clave === 'sales_tax_rate')
-      if (rate && rate.valor) {
-        const parsed = parseFloat(rate.valor)
-        if (!isNaN(parsed)) setTaxRate(parsed / 100)
-      }
-    })
+    // Sin `.catch()` y con `cfg` nulo (canal caído, PC hija sin Base) quedaba
+    // una promesa rechazada sin manejar. La alícuota por defecto es 0.
+    callApi<any[]>('config:get')
+      .then((cfg: any[]) => {
+        const rate = (cfg || []).find((c: any) => c.clave === 'sales_tax_rate')
+        if (rate && rate.valor) {
+          const parsed = parseFloat(rate.valor)
+          if (!isNaN(parsed)) setTaxRate(parsed / 100)
+        }
+      })
+      .catch(() => {})
   }, [])
   const impuesto = subtotalConGlobal * taxRate
   const total = subtotalConGlobal + impuesto
@@ -361,6 +396,54 @@ export default function POSPage() {
     return clientesFiado.filter((c) => c.nombre.toLowerCase().includes(q) || (c.documento && c.documento.toLowerCase().includes(q))).slice(0, 8)
   }, [clienteFacturaQuery, clientesFiado])
   const clienteFacturaSel = clienteFacturaId ? clientesFiado.find((c) => String(c.id) === clienteFacturaId) : null
+
+  const handleClienteFacturaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return
+    const q = clienteFacturaQuery.trim()
+    if (!q) return
+    const exacto = clientesFiado.find((c) =>
+      c.nombre.toLowerCase() === q.toLowerCase() ||
+      (c.documento && c.documento.toLowerCase() === q.toLowerCase())
+    )
+    if (exacto) {
+      setClienteFacturaId(String(exacto.id))
+      setClienteFacturaQuery('')
+    } else {
+      setNuevoClienteNombre('')
+      setNuevoClienteDocumento(q)
+      setNuevoClienteTelefono('')
+      setNuevoClienteEmail('')
+      setClienteModalOpen(true)
+    }
+  }
+
+  const crearClienteRapido = async () => {
+    if (!nuevoClienteNombre.trim()) return
+    setNuevoClienteGuardando(true)
+    try {
+      const nuevo = await callApi<Cliente>('clientes:create', {
+        nombre: nuevoClienteNombre.trim(),
+        documento: nuevoClienteDocumento.trim() || undefined,
+        telefono: nuevoClienteTelefono.trim() || undefined,
+        email: nuevoClienteEmail.trim() || undefined,
+      })
+      if (nuevo && (nuevo as any).id) {
+        const id = Number((nuevo as any).id)
+        // Recargar la lista: `clientes:create` solo devuelve el id, no el
+        // registro completo que la UI necesita para mostrar el cliente.
+        const list = await callApi<Cliente[]>('clientes:list')
+        setClientesFiado(list || [])
+        setClienteFacturaId(String(id))
+        setClienteFacturaQuery('')
+        setClienteModalOpen(false)
+        toast.success(t('pos.clientCreated'))
+      }
+    } catch (err: any) {
+      toast.error(err?.message || t('pos.clientCreateError'))
+    } finally {
+      setNuevoClienteGuardando(false)
+    }
+  }
 
 
 
@@ -661,8 +744,9 @@ export default function POSPage() {
                 {clienteFacturaSel.documento && <p className="text-xs text-gray-500">{clienteFacturaSel.documento}</p>}
               </div>
               <button onClick={() => { setClienteFacturaId(''); setClienteFacturaQuery('') }}
-                className="text-xs text-red-500 hover:text-red-700 flex-shrink-0 ml-2">
-                {t('common.remove') || 'Quitar'}
+                className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg flex-shrink-0 ml-2"
+                title={t('common.remove')}>
+                <Trash2 className="w-4 h-4" />
               </button>
             </div>
           ) : (
@@ -671,6 +755,7 @@ export default function POSPage() {
                 type="text"
                 value={clienteFacturaQuery}
                 onChange={(e) => setClienteFacturaQuery(e.target.value)}
+                onKeyDown={handleClienteFacturaKeyDown}
                 placeholder={t('pos.invoiceClientPlaceholder') || 'Buscar cliente...'}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
               />
@@ -683,6 +768,21 @@ export default function POSPage() {
                       {c.documento && <span className="text-xs text-gray-400 ml-2">{c.documento}</span>}
                     </button>
                   ))}
+                </div>
+              )}
+              {clientesFiltradosFactura.length === 0 && clienteFacturaQuery && (
+                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
+                  <button onClick={() => {
+                    setNuevoClienteNombre('')
+                    setNuevoClienteDocumento(clienteFacturaQuery.trim())
+                    setNuevoClienteTelefono('')
+                    setNuevoClienteEmail('')
+                    setClienteModalOpen(true)
+                  }}
+                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-blue-50 text-left text-sm text-blue-600">
+                    <UserPlus className="w-4 h-4" />
+                    <span>{t('pos.createNewClient')}</span>
+                  </button>
                 </div>
               )}
             </div>
@@ -1050,10 +1150,13 @@ export default function POSPage() {
                 className="flex-1 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200">
                 {t('pos.closeButton')}
               </button>
-              <button onClick={() => { window.print(); setTicketOpen(false) }}
-                className="flex-1 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 flex items-center justify-center gap-2">
-                <Printer className="w-4 h-4" /> {t('pos.printButton')}
-              </button>
+              {ultimoTicket?.id && (
+                <button onClick={() => verA4(ultimoTicket.id)}
+                  className="flex-1 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 flex items-center justify-center gap-2"
+                  title={t('print.printA4')}>
+                  <FileText className="w-4 h-4" /> {t('print.printA4')}
+                </button>
+              )}
               {ultimoTicket?.ventaGuardada?.id && (
                 <button
                   onClick={() => imprimirEnTicketera(ultimoTicket.ventaGuardada.id)}
@@ -1068,6 +1171,8 @@ export default function POSPage() {
           </div>
         )}
       </Modal>
+
+      <A4PrintModal open={a4Open} documento={documentoA4} onClose={() => setA4Open(false)} />
 
       {/* ======== MODAL VENTA RÁPIDA ======== */}
       <Modal open={quickSaleOpen} onClose={() => setQuickSaleOpen(false)} title={t('pos.quickSaleService')}>
@@ -1135,6 +1240,53 @@ export default function POSPage() {
           <div className="flex justify-end pt-2 border-t border-gray-100">
             <button onClick={() => setBorradoresOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
               {t('common.close')}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal: Crear cliente rápido desde POS */}
+      <Modal open={clienteModalOpen} onClose={() => setClienteModalOpen(false)} title={t('pos.createClient')}>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.name')} *</label>
+            <input type="text" value={nuevoClienteNombre} onChange={(e) => setNuevoClienteNombre(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+              placeholder={t('clientes.namePlaceholder')} autoFocus />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('clientes.documento')}</label>
+              <input type="text" value={nuevoClienteDocumento} onChange={(e) => setNuevoClienteDocumento(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                placeholder={t('clientes.documentoPlaceholder')} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('clientes.phone')}</label>
+              <input type="text" value={nuevoClienteTelefono} onChange={(e) => setNuevoClienteTelefono(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                placeholder={t('clientes.phonePlaceholder')} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('clientes.email')}</label>
+            <input type="email" value={nuevoClienteEmail} onChange={(e) => setNuevoClienteEmail(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+              placeholder={t('clientes.emailPlaceholder')} />
+          </div>
+          <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+            <button onClick={() => setClienteModalOpen(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+              {t('common.cancel')}
+            </button>
+            <button onClick={crearClienteRapido} disabled={!nuevoClienteNombre.trim() || nuevoClienteGuardando}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+              {nuevoClienteGuardando ? (
+                <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+              ) : (
+                <UserPlus className="w-4 h-4" />
+              )}
+              {t('common.save')}
             </button>
           </div>
         </div>

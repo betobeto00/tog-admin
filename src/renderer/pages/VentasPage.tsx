@@ -1,12 +1,15 @@
 import { Fragment, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  Search, Eye, XCircle, Printer, Calendar, Receipt,
+  Search, Eye, XCircle, Printer, Calendar, Receipt, FileText,
   ChevronDown, AlertTriangle, DollarSign, Clock
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
-import { formatDateTime, formatTicketNumber } from '../lib/utils'
+import { formatDateTime, formatTicketNumber, escapeHtml } from '../lib/utils'
+import { abrirDocumento } from '../lib/print'
+import A4PrintModal from '../components/print/A4PrintModal'
+import type { DocumentoVenta } from '@shared/print'
 import { formatMoney } from '../services/currency'
 import { callApi } from '../lib/api-client'
 
@@ -44,6 +47,27 @@ export default function VentasPage() {
   const [anularTarget, setAnularTarget] = useState<Venta | null>(null)
   const [anularMotivo, setAnularMotivo] = useState('')
   const [anulando, setAnulando] = useState(false)
+
+  // Vista A4 del comprobante (mismo documento que el ticket, para imprimir en A4)
+  const [a4Open, setA4Open] = useState(false)
+  const [documentoA4, setDocumentoA4] = useState<DocumentoVenta | null>(null)
+
+  const verA4 = async (ventaId: number) => {
+    try {
+      const res = await callApi<{ success: boolean; documento?: DocumentoVenta; error?: string }>(
+        'print:documento-venta',
+        { venta_id: ventaId },
+      )
+      if (res?.success && res.documento) {
+        setDocumentoA4(res.documento)
+        setA4Open(true)
+      } else {
+        alert(res?.error || t('print.printError'))
+      }
+    } catch (err: any) {
+      alert(err?.message || t('print.printError'))
+    }
+  }
 
   useEffect(() => { loadVentas() }, [fechaInicio, fechaFin])
 
@@ -200,17 +224,21 @@ export default function VentasPage() {
                       {v.estado === 'completada' && (
                         <>
                           <button onClick={() => callApi<Venta & { detalles: VentaDetalle[] }>('ventas:getById', { id: v.id }).then((venta) => {
-                            if (venta?.detalles) {
-                              const ticketWin = window.open('', '_blank', 'width=320,height=600')
-                              if (ticketWin) {
-                                ticketWin.document.write(generateTicketHTML(venta))
-                                ticketWin.document.close()
-                                ticketWin.print()
-                              }
-                            }
+                            if (!venta?.detalles) return
+                            abrirDocumento({
+                              titulo: `Ticket ${formatTicketNumber(venta.numero_venta)}`,
+                              ancho: 320,
+                              alto: 600,
+                              estilos: TICKET_ESTILOS,
+                              cuerpo: cuerpoTicketReimpresion(venta),
+                            })
                           })}
                             className="p-1.5 hover:bg-gray-100 rounded-lg" title={t('ventas.reprint')}>
                             <Printer className="w-4 h-4 text-gray-500" />
+                          </button>
+                          <button onClick={() => verA4(v.id)}
+                            className="p-1.5 hover:bg-gray-100 rounded-lg" title={t('print.printA4')}>
+                            <FileText className="w-4 h-4 text-gray-500" />
                           </button>
                           <button onClick={() => setAnularTarget(v)}
                             className="p-1.5 hover:bg-red-50 rounded-lg" title={t('ventas.void')}>
@@ -360,17 +388,15 @@ export default function VentasPage() {
           </div>
         </div>
       </Modal>
+
+      <A4PrintModal open={a4Open} documento={documentoA4} onClose={() => setA4Open(false)} />
     </div>
   )
 }
 
-// Generador de HTML para ticket de re-impresión
-function generateTicketHTML(venta: any): string {
-  const items = venta.detalles?.map((d: any) =>
-    `<tr><td>${d.producto_nombre}</td><td style="text-align:center">${d.cantidad}</td><td style="text-align:right">${formatMoney(d.subtotal)}</td></tr>`
-  ).join('') || ''
-
-  return `<!DOCTYPE html><html><head><style>
+// Ticket de re-impresión: el CSS va aparte para que el generador común
+// (`abrirDocumento`) arme el documento.
+const TICKET_ESTILOS = `
     body{font-family:monospace;font-size:12px;width:280px;margin:0 auto;padding:10px}
     h2{text-align:center;margin:5px 0;font-size:14px}
     table{width:100%;border-collapse:collapse;margin:8px 0}
@@ -378,9 +404,18 @@ function generateTicketHTML(venta: any): string {
     .total{font-weight:bold;font-size:14px;border-top:1px dashed #000;padding-top:5px;margin-top:5px}
     .center{text-align:center}.right{text-align:right}
     hr{border:none;border-top:1px dashed #000;margin:8px 0}
-  </style></head><body>
+`
+
+/** Cuerpo HTML del ticket de re-impresión (sin `<html>`/`<body>`). */
+function cuerpoTicketReimpresion(venta: any): string {
+  const items = venta.detalles?.map((d: any) =>
+    `<tr><td>${escapeHtml(d.producto_nombre || d.descripcion)}</td><td style="text-align:center">${d.cantidad}</td><td style="text-align:right">${formatMoney(d.subtotal)}</td></tr>`
+  ).join('') || ''
+
+  return `
     <h2>TOG Admin</h2>
     <div class="center">${formatTicketNumber(venta.numero_venta)}</div>
+    ${venta.numero_control ? `<div class="center">N° Control: ${escapeHtml(venta.numero_control)}</div>` : ''}
     <div class="center" style="font-size:10px;color:#666">${formatDateTime(venta.fecha)}</div>
     <hr>
     <table><thead><tr><th>Producto</th><th style="text-align:center">Cant</th><th style="text-align:right">Subtotal</th></tr></thead>
@@ -393,5 +428,5 @@ function generateTicketHTML(venta: any): string {
     ${venta.cambio > 0 ? `<div class="right">Cambio: ${formatMoney(venta.cambio)}</div>` : ''}
     <hr>
     <div class="center" style="margin-top:10px;color:#666">¡Gracias por su compra!</div>
-  </body></html>`
+  `
 }

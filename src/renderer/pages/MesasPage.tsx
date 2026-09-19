@@ -8,7 +8,8 @@ import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { useToast } from '../components/ui/Toast'
 import { usePermissions } from '../hooks/usePermissions'
-import { formatDateTime } from '../lib/utils'
+import { formatDateTime, escapeHtml } from '../lib/utils'
+import { abrirDocumento } from '../lib/print'
 import { formatMoney } from '../services/currency'
 import { callApi } from '../lib/api-client'
 
@@ -261,7 +262,11 @@ export default function MesasPage() {
     try {
       await callApi('comandas:send-kitchen', { comanda_id: comanda.id })
       toast.success(t('restaurant.sentToKitchen'))
-      await printComanda()
+      try {
+        await callApi('comandas:print-kitchen', { comanda_id: comanda.id })
+      } catch (printErr: any) {
+        toast.warning(printErr?.message || t('restaurant.printError') || 'No se pudo imprimir en cocina')
+      }
       await refreshComanda()
     } catch (err: any) {
       toast.error(err?.message || t('restaurant.error'))
@@ -315,31 +320,33 @@ export default function MesasPage() {
     } catch {}
     const rows = comanda.detalles
       .filter((d) => d.estado !== 'cancelado')
-      .map((d) => `<tr><td style="text-align:center">${d.cantidad}</td><td>${d.descripcion}${d.notas ? ` <span style="color:#888">(${d.notas})</span>` : ''}</td></tr>`)
+      .map((d) => `<tr><td style="text-align:center">${d.cantidad}</td><td>${escapeHtml(d.descripcion)}${d.notas ? ` <span style="color:#888">(${escapeHtml(d.notas)})</span>` : ''}</td></tr>`)
       .join('')
-    const win = window.open('', '_blank', 'width=400,height=700')
-    if (!win) return
-    win.document.write(`<!DOCTYPE html><html><head><style>
-      body{font-family:monospace;font-size:11px;width:300px;margin:0 auto;padding:12px}
-      h2{text-align:center;margin:4px 0;font-size:14px}
-      table{width:100%;border-collapse:collapse;margin:6px 0}
-      td{padding:2px 0;font-size:11px}
-      .center{text-align:center}hr{border:none;border-top:1px dashed #000;margin:6px 0}
-      .big{font-size:13px;font-weight:bold}
-    </style></head><body>
-      <div class="center big">${bizName || 'TOG Admin'}</div>
-      ${bizAddr ? `<div class="center" style="font-size:9px">${bizAddr}</div>` : ''}
-      ${bizPhone ? `<div class="center" style="font-size:9px">${bizPhone}</div>` : ''}
-      <h2>${t('restaurant.comandaTicket')}</h2>
-      <div class="center">${comanda.mesa_nombre} — #${comanda.id}</div>
-      <div class="center" style="font-size:10px;color:#666">${formatDateTime(new Date().toISOString())}</div>
-      <hr>
-      <table>${rows || `<tr><td class="center">—</td></tr>`}</table>
-      <hr>
-      <div class="center" style="font-size:10px">${t('quotes.receiptThankYou')}</div>
-    </body></html>`)
-    win.document.close()
-    win.print()
+    abrirDocumento({
+      titulo: `${t('restaurant.comandaTicket')} #${comanda.id}`,
+      ancho: 400,
+      alto: 700,
+      estilos: `
+        body{font-family:monospace;font-size:11px;width:300px;margin:0 auto;padding:12px}
+        h2{text-align:center;margin:4px 0;font-size:14px}
+        table{width:100%;border-collapse:collapse;margin:6px 0}
+        td{padding:2px 0;font-size:11px}
+        .center{text-align:center}hr{border:none;border-top:1px dashed #000;margin:6px 0}
+        .big{font-size:13px;font-weight:bold}
+      `,
+      cuerpo: `
+        <div class="center big">${escapeHtml(bizName || 'TOG Admin')}</div>
+        ${bizAddr ? `<div class="center" style="font-size:9px">${escapeHtml(bizAddr)}</div>` : ''}
+        ${bizPhone ? `<div class="center" style="font-size:9px">${escapeHtml(bizPhone)}</div>` : ''}
+        <h2>${t('restaurant.comandaTicket')}</h2>
+        <div class="center">${escapeHtml(comanda.mesa_nombre)} — #${comanda.id}</div>
+        <div class="center" style="font-size:10px;color:#666">${formatDateTime(new Date().toISOString())}</div>
+        <hr>
+        <table>${rows || `<tr><td class="center">—</td></tr>`}</table>
+        <hr>
+        <div class="center" style="font-size:10px">${t('quotes.receiptThankYou')}</div>
+      `,
+    })
   }
 
   // Atajos: F2 busca · F5 cobra · F9 envía a cocina (siempre que haya comanda abierta)
@@ -406,37 +413,40 @@ export default function MesasPage() {
         bizPhone = get('telefono')
       } catch {}
       const rows = (venta.detalles || []).map((d: any) => {
-        return `<tr><td style="text-align:center">${d.cantidad}</td><td>${d.producto_nombre || d.descripcion || ''}</td><td style="text-align:right">${formatMoney(d.subtotal || 0)}</td></tr>`
+        return `<tr><td style="text-align:center">${d.cantidad}</td><td>${escapeHtml(d.producto_nombre || d.descripcion || '')}</td><td style="text-align:right">${formatMoney(d.subtotal || 0)}</td></tr>`
       }).join('')
-      const win = window.open('', '_blank', 'width=400,height=700')
-      if (!win) return
-      win.document.write(`<!DOCTYPE html><html><head><style>
-        body{font-family:monospace;font-size:11px;width:300px;margin:0 auto;padding:12px}
-        h2{text-align:center;margin:4px 0;font-size:14px}
-        table{width:100%;border-collapse:collapse;margin:6px 0}
-        td{padding:2px 0;font-size:11px}
-        .center{text-align:center}hr{border:none;border-top:1px dashed #000;margin:6px 0}
-        .big{font-size:13px;font-weight:bold}
-        .small{font-size:9px}
-      </style></head><body>
-        <div class="center big">${bizName || 'TOG Admin'}</div>
-        ${bizAddr ? `<div class="center small">${bizAddr}</div>` : ''}
-        ${bizPhone ? `<div class="center small">${bizPhone}</div>` : ''}
-        <h2>${t('ventas.ticket')} #${venta.numero_venta}</h2>
-        <div class="center small">${formatDateTime(venta.fecha)}</div>
-        ${venta.cliente_nombre ? `<hr><div><strong>${t('pos.invoiceClient') || 'Cliente'}:</strong> ${venta.cliente_nombre}</div>${venta.cliente_documento ? `<div class="small">${venta.cliente_documento}</div>` : ''}` : ''}
-        <hr>
-        <table>${rows}</table>
-        <hr>
-        <div style="display:flex;justify-content:space-between"><span>${t('common.subtotal')}:</span><span>${formatMoney(venta.subtotal || 0)}</span></div>
-        ${(venta.descuento || 0) > 0 ? `<div style="display:flex;justify-content:space-between"><span>${t('common.discount')}:</span><span>-${formatMoney(venta.descuento || 0)}</span></div>` : ''}
-        <div style="display:flex;justify-content:space-between"><span>${t('common.tax')}:</span><span>${formatMoney(venta.impuesto || 0)}</span></div>
-        <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:13px;padding-top:4px;border-top:1px dashed #000;margin-top:4px"><span>TOTAL:</span><span>${formatMoney(venta.total || 0)}</span></div>
-        <hr>
-        <div class="center small">${t('quotes.receiptThankYou')}</div>
-      </body></html>`)
-      win.document.close()
-      win.print()
+      abrirDocumento({
+        titulo: `${t('ventas.ticket')} #${venta.numero_venta}`,
+        ancho: 400,
+        alto: 700,
+        estilos: `
+          body{font-family:monospace;font-size:11px;width:300px;margin:0 auto;padding:12px}
+          h2{text-align:center;margin:4px 0;font-size:14px}
+          table{width:100%;border-collapse:collapse;margin:6px 0}
+          td{padding:2px 0;font-size:11px}
+          .center{text-align:center}hr{border:none;border-top:1px dashed #000;margin:6px 0}
+          .big{font-size:13px;font-weight:bold}
+          .small{font-size:9px}
+        `,
+        cuerpo: `
+          <div class="center big">${escapeHtml(bizName || 'TOG Admin')}</div>
+          ${bizAddr ? `<div class="center small">${escapeHtml(bizAddr)}</div>` : ''}
+          ${bizPhone ? `<div class="center small">${escapeHtml(bizPhone)}</div>` : ''}
+          <h2>${t('ventas.ticket')} #${venta.numero_venta}</h2>
+          <div class="center small">${formatDateTime(venta.fecha)}</div>
+          ${venta.numero_control ? `<div class="center small">N° Control: ${escapeHtml(venta.numero_control)}</div>` : ''}
+          ${venta.cliente_nombre ? `<hr><div><strong>${t('pos.invoiceClient') || 'Cliente'}:</strong> ${escapeHtml(venta.cliente_nombre)}</div>${venta.cliente_documento ? `<div class="small">${escapeHtml(venta.cliente_documento)}</div>` : ''}` : ''}
+          <hr>
+          <table>${rows}</table>
+          <hr>
+          <div style="display:flex;justify-content:space-between"><span>${t('common.subtotal')}:</span><span>${formatMoney(venta.subtotal || 0)}</span></div>
+          ${(venta.descuento || 0) > 0 ? `<div style="display:flex;justify-content:space-between"><span>${t('common.discount')}:</span><span>-${formatMoney(venta.descuento || 0)}</span></div>` : ''}
+          <div style="display:flex;justify-content:space-between"><span>${t('common.tax')}:</span><span>${formatMoney(venta.impuesto || 0)}</span></div>
+          <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:13px;padding-top:4px;border-top:1px dashed #000;margin-top:4px"><span>TOTAL:</span><span>${formatMoney(venta.total || 0)}</span></div>
+          <hr>
+          <div class="center small">${t('quotes.receiptThankYou')}</div>
+        `,
+      })
     } catch (err) {
       console.error('Error imprimiendo ticket de mesa:', err)
     }

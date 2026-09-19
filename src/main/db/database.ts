@@ -179,7 +179,7 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
         CREATE TABLE IF NOT EXISTS ventas (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           numero_venta INTEGER NOT NULL,
-          fecha TEXT NOT NULL DEFAULT (datetime('now')),
+          fecha TEXT NOT NULL DEFAULT (datetime('now','localtime')),
           usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
           subtotal REAL NOT NULL DEFAULT 0,
           impuesto REAL NOT NULL DEFAULT 0,
@@ -216,7 +216,7 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
         CREATE TABLE IF NOT EXISTS compras (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           numero_compra INTEGER NOT NULL,
-          fecha TEXT NOT NULL DEFAULT (datetime('now')),
+          fecha TEXT NOT NULL DEFAULT (datetime('now','localtime')),
           proveedor_id INTEGER REFERENCES proveedores(id),
           usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
           subtotal REAL NOT NULL DEFAULT 0,
@@ -246,7 +246,7 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
       sql: `
         CREATE TABLE IF NOT EXISTS caja (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          fecha_apertura TEXT NOT NULL DEFAULT (datetime('now')),
+          fecha_apertura TEXT NOT NULL DEFAULT (datetime('now','localtime')),
           fecha_cierre TEXT,
           fondo_inicial REAL NOT NULL DEFAULT 0,
           total_ventas REAL NOT NULL DEFAULT 0,
@@ -268,7 +268,7 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
           monto REAL NOT NULL,
           descripcion TEXT,
           referencia_id INTEGER,
-          fecha TEXT NOT NULL DEFAULT (datetime('now'))
+          fecha TEXT NOT NULL DEFAULT (datetime('now','localtime'))
         );
 
         CREATE INDEX IF NOT EXISTS idx_caja_estado ON caja(estado);
@@ -304,7 +304,7 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
         CREATE TABLE IF NOT EXISTS quotes (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           numero_cotizacion INTEGER NOT NULL,
-          fecha TEXT NOT NULL DEFAULT (datetime('now')),
+          fecha TEXT NOT NULL DEFAULT (datetime('now','localtime')),
           fecha_vencimiento TEXT,
           cliente_nombre TEXT NOT NULL,
           cliente_email TEXT,
@@ -354,7 +354,7 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
           stock_nuevo INTEGER NOT NULL,
           diferencia INTEGER NOT NULL,
           justificacion TEXT NOT NULL,
-          fecha TEXT NOT NULL DEFAULT (datetime('now'))
+          fecha TEXT NOT NULL DEFAULT (datetime('now','localtime'))
         );
 
         CREATE INDEX IF NOT EXISTS idx_ajustes_producto ON ajustes_inventario(producto_id);
@@ -408,7 +408,7 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           numero TEXT NOT NULL UNIQUE,
           cliente_id INTEGER NOT NULL REFERENCES clientes(id),
-          fecha TEXT NOT NULL DEFAULT (datetime('now')),
+          fecha TEXT NOT NULL DEFAULT (datetime('now','localtime')),
           estado TEXT NOT NULL DEFAULT 'pendiente',
           subtotal REAL NOT NULL DEFAULT 0,
           impuesto REAL NOT NULL DEFAULT 0,
@@ -432,7 +432,7 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
           numero TEXT NOT NULL UNIQUE,
           pedido_id INTEGER REFERENCES pedidos(id),
           cliente_id INTEGER NOT NULL REFERENCES clientes(id),
-          fecha TEXT NOT NULL DEFAULT (datetime('now')),
+          fecha TEXT NOT NULL DEFAULT (datetime('now','localtime')),
           estado TEXT NOT NULL DEFAULT 'pendiente',
           observaciones TEXT,
           creado_en TEXT NOT NULL DEFAULT (datetime('now'))
@@ -522,7 +522,7 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
           deudor_documento TEXT,
           monto_total REAL NOT NULL DEFAULT 0,
           saldo REAL NOT NULL DEFAULT 0,
-          fecha TEXT NOT NULL DEFAULT (datetime('now')),
+          fecha TEXT NOT NULL DEFAULT (datetime('now','localtime')),
           estado TEXT NOT NULL DEFAULT 'pendiente',
           usuario_id INTEGER REFERENCES usuarios(id),
           notas TEXT,
@@ -533,7 +533,7 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           credito_id INTEGER NOT NULL REFERENCES creditos(id),
           monto REAL NOT NULL,
-          fecha TEXT NOT NULL DEFAULT (datetime('now')),
+          fecha TEXT NOT NULL DEFAULT (datetime('now','localtime')),
           usuario_id INTEGER REFERENCES usuarios(id),
           notas TEXT
         );
@@ -765,7 +765,7 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
       sql: `
         CREATE TABLE IF NOT EXISTS asientos_contables (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          fecha TEXT NOT NULL DEFAULT (datetime('now')),
+          fecha TEXT NOT NULL DEFAULT (datetime('now','localtime')),
           tipo TEXT NOT NULL,
           descripcion TEXT NOT NULL,
           referencia_tipo TEXT,
@@ -791,7 +791,7 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
           salario_mensual REAL NOT NULL DEFAULT 0,
           telefono TEXT,
           direccion TEXT,
-          fecha_ingreso TEXT NOT NULL DEFAULT (date('now')),
+          fecha_ingreso TEXT NOT NULL DEFAULT (date('now','localtime')),
           activo INTEGER NOT NULL DEFAULT 1,
           creado_en TEXT NOT NULL DEFAULT (datetime('now'))
         );
@@ -799,7 +799,7 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
         CREATE TABLE IF NOT EXISTS asistencia (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           empleado_id INTEGER NOT NULL REFERENCES empleados(id),
-          fecha TEXT NOT NULL DEFAULT (date('now')),
+          fecha TEXT NOT NULL DEFAULT (date('now','localtime')),
           estado TEXT NOT NULL DEFAULT 'presente',
           notas TEXT,
           creado_en TEXT NOT NULL DEFAULT (datetime('now')),
@@ -858,7 +858,7 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           cultivo_id INTEGER NOT NULL REFERENCES cultivos(id),
           descripcion TEXT,
-          fecha_siembra TEXT NOT NULL DEFAULT (date('now')),
+          fecha_siembra TEXT NOT NULL DEFAULT (date('now','localtime')),
           area REAL NOT NULL DEFAULT 0,
           unidad_area TEXT NOT NULL DEFAULT 'ha',
           cantidad_sembrada REAL NOT NULL DEFAULT 0,
@@ -874,7 +874,7 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
         CREATE TABLE IF NOT EXISTS costos_campo (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           siembra_id INTEGER NOT NULL REFERENCES siembras(id),
-          fecha TEXT NOT NULL DEFAULT (date('now')),
+          fecha TEXT NOT NULL DEFAULT (date('now','localtime')),
           concepto TEXT NOT NULL,
           monto REAL NOT NULL DEFAULT 0,
           notas TEXT,
@@ -1266,7 +1266,95 @@ function getMigrations(): Array<{ nombre: string; sql: string }> {
           CREATE INDEX IF NOT EXISTS idx_intentos_vincular_ip ON intentos_vincular(ip, creado_en);
         `,
       },
-    ]
+    {
+      nombre: '053_fechas_negocio_local',
+      sql: `
+        -- Las fechas de negocio se guardaban con datetime('now') (UTC) mientras
+        -- la UI y los reportes usan hora local. En UTC-4, una venta hecha a las
+        -- 22:00 quedaba con fecha del día UTC siguiente y desaparecía del libro
+        -- del día (y mostraba una hora corrida 4h). Esta migración corre una
+        -- sola vez y pasa las filas existentes a hora local.
+        --
+        -- asientos_contables.fecha NO se toca: ya se guardaba como fecha local
+        -- (YYYY-MM-DD) desde createVenta/createCompra.
+        UPDATE ventas SET fecha = datetime(fecha, 'localtime') WHERE fecha IS NOT NULL;
+        UPDATE compras SET fecha = datetime(fecha, 'localtime') WHERE fecha IS NOT NULL;
+        UPDATE caja SET fecha_apertura = datetime(fecha_apertura, 'localtime') WHERE fecha_apertura IS NOT NULL;
+        UPDATE caja SET fecha_cierre = datetime(fecha_cierre, 'localtime') WHERE fecha_cierre IS NOT NULL;
+        UPDATE caja SET cerrado_en = datetime(cerrado_en, 'localtime') WHERE cerrado_en IS NOT NULL;
+        UPDATE movimientos_caja SET fecha = datetime(fecha, 'localtime') WHERE fecha IS NOT NULL;
+        UPDATE creditos SET fecha = datetime(fecha, 'localtime') WHERE fecha IS NOT NULL;
+        UPDATE credito_abonos SET fecha = datetime(fecha, 'localtime') WHERE fecha IS NOT NULL;
+        UPDATE ajustes_inventario SET fecha = datetime(fecha, 'localtime') WHERE fecha IS NOT NULL;
+        UPDATE pedidos SET fecha = datetime(fecha, 'localtime') WHERE fecha IS NOT NULL;
+        UPDATE remitos SET fecha = datetime(fecha, 'localtime') WHERE fecha IS NOT NULL;
+        UPDATE quotes SET fecha = datetime(fecha, 'localtime') WHERE fecha IS NOT NULL;
+      `,
+    },
+    {
+      nombre: '054_rrhh_capas',
+      sql: `
+        -- Nómina por capas: catálogo global de conceptos + grupos de empleados.
+        --
+        -- 1) conceptos_catalogo: asignaciones/deducciones reutilizables
+        --    (p. ej. "Prima de Alimentación") con monto por defecto.
+        -- 2) empleado_grupos: grupos creados por el usuario (Fijos, Obreros…).
+        -- 3) empleado_grupo_miembros: qué empleados pertenecen a cada grupo.
+        -- 4) grupo_conceptos: qué conceptos del catálogo aplica cada grupo,
+        --    con un monto que puede sobrescribir el default.
+        CREATE TABLE IF NOT EXISTS conceptos_catalogo (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nombre TEXT NOT NULL,
+          tipo TEXT NOT NULL CHECK(tipo IN ('asignacion', 'deduccion')),
+          monto_default REAL NOT NULL DEFAULT 0,
+          activo INTEGER NOT NULL DEFAULT 1,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+          actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS empleado_grupos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nombre TEXT NOT NULL UNIQUE,
+          descripcion TEXT,
+          activo INTEGER NOT NULL DEFAULT 1,
+          creado_en TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS empleado_grupo_miembros (
+          grupo_id INTEGER NOT NULL REFERENCES empleado_grupos(id) ON DELETE CASCADE,
+          empleado_id INTEGER NOT NULL REFERENCES empleados(id) ON DELETE CASCADE,
+          PRIMARY KEY (grupo_id, empleado_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS grupo_conceptos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          grupo_id INTEGER NOT NULL REFERENCES empleado_grupos(id) ON DELETE CASCADE,
+          concepto_id INTEGER NOT NULL REFERENCES conceptos_catalogo(id) ON DELETE CASCADE,
+          monto REAL NOT NULL DEFAULT 0,
+          UNIQUE(grupo_id, concepto_id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_grupo_miembros_empleado ON empleado_grupo_miembros(empleado_id);
+        CREATE INDEX IF NOT EXISTS idx_grupo_conceptos_grupo ON grupo_conceptos(grupo_id);
+      `,
+    },
+    {
+      nombre: '055_numero_factura_continua',
+      sql: `
+        -- Numeración de facturas continua (antes reiniciaba cada día: la
+        -- primera venta del día era la #1). Ahora avanza de a uno y el negocio
+        -- puede fijar el punto de partida cuando viene de otro sistema
+        -- (Configuración → Negocio). En instalaciones existentes arranca
+        -- después de la última factura emitida.
+        INSERT OR IGNORE INTO configuracion (clave, valor, descripcion)
+        VALUES (
+          'numero_factura_siguiente',
+          CAST((SELECT COALESCE(MAX(numero_venta), 0) + 1 FROM ventas) AS TEXT),
+          'Próximo número de factura a emitir'
+        );
+      `,
+    },
+  ]
 }
 // ============================================
 // SEEDS (datos iniciales)
@@ -1339,6 +1427,7 @@ function seedDatabase(db: Database.Database): void {
         ['fondo_inicial_default', '100', 'Default opening amount for cash register'],
         ['ticket_numero_venta', '0', 'Número secuencial de la última venta'],
         ['ticket_numero_compra', '0', 'Número secuencial de la última compra'],
+        ['numero_factura_siguiente', '1', 'Próximo número de factura a emitir'],
       ]
 
       const insertConfig = db!.prepare(

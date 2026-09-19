@@ -69,7 +69,7 @@ export default function ClientesPage() {
 
   const remove = async (id: number) => { await callApi('clientes:delete', { id }); await loadData() }
 
-  if (!isActive('distribuidor')) {
+  if (!isActive('comercializador')) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
         <Contact className="w-12 h-12 mx-auto mb-3 opacity-50" />

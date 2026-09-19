@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // DB en memoria con la API de better-sqlite3 (ver distribuidor.test.ts)
-const { db, handles } = vi.hoisted(() => {
+const { db, handles, estado } = vi.hoisted(() => {
   const { DatabaseSync } = require('node:sqlite')
   const raw = new DatabaseSync(':memory:')
   const stmts = new Map<string, any>()
@@ -72,7 +72,7 @@ const { db, handles } = vi.hoisted(() => {
     INSERT INTO venta_detalles (venta_id, producto_id, descripcion, cantidad, precio_unitario, subtotal)
       VALUES (10, 1, 'Harina 1kg', 2, 5, 10);
   `)
-  return { db, handles: {} as Record<string, any> }
+  return { db, handles: {} as Record<string, any>, estado: { admin: true } }
 })
 
 const impresiones: { bytes: number[]; opciones: any }[] = []
@@ -82,6 +82,8 @@ vi.mock('../../core/auth/ipc-guard', () => ({ handleIpc: (c: string, fn: any) =>
 vi.mock('../../db/database', () => ({ getDatabase: () => db }))
 vi.mock('../../core/auth', () => ({
   checkPermissionOrFail: (data: any) => (data && data.usuario_id === 1 ? null : { success: false, error: 'Sin permisos', channel: 'test' }),
+  resolveAuthenticatedUserId: (data: any) => data?.usuario_id ?? null,
+  isAdminUser: () => estado.admin,
 }))
 vi.mock('../../services/printer', () => ({
   listarPuertosSerie: async () => [{ path: 'COM3', fabricante: 'Epson' }],
@@ -144,6 +146,20 @@ describe('driver ESC/POS', () => {
   it('sanea caracteres de control que romperían la impresora', () => {
     expect(sanearTexto('linea1\nlinea2\ttab')).toBe('linea1 linea2 tab')
     expect(sanearTexto('“comillas”')).toBe('"comillas"')
+  })
+
+  it('no deja que latin1 reinvente un ESC desde un carácter Unicode', () => {
+    // U+011B (ě) toma los 8 bits bajos en latin1: 0x1B = ESC.
+    expect(textoABytes('\u011b')).toEqual([0x20])
+
+    const bytes = construirEscPos([{ texto: 'Pro\u011bducto' }], { cortar: false, avanceFinal: 0 })
+    const texto = textoABytes('Pro\u011bducto')
+    // Ningún byte del texto es un carácter de control (no puede haber ESC/GS)
+    expect(texto.every((b) => b >= 0x20 && b !== 0x7f)).toBe(true)
+
+    const idx = bytes.findIndex((_, i) => texto.every((b, j) => bytes[i + j] === b))
+    expect(idx).toBeGreaterThan(-1)
+    expect(bytes[idx + texto.length]).toBe(CMD_FEED[0])
   })
 })
 
@@ -232,10 +248,40 @@ describe('handlers de impresión', () => {
     await llamar('print:set-config', { ...auth, copias: 1, abrir_cajon: false })
   })
 
+  it('print:set-config exige admin para tocar la numeración fiscal', async () => {
+    const antes = getDatosFiscales().correlativo
+
+    estado.admin = false
+    const res = await llamar('print:set-config', { ...auth, correlativo: 50 })
+    expect(res.success).toBe(false)
+    expect(res.error).toContain('administrador')
+    expect(getDatosFiscales().correlativo).toBe(antes)
+
+    estado.admin = true
+    const ok = await llamar('print:set-config', { ...auth, correlativo: 50 })
+    expect(ok.success).toBe(true)
+    expect(getDatosFiscales().correlativo).toBe(50)
+    await llamar('print:set-config', { ...auth, correlativo: antes })
+  })
+
   it('print:puertos lista los puertos disponibles', async () => {
     const res = await llamar('print:puertos', auth)
     expect(res.success).toBe(true)
     expect(res.puertos[0].path).toBe('COM3')
+  })
+
+  it('print:documento-venta devuelve el documento sin imprimir (para la vista A4)', async () => {
+    const res = await llamar('print:documento-venta', { ...auth, venta_id: 10 })
+    expect(res.success).toBe(true)
+    expect(res.documento.numero).toBe('42')
+    expect(res.documento.numero_control).toBe('A-00000008')
+    expect(impresiones).toHaveLength(0)
+
+    const invalido = await llamar('print:documento-venta', { ...auth, venta_id: 0 })
+    expect(invalido.success).toBe(false)
+
+    const inexistente = await llamar('print:documento-venta', { ...auth, venta_id: 999 })
+    expect(inexistente.success).toBe(false)
   })
 
   it('print:ticket imprime la venta por el puerto configurado', async () => {

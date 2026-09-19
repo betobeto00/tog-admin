@@ -6,7 +6,8 @@ import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { useToast } from '../components/ui/Toast'
 import { callApi } from '../lib/api-client'
 import { useActiveModules } from '../hooks/useModules'
-import { formatCurrency, formatDateTime } from '../lib/utils'
+import { formatCurrency, formatDateTime, escapeHtml } from '../lib/utils'
+import { abrirDocumento } from '../lib/print'
 
 interface Remito {
   id: number; numero: number; pedido_id: number | null; cliente_id: number; fecha: string; estado: string
@@ -106,49 +107,137 @@ export default function RemitosPage() {
         toast.error(t('remitos.printNotFound') || 'No se pudo cargar el remito')
         return
       }
-      let bizName = '', bizAddr = '', bizPhone = ''
+      let bizName = '', bizRif = '', bizAddr = '', bizPhone = ''
       try {
-        const cfg = await callApi<any[]>('config:get')
-        const get = (k: string) => cfg.find((c: any) => c.clave === k)?.valor || ''
-        bizName = get('nombre_negocio')
-        bizAddr = get('direccion')
-        bizPhone = get('telefono')
-      } catch {}
-      const rows = (detail.detalles || []).map((d: any) => {
-        const desc = d.producto_nombre || d.descripcion || 'Ítem'
-        return `<tr><td style="text-align:center">${d.cantidad}</td><td>${desc}${d.unidad ? ` <span style="color:#888">(${d.unidad})</span>` : ''}</td></tr>`
+        const cfg = await callApi<any>('print:config')
+        if (cfg) {
+          bizName = escapeHtml(cfg.razon_social || '')
+          bizRif = escapeHtml(cfg.rif || '')
+          bizAddr = escapeHtml(cfg.direccion || '')
+          bizPhone = escapeHtml(cfg.telefono || '')
+        }
+      } catch {
+        try {
+          const cfg = await callApi<any[]>('config:get')
+          const get = (k: string) => cfg.find((c: any) => c.clave === k)?.valor || ''
+          bizName = escapeHtml(get('nombre_negocio'))
+          bizAddr = escapeHtml(get('direccion'))
+          bizPhone = escapeHtml(get('telefono'))
+        } catch {}
+      }
+      const items = (detail.detalles || [])
+      const total = items.reduce((sum: number, d: any) => sum + (d.subtotal || d.cantidad * (d.precio || 0)), 0)
+      const rows = items.map((d: any) => {
+        const desc = escapeHtml(d.producto_nombre || d.descripcion || 'Ítem')
+        const unit = d.unidad ? ` <span style="color:#666;font-size:10px">(${escapeHtml(d.unidad)})</span>` : ''
+        const precio = d.precio != null ? Number(d.precio).toFixed(2) : '—'
+        const subtotal = d.subtotal != null ? Number(d.subtotal).toFixed(2) : (d.cantidad * (d.precio || 0)).toFixed(2)
+        return `<tr style="border-bottom:1px solid #e5e7eb">
+          <td style="padding:6px 4px;text-align:center;width:50px">${escapeHtml(d.cantidad)}</td>
+          <td style="padding:6px 4px">${desc}${unit}</td>
+          <td style="padding:6px 4px;text-align:right;width:80px">${precio}</td>
+          <td style="padding:6px 4px;text-align:right;width:90px;font-weight:600">${subtotal}</td>
+        </tr>`
       }).join('')
-      const win = window.open('', '_blank', 'width=400,height=700')
-      if (!win) return
-      win.document.write(`<!DOCTYPE html><html><head><style>
-        body{font-family:monospace;font-size:11px;width:300px;margin:0 auto;padding:12px}
-        h2{text-align:center;margin:4px 0;font-size:14px}
-        table{width:100%;border-collapse:collapse;margin:6px 0}
-        td{padding:2px 0;font-size:11px}
-        .center{text-align:center}hr{border:none;border-top:1px dashed #000;margin:6px 0}
-        .big{font-size:13px;font-weight:bold}
-        .small{font-size:9px}
-        .muted{color:#666;font-size:10px}
-      </style></head><body>
-        <div class="center big">${bizName || 'TOG Admin'}</div>
-        ${bizAddr ? `<div class="center small">${bizAddr}</div>` : ''}
-        ${bizPhone ? `<div class="center small">${bizPhone}</div>` : ''}
-        <h2>${t('remitos.title').toUpperCase()} #${detail.numero}</h2>
-        <div class="muted">${t('remitos.colFecha')}: ${formatDateTime(detail.fecha)}</div>
-        <hr>
-        <div><strong>${t('remitos.colCliente')}:</strong> ${detail.cliente_nombre || '—'}</div>
-        ${detail.cliente_documento ? `<div class="small">${detail.cliente_documento}</div>` : ''}
-        ${detail.cliente_direccion ? `<div class="small">${detail.cliente_direccion}</div>` : ''}
-        ${detail.pedido_id ? `<div class="small">${t('remitos.colPedido')}: #${detail.pedido_numero ?? detail.pedido_id}</div>` : ''}
-        <hr>
-        <table>${rows || `<tr><td class="center">—</td></tr>`}</table>
-        ${detail.observaciones ? `<hr><div class="small"><strong>Obs:</strong> ${detail.observaciones}</div>` : ''}
-        <hr>
-        <div class="center small">${t('remitos.receivedBy') || 'Recibí conforme'} ____________________</div>
-        <div class="center small">${t('remitos.signature') || 'Firma, aclaración y DNI'}</div>
-      </body></html>`)
-      win.document.close()
-      win.print()
+      abrirDocumento({
+        titulo: `${t('remitos.title') || 'Remito'} ${detail.numero}`,
+        ancho: 800,
+        alto: 900,
+        estilos: `
+        @page{size:A4;margin:0}
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#111;padding:15mm;line-height:1.4}
+        .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:16px}
+        .header-left h1{font-size:18px;font-weight:700;text-transform:uppercase;margin-bottom:2px}
+        .header-left p{font-size:11px;color:#444}
+        .header-right{text-align:right}
+        .header-right h2{font-size:16px;font-weight:700;text-transform:uppercase;margin-bottom:4px}
+        .header-right p{font-size:11px;color:#444}
+        .doc-title{font-size:20px;font-weight:700;text-align:center;text-transform:uppercase;margin:12px 0;padding:8px;border:2px solid #111;background:#f9fafb}
+        .section{margin-bottom:12px}
+        .section-label{font-size:10px;font-weight:700;text-transform:uppercase;color:#6b7280;margin-bottom:4px;letter-spacing:0.5px}
+        .client-box{border:1px solid #d1d5db;border-radius:6px;padding:10px 12px;margin-bottom:14px;background:#fafafa}
+        .client-box p{margin:2px 0;font-size:11px}
+        .client-box strong{font-size:11px}
+        table.items{width:100%;border-collapse:collapse;margin-bottom:14px}
+        table.items thead{border-bottom:2px solid #111}
+        table.items th{padding:6px 4px;font-size:10px;font-weight:700;text-transform:uppercase;text-align:left;color:#374151;letter-spacing:0.3px}
+        table.items th:last-child{text-align:right}
+        .totals{display:flex;justify-content:flex-end;margin-bottom:16px}
+        .totals table{text-align:right;min-width:220px}
+        .totals td{padding:3px 8px;font-size:12px}
+        .totals .total-row{border-top:2px solid #111;font-weight:700;font-size:14px}
+        .obs{border:1px solid #d1d5db;border-radius:6px;padding:8px 12px;margin-bottom:16px;font-size:11px}
+        .signatures{display:flex;justify-content:space-between;margin-top:40px;page-break-inside:avoid}
+        .sig-block{text-align:center;width:45%}
+        .sig-line{border-top:1px solid #111;margin-top:50px;padding-top:6px;font-size:11px;color:#374151}
+        .sig-label{font-size:10px;color:#6b7280;margin-top:2px}
+        .footer{margin-top:20px;text-align:center;font-size:9px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:8px}
+        @media print{body{padding:12mm}}
+        `,
+        cuerpo: `
+        <div class="header">
+          <div class="header-left">
+            <h1>${escapeHtml(bizName || 'TOG Admin')}</h1>
+            ${bizRif ? `<p><strong>RIF:</strong> ${escapeHtml(bizRif)}</p>` : ''}
+            ${bizAddr ? `<p>${escapeHtml(bizAddr)}</p>` : ''}
+            ${bizPhone ? `<p>Tel: ${escapeHtml(bizPhone)}</p>` : ''}
+          </div>
+          <div class="header-right">
+            <h2>REMITO</h2>
+            <p><strong>N°:</strong> ${escapeHtml(detail.numero)}</p>
+            <p>${formatDateTime(detail.fecha)}</p>
+          </div>
+        </div>
+
+        <div class="doc-title">REMITO DE ENTREGA N° ${escapeHtml(detail.numero)}</div>
+
+        <div class="client-box">
+          <p><strong>Cliente:</strong> ${detail.cliente_nombre ? escapeHtml(detail.cliente_nombre) : '—'}</p>
+          ${detail.cliente_documento ? `<p><strong>Documento / RIF:</strong> ${escapeHtml(detail.cliente_documento)}</p>` : ''}
+          ${detail.cliente_direccion ? `<p><strong>Dirección:</strong> ${escapeHtml(detail.cliente_direccion)}</p>` : ''}
+          ${detail.cliente_telefono ? `<p><strong>Teléfono:</strong> ${escapeHtml(detail.cliente_telefono)}</p>` : ''}
+          ${detail.pedido_id ? `<p><strong>Pedido:</strong> N° ${escapeHtml(detail.pedido_numero ?? detail.pedido_id)}</p>` : ''}
+        </div>
+
+        <table class="items">
+          <thead>
+            <tr>
+              <th style="width:50px">Cant.</th>
+              <th>Descripción</th>
+              <th style="width:80px;text-align:right">P. Unit.</th>
+              <th style="width:90px;text-align:right">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows || `<tr><td colspan="4" style="text-align:center;padding:16px;color:#9ca3af">Sin ítems</td></tr>`}
+          </tbody>
+        </table>
+
+        <div class="totals">
+          <table>
+            <tr><td>TOTAL:</td><td style="font-weight:700;font-size:14px">$ ${total.toFixed(2)}</td></tr>
+          </table>
+        </div>
+
+        ${detail.observaciones ? `<div class="obs"><strong>Observaciones:</strong> ${escapeHtml(detail.observaciones)}</div>` : ''}
+
+        <div class="signatures">
+          <div class="sig-block">
+            <div class="sig-line">Firma y sello de la empresa</div>
+            <div class="sig-label">Responsable de la entrega</div>
+          </div>
+          <div class="sig-block">
+            <div class="sig-line">Firma del chofer receptor</div>
+            <div class="sig-label">Aclaración, DNI y fecha</div>
+          </div>
+        </div>
+
+        <div class="footer">
+          ${escapeHtml(bizName || 'TOG Admin')}${bizRif ? ` · RIF ${escapeHtml(bizRif)}` : ''} · ${escapeHtml(bizAddr || '')} · ${escapeHtml(bizPhone || '')}
+        </div>
+        `,
+      })
     } catch (err: any) {
       toast.error(err?.message || t('remitos.printError') || 'Error al imprimir')
     }

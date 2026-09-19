@@ -3,6 +3,7 @@ import { getDatabase } from '../../db/database'
 import { t } from '../../i18n'
 import { checkPermissionOrFail } from '../../core/auth'
 import { cajaAbrirSchema, cajaCerrarSchema, movimientoCajaSchema, validateInput } from '../../../shared/validations'
+import { localDateTimeStr } from '../../utils/time'
 
 export function registerCajaHandlers(): void {
   handleIpc('caja:status', async (_event, data?: any) => {
@@ -33,8 +34,8 @@ export function registerCajaHandlers(): void {
     }
 
     const result = db.prepare(
-      'INSERT INTO caja (usuario_id, fondo_inicial, almacen_id) VALUES (?, ?, ?)'
-    ).run(data.usuario_id, data.fondo_inicial, data.almacen_id || null)
+      'INSERT INTO caja (usuario_id, fondo_inicial, almacen_id, fecha_apertura) VALUES (?, ?, ?, ?)'
+    ).run(data.usuario_id, data.fondo_inicial, data.almacen_id || null, localDateTimeStr())
 
     return { success: true, id: result.lastInsertRowid }
   })
@@ -60,10 +61,10 @@ export function registerCajaHandlers(): void {
           diferencia = ?,
           notas = COALESCE(?, notas),
           estado = 'cerrada',
-          fecha_cierre = datetime('now'),
-          cerrado_en = datetime('now')
+          fecha_cierre = ?,
+          cerrado_en = ?
         WHERE id = ?
-      `).run(totalEsperado, data.total_real, diferencia, data.notas || null, data.caja_id)
+      `).run(totalEsperado, data.total_real, diferencia, data.notas || null, localDateTimeStr(), localDateTimeStr(), data.caja_id)
 
       return { success: true, diferencia }
     })
@@ -84,9 +85,9 @@ export function registerCajaHandlers(): void {
     }
 
     db.prepare(`
-      INSERT INTO movimientos_caja (caja_id, tipo, monto, descripcion)
-      VALUES (?, ?, ?, ?)
-    `).run(cajaAbierta.id, data.tipo, data.monto, data.descripcion)
+      INSERT INTO movimientos_caja (caja_id, tipo, monto, descripcion, fecha)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(cajaAbierta.id, data.tipo, data.monto, data.descripcion, localDateTimeStr())
 
     if (data.tipo === 'entrada') {
       db.prepare('UPDATE caja SET total_entradas = total_entradas + ? WHERE id = ?').run(data.monto, cajaAbierta.id)

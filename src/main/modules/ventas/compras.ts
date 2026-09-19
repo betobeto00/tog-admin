@@ -3,6 +3,7 @@ import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { compraCreateSchema } from '../../../shared/validations'
 import { registrarAsientosCompra } from '../administracion/asientos'
+import { localDateStr, localDateTimeStr } from '../../utils/time'
 
 export function registerComprasHandlers(): void {
   handleIpc('compras:list', async (_event, filters?: any) => {
@@ -42,15 +43,17 @@ export function registerComprasHandlers(): void {
     const db = getDatabase()
 
     const createCompra = db.transaction(() => {
-      const hoy = new Date().toISOString().split('T')[0]
+      const d = new Date()
+      const hoy = localDateStr(d)
+      const fechaLocal = localDateTimeStr(d)
       const lastCompra = db!.prepare(
         "SELECT MAX(numero_compra) as max_num FROM compras WHERE DATE(fecha) = ?"
       ).get(hoy) as any
       const numeroCompra = (lastCompra?.max_num || 0) + 1
 
       const result = db!.prepare(`
-        INSERT INTO compras (numero_compra, proveedor_id, usuario_id, subtotal, impuesto, total, metodo_pago, notas)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO compras (numero_compra, proveedor_id, usuario_id, subtotal, impuesto, total, metodo_pago, notas, fecha)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         numeroCompra,
         data.proveedor_id || null,
@@ -60,6 +63,7 @@ export function registerComprasHandlers(): void {
         data.total,
         data.metodo_pago || 'efectivo',
         data.notas || null,
+        fechaLocal,
       )
 
       const compraId = result.lastInsertRowid
@@ -80,7 +84,7 @@ export function registerComprasHandlers(): void {
       // Asiento contable de la compra (best-effort, nunca rompe la compra)
       registrarAsientosCompra(
         db,
-        { id: Number(compraId), numero_compra: numeroCompra, fecha: hoy, subtotal: data.subtotal, impuesto: data.impuesto, total: data.total },
+        { id: Number(compraId), numero_compra: numeroCompra, fecha: fechaLocal, subtotal: data.subtotal, impuesto: data.impuesto, total: data.total },
         data.usuario_id ?? null,
       )
 

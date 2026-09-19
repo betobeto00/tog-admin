@@ -238,7 +238,7 @@ export const quoteCreateSchema = z.object({
 
 export const configSetSchema = z.object({
   clave: z.string().min(1, 'Clave requerida').max(100, 'Máximo 100 caracteres'),
-  valor: z.string().max(500, 'Máximo 500 caracteres'),
+  valor: z.string().max(5_000_000, 'Máximo 5 MB en texto'),
 })
 
 // ============================================

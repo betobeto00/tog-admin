@@ -8,7 +8,8 @@ import {
 import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import { useToast } from '../components/ui/Toast'
-import { formatDateTime } from '../lib/utils'
+import { formatDateTime, escapeHtml } from '../lib/utils'
+import { abrirDocumento } from '../lib/print'
 import { formatMoney } from '../services/currency'
 import { callApi } from '../lib/api-client'
 
@@ -218,11 +219,13 @@ export default function QuotesPage() {
       bizEin = get('ein')
     } catch {}
     const rows = (q.detalles || []).map((d: any) =>
-      `<tr><td>${d.descripcion || '—'}</td><td style="text-align:center">${d.cantidad}</td><td style="text-align:right">${formatMoney(d.precio_unitario)}</td><td style="text-align:right">${formatMoney(d.subtotal)}</td></tr>`
+      `<tr><td>${escapeHtml(d.descripcion || '—')}</td><td style="text-align:center">${d.cantidad}</td><td style="text-align:right">${formatMoney(d.precio_unitario)}</td><td style="text-align:right">${formatMoney(d.subtotal)}</td></tr>`
     ).join('')
-    const win = window.open('', '_blank', 'width=840,height=640')
-    if (!win) return
-    win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>${t('quotes.pdfHeader')} #${String(q.numero_cotizacion).padStart(6, '0')}</title><style>
+    abrirDocumento({
+      titulo: `${t('quotes.pdfHeader')} #${String(q.numero_cotizacion).padStart(6, '0')}`,
+      ancho: 840,
+      alto: 640,
+      estilos: `
       *{box-sizing:border-box}
       body{font-family:Arial,Helvetica,sans-serif;color:#1f2937;margin:0;padding:32px;background:#f3f4f6}
       .page{max-width:720px;margin:0 auto;background:#fff;padding:40px;border:1px solid #e5e7eb;box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -240,28 +243,29 @@ export default function QuotesPage() {
       .notes{background:#f9fafb;border-left:3px solid #3b82f6;padding:12px 16px;margin-top:24px;font-size:12px}
       .footer{margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;text-align:center;color:#9ca3af;font-size:11px}
       @media print{body{background:#fff;padding:0}.page{box-shadow:none;border:none}}
-    </style></head><body><div class="page">
+      `,
+      cuerpo: `<div class="page">
       <div class="head">
         <div>
-          ${logo ? `<img src="${logo}" style="max-width:150px;max-height:70px;margin-bottom:8px">` : ''}
-          <div class="brand">${bizName || 'TOG Admin'}</div>
-          ${bizAddr ? `<div class="muted">${bizAddr}</div>` : ''}
-          ${bizPhone ? `<div class="muted">${bizPhone}</div>` : ''}
-          ${bizEin ? `<div class="muted">${bizEin}</div>` : ''}
+          ${logo ? `<img src="${escapeHtml(logo)}" style="max-width:150px;max-height:70px;margin-bottom:8px">` : ''}
+          <div class="brand">${escapeHtml(bizName || 'TOG Admin')}</div>
+          ${bizAddr ? `<div class="muted">${escapeHtml(bizAddr)}</div>` : ''}
+          ${bizPhone ? `<div class="muted">${escapeHtml(bizPhone)}</div>` : ''}
+          ${bizEin ? `<div class="muted">${escapeHtml(bizEin)}</div>` : ''}
         </div>
         <div style="text-align:right">
           <h1>${t('quotes.pdfHeader')}</h1>
           <div class="quote-no">#${String(q.numero_cotizacion).padStart(6, '0')}</div>
           <div class="muted">${formatDateTime(q.fecha)}</div>
-          ${q.fecha_vencimiento ? `<div class="muted">${t('quotes.validUntil')}: ${q.fecha_vencimiento}</div>` : ''}
+          ${q.fecha_vencimiento ? `<div class="muted">${t('quotes.validUntil')}: ${escapeHtml(q.fecha_vencimiento)}</div>` : ''}
         </div>
       </div>
       <div>
         <div class="muted" style="text-transform:uppercase;letter-spacing:.05em">${t('quotes.billTo')}</div>
-        <div style="font-size:15px;font-weight:600;margin-top:4px">${q.cliente_nombre}</div>
-        ${q.cliente_email ? `<div class="muted">${q.cliente_email}</div>` : ''}
-        ${q.cliente_telefono ? `<div class="muted">${q.cliente_telefono}</div>` : ''}
-        ${q.cliente_direccion ? `<div class="muted">${q.cliente_direccion}</div>` : ''}
+        <div style="font-size:15px;font-weight:600;margin-top:4px">${escapeHtml(q.cliente_nombre)}</div>
+        ${q.cliente_email ? `<div class="muted">${escapeHtml(q.cliente_email)}</div>` : ''}
+        ${q.cliente_telefono ? `<div class="muted">${escapeHtml(q.cliente_telefono)}</div>` : ''}
+        ${q.cliente_direccion ? `<div class="muted">${escapeHtml(q.cliente_direccion)}</div>` : ''}
       </div>
       <table>
         <thead><tr><th>${t('quotes.description')}</th><th style="text-align:center">${t('quotes.qty')}</th><th style="text-align:right">${t('quotes.price')}</th><th style="text-align:right">${t('quotes.subtotal')}</th></tr></thead>
@@ -272,12 +276,10 @@ export default function QuotesPage() {
         ${(q.impuesto || 0) > 0 ? `<div><span class="muted">${t('quotes.tax')}</span><span>${formatMoney(q.impuesto)}</span></div>` : ''}
         <div class="grand"><span>${t('quotes.total')}</span><span>${formatMoney(q.total || 0)}</span></div>
       </div>
-      ${q.notas ? `<div class="notes"><strong>${t('quotes.notes')}:</strong> ${q.notas}</div>` : ''}
+      ${q.notas ? `<div class="notes"><strong>${t('quotes.notes')}:</strong> ${escapeHtml(q.notas)}</div>` : ''}
       <div class="footer">${t('quotes.receiptThankYou')}</div>
-    </div></body></html>`)
-    win.document.close()
-    win.focus()
-    win.print()
+    </div>`,
+    })
   }
 
   const loadAndPrint = async (id: number) => {
@@ -290,10 +292,8 @@ export default function QuotesPage() {
   }
   const printQuote = async (q: any) => {
     const rows = q.detalles?.map((d: any) =>
-      `<tr><td>${d.descripcion}</td><td style="text-align:center">${d.cantidad}</td><td style="text-align:right">${formatMoney(d.precio_unitario)}</td><td style="text-align:right">${formatMoney(d.subtotal)}</td></tr>`
+      `<tr><td>${escapeHtml(d.descripcion)}</td><td style="text-align:center">${d.cantidad}</td><td style="text-align:right">${formatMoney(d.precio_unitario)}</td><td style="text-align:right">${formatMoney(d.subtotal)}</td></tr>`
     ).join('') || ''
-    const win = window.open('', '_blank', 'width=400,height=700')
-    if (!win) return
     // Cargar datos del negocio para logo y contacto
     let logo = '', bizName = '', bizAddr = '', bizPhone = '', bizEin = ''
     try {
@@ -305,14 +305,18 @@ export default function QuotesPage() {
       bizPhone = get('telefono')
       bizEin = get('ein')
     } catch {}
-    const logoHTML = logo ? `<div class="center" style="margin-bottom:8px"><img src="${logo}" style="max-width:140px;max-height:80px"></div>` : ''
+    const logoHTML = logo ? `<div class="center" style="margin-bottom:8px"><img src="${escapeHtml(logo)}" style="max-width:140px;max-height:80px"></div>` : ''
     const companyHTML = `
-      <div class="center" style="font-size:11px"><strong>${bizName}</strong></div>
-      ${bizAddr ? `<div class="center" style="font-size:9px;color:#555">${bizAddr}</div>` : ''}
-      ${bizPhone ? `<div class="center" style="font-size:9px;color:#555">${bizPhone}</div>` : ''}
-      ${bizEin ? `<div class="center" style="font-size:9px;color:#555">EIN: ${bizEin}</div>` : ''}
+      <div class="center" style="font-size:11px"><strong>${escapeHtml(bizName)}</strong></div>
+      ${bizAddr ? `<div class="center" style="font-size:9px;color:#555">${escapeHtml(bizAddr)}</div>` : ''}
+      ${bizPhone ? `<div class="center" style="font-size:9px;color:#555">${escapeHtml(bizPhone)}</div>` : ''}
+      ${bizEin ? `<div class="center" style="font-size:9px;color:#555">EIN: ${escapeHtml(bizEin)}</div>` : ''}
     `
-    win.document.write(`<!DOCTYPE html><html><head><style>
+    abrirDocumento({
+      titulo: `${t('quotes.pdfHeader')} #${String(q.numero_cotizacion).padStart(6, '0')}`,
+      ancho: 400,
+      alto: 700,
+      estilos: `
       body{font-family:monospace;font-size:11px;width:360px;margin:0 auto;padding:15px}
       h2{text-align:center;margin:5px 0;font-size:14px}
       table{width:100%;border-collapse:collapse;margin:8px 0}
@@ -321,19 +325,20 @@ export default function QuotesPage() {
       .right{text-align:right}.center{text-align:center}
       hr{border:none;border-top:1px dashed #000;margin:8px 0}
       .label{color:#666;font-size:10px}
-    </style></head><body>
+      `,
+      cuerpo: `
       ${logoHTML}
       ${companyHTML}
       <h2>QUOTE / ESTIMATE</h2>
       <div class="center">#${String(q.numero_cotizacion).padStart(6, '0')}</div>
       <div class="center" style="font-size:10px;color:#666">${formatDateTime(q.fecha)}</div>
-      ${q.fecha_vencimiento ? `<div class="center" style="font-size:10px;color:#999">${t('quotes.validUntil')}: ${q.fecha_vencimiento}</div>` : ''}
+      ${q.fecha_vencimiento ? `<div class="center" style="font-size:10px;color:#999">${t('quotes.validUntil')}: ${escapeHtml(q.fecha_vencimiento)}</div>` : ''}
       <hr>
       <div class="label">${t('quotes.billTo')}</div>
-      <div><strong>${q.cliente_nombre}</strong></div>
-      ${q.cliente_email ? `<div>${q.cliente_email}</div>` : ''}
-      ${q.cliente_telefono ? `<div>${q.cliente_telefono}</div>` : ''}
-      ${q.cliente_direccion ? `<div>${q.cliente_direccion}</div>` : ''}
+      <div><strong>${escapeHtml(q.cliente_nombre)}</strong></div>
+      ${q.cliente_email ? `<div>${escapeHtml(q.cliente_email)}</div>` : ''}
+      ${q.cliente_telefono ? `<div>${escapeHtml(q.cliente_telefono)}</div>` : ''}
+      ${q.cliente_direccion ? `<div>${escapeHtml(q.cliente_direccion)}</div>` : ''}
       <hr>
       <table><thead><tr><th style="text-align:left">${t('quotes.descriptionShort')}</th><th style="text-align:center">${t('quotes.qtyShort')}</th><th style="text-align:right">${t('quotes.price')}</th><th style="text-align:right">${t('quotes.subtotal')}</th></tr></thead>
       <tbody>${rows}</tbody></table>
@@ -341,11 +346,11 @@ export default function QuotesPage() {
       <div class="right">${t('quotes.subtotal')}: ${formatMoney(q.subtotal || 0)}</div>
       ${(q.impuesto || 0) > 0 ? `<div class="right">${t('quotes.tax')}: ${formatMoney(q.impuesto)}</div>` : ''}
       <div class="right total">${t('quotes.total')}: ${formatMoney(q.total || 0)}</div>
-      ${q.notas ? `<hr><div class="label">${t('quotes.notes')}:</div><div style="font-size:10px">${q.notas}</div>` : ''}
+      ${q.notas ? `<hr><div class="label">${t('quotes.notes')}:</div><div style="font-size:10px">${escapeHtml(q.notas)}</div>` : ''}
       <hr>
       <div class="center" style="margin-top:15px;font-size:10px;color:#666">${t('quotes.receiptThankYou')}</div>
-    </body></html>`)
-    win.document.close(); win.print()
+      `,
+    })
   }
 
   return (

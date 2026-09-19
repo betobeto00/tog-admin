@@ -5,6 +5,7 @@ import { checkPermissionOrFail } from '../../core/auth'
 import { productoCreateSchema, productoUpdateSchema } from '../../../shared/validations'
 import { esCombo, disponibilidad, costoReal, detalleCombo } from './combos'
 import { saveImagen, deleteImagen, getImagenDataUrl } from '../../services/imagenes'
+import { localDateTimeStr } from '../../utils/time'
 
 function syncProductStock(db: any, productoId: number): void {
   const row = db.prepare('SELECT COALESCE(SUM(stock), 0) as total FROM producto_almacen WHERE producto_id = ?').get(productoId) as any
@@ -306,9 +307,9 @@ export function registerProductosHandlers(): void {
       }
 
       db!.prepare(`
-        INSERT INTO ajustes_inventario (producto_id, usuario_id, stock_anterior, stock_nuevo, diferencia, justificacion)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(data.producto_id, data.usuario_id, stockAnterior, data.stock_nuevo, diferencia, data.justificacion)
+        INSERT INTO ajustes_inventario (producto_id, usuario_id, stock_anterior, stock_nuevo, diferencia, justificacion, fecha)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(data.producto_id, data.usuario_id, stockAnterior, data.stock_nuevo, diferencia, data.justificacion, localDateTimeStr())
 
       return { success: true, stock_anterior: stockAnterior, stock_nuevo: data.stock_nuevo, diferencia }
     })

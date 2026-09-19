@@ -44,10 +44,15 @@ export interface OpcionesEscPos {
 /**
  * Convierte el texto a bytes. Por defecto latin1, que es lo que las térmicas
  * económicas interpretan mejor (utf8 requiere `ESC t n` según el modelo).
+ *
+ * Los bytes de control se convierten en espacio. `sanearTexto` ya los quita del
+ * string, pero latin1 toma los 8 bits bajos de cada carácter: `U+011B` (ě)
+ * termina en `0x1B` = ESC, así que un nombre con esa letra podía inyectar un
+ * comando de impresora (cortar papel, abrir el cajón) saltando el saneado.
  */
 export function textoABytes(texto: string, encoding: OpcionesEscPos['encoding'] = 'latin1'): number[] {
   const buffer = Buffer.from(texto, encoding === 'utf8' ? 'utf8' : 'latin1')
-  return Array.from(buffer)
+  return Array.from(buffer, (b) => (b < 0x20 || b === 0x7f ? 0x20 : b))
 }
 
 /**

@@ -28,6 +28,12 @@ const RESERVED_CONFIG_KEYS: ReadonlySet<string> = new Set([
   'odds_api_key',
   'odds_api_base',
   'racing_api_key',
+  // Numeración de comprobantes: solo se toca por `facturacion:set-numeracion`,
+  // que exige rol admin (por acá cualquier `config_edit` podría renumerar la
+  // facturación, que es irreversible).
+  'numero_factura_siguiente',
+  'numero_control_serie',
+  'numero_control_correlativo',
 ])
 
 function isReservedConfigKey(clave: string): boolean {

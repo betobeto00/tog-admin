@@ -1,5 +1,19 @@
 import { describe, it, expect } from 'vitest'
-import { formatCurrency, formatDate, formatDateTime, formatTicketNumber, cn } from './utils'
+import { formatCurrency, formatDate, formatDateTime, formatTicketNumber, cn, escapeHtml } from './utils'
+
+describe('escapeHtml', () => {
+  it('neutralizes tags and quotes', () => {
+    expect(escapeHtml('<img src=x onerror=alert(1)>')).toBe('&lt;img src=x onerror=alert(1)&gt;')
+    expect(escapeHtml('"a" \'b\'')).toBe('&quot;a&quot; &#39;b&#39;')
+    expect(escapeHtml('a & b')).toBe('a &amp; b')
+  })
+
+  it('handles null, undefined and numbers', () => {
+    expect(escapeHtml(null)).toBe('')
+    expect(escapeHtml(undefined)).toBe('')
+    expect(escapeHtml(42)).toBe('42')
+  })
+})
 
 describe('formatCurrency', () => {
   it('formats a normal number with 2 decimals', () => {

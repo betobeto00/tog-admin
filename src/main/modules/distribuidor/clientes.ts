@@ -5,8 +5,8 @@ import { getActiveModules } from '../../services/license'
 import { clienteCreateSchema } from '../../../shared/validations'
 
 function checkModuleOrFail(): { success: false; error: string } | null {
-  if (!getActiveModules().includes('distribuidor')) {
-    return { success: false, error: 'El módulo Distribuidor no está activo en la licencia' }
+  if (!getActiveModules().includes('comercializador')) {
+    return { success: false, error: 'El módulo Comercializador no está activo en la licencia' }
   }
   return null
 }

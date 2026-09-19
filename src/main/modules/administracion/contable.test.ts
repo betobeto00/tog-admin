@@ -293,9 +293,10 @@ describe('Contable: gating y permisos', () => {
 
   it('usa el mes actual si no se envía período', async () => {
     const res = await call('contable:resumen')
-    const hoyISO = new Date().toISOString().slice(0, 10)
-    expect(res.periodo.desde).toBe(`${hoyISO.slice(0, 7)}-01`)
-    expect(res.periodo.hasta).toContain(hoyISO)
+    // El período por defecto es el mes local actual: comparar contra la fecha
+    // local (no toISOString, que convierte a UTC y falla de noche en UTC-4).
+    expect(res.periodo.desde).toBe(`${YYYY}-${MM}-01`)
+    expect(res.periodo.hasta).toContain(`${YYYY}-${MM}-${DD}`)
   })
 })
 

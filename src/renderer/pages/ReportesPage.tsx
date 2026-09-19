@@ -5,7 +5,9 @@ import {
   PieChart, Pie, Cell, LineChart, Line, Legend
 } from 'recharts'
 import { BarChart3, TrendingUp, Package, Calendar, Download, FileText } from 'lucide-react'
-import { formatDateTime } from '../lib/utils'
+import { formatDateTime, escapeHtml } from '../lib/utils'
+import { abrirDocumento } from '../lib/print'
+import { aCsv } from '@shared/csv'
 import { formatMoney } from '../services/currency'
 import { callApi } from '../lib/api-client'
 
@@ -108,8 +110,8 @@ export default function ReportesPage() {
           rows.push([])
           rows.push([t('reportes.category'), t('reportes.sales'), t('reportes.units'), t('reportes.income')])
           ventasCategoria.forEach(c => rows.push([c.categoria, String(c.total_ventas), String(c.total_unidades), String(c.total_ingreso)]))
-          const csv = rows.map(r => r.join(',')).join('\n')
-          const blob = new Blob([csv], { type: 'text/csv' })
+          const csv = aCsv(rows)
+          const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
           const url = URL.createObjectURL(blob)
           const a = document.createElement('a'); a.href = url; a.download = `reporte-${fechaInicio}-${fechaFin}.csv`; a.click()
           URL.revokeObjectURL(url)
@@ -117,9 +119,11 @@ export default function ReportesPage() {
           <Download className="w-4 h-4" /> {t('reportes.exportCsv')}
         </button>
         <button onClick={() => {
-          const win = window.open('', '_blank', 'width=800,height=600')
-          if (!win) return
-win.document.write(`<html><head><title>${t('reportes.reportTitle')} - TOG Admin</title><style>
+          abrirDocumento({
+            titulo: `${t('reportes.reportTitle')} - TOG Admin`,
+            ancho: 800,
+            alto: 600,
+            estilos: `
             body{font-family:Arial,sans-serif;padding:20px;color:#333}
             h1{font-size:20px;border-bottom:2px solid #3b82f6;padding-bottom:8px}
             h2{font-size:16px;margin-top:20px;color:#1e40af}
@@ -131,7 +135,8 @@ win.document.write(`<html><head><title>${t('reportes.reportTitle')} - TOG Admin<
             .card{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;flex:1}
             .card p{font-size:12px;color:#6b7280}
             .card span{font-size:18px;font-weight:bold}
-          </style></head><body>
+            `,
+            cuerpo: `
             <h1>TOG Admin — ${t('reportes.reportTitle')}</h1>
             <p>${t('reportes.periodLabel')} ${fechaInicio} - ${fechaFin} | ${t('reportes.generated')} ${new Date().toLocaleString()}</p>
             <div class="summary">
@@ -145,15 +150,14 @@ win.document.write(`<html><head><title>${t('reportes.reportTitle')} - TOG Admin<
             </tbody></table>
             <h2>${t('reportes.topProducts')}</h2>
             <table><thead><tr><th>${t('reportes.product')}</th><th>${t('reportes.sold')}</th><th>${t('reportes.income')}</th></tr></thead><tbody>
-              ${topProductos.map(p => `<tr><td>${p.nombre}</td><td>${p.total_vendido}</td><td>$${p.total_ingreso.toFixed(2)}</td></tr>`).join('')}
+              ${topProductos.map(p => `<tr><td>${escapeHtml(p.nombre)}</td><td>${p.total_vendido}</td><td>$${p.total_ingreso.toFixed(2)}</td></tr>`).join('')}
             </tbody></table>
             <h2>${t('reportes.salesByCategory')}</h2>
             <table><thead><tr><th>${t('reportes.category')}</th><th>${t('reportes.salesCount')}</th><th>${t('reportes.units')}</th><th>${t('reportes.income')}</th></tr></thead><tbody>
-              ${ventasCategoria.map(c => `<tr><td>${c.categoria}</td><td>${c.total_ventas}</td><td>${c.total_unidades}</td><td>$${c.total_ingreso.toFixed(2)}</td></tr>`).join('')}
+              ${ventasCategoria.map(c => `<tr><td>${escapeHtml(c.categoria)}</td><td>${c.total_ventas}</td><td>${c.total_unidades}</td><td>$${c.total_ingreso.toFixed(2)}</td></tr>`).join('')}
             </tbody></table>
-            <script>window.onload=()=>{window.print()}</script>
-          </body></html>`)
-          win.document.close()
+            `,
+          })
         }} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
           <FileText className="w-4 h-4" /> {t('reportes.printPdf')}
         </button>

@@ -4,6 +4,7 @@ dist-electron/
 dist-win/
 release/
 data/
+*.tsbuildinfo
 *.db
 *.db-wal
 *.db-shm

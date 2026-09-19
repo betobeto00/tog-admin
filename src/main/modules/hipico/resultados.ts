@@ -107,7 +107,8 @@ export function registerResultadosHandlers(): void {
     const fail = checkPermissionOrFail(data, 'hipico:stats', 'hipico_view')
     if (fail) return fail
     const db = getDatabase()
-    const hoy = new Date().toISOString().split('T')[0]
+    const d = new Date()
+    const hoy = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     const caballos = db.prepare('SELECT COUNT(*) as total FROM hipico_caballos WHERE activo = 1').get() as any
     const propietarios = db.prepare('SELECT COUNT(*) as total FROM hipico_propietarios WHERE activo = 1').get() as any
     const programadas = db.prepare("SELECT COUNT(*) as total FROM hipico_carreras WHERE estado = 'programada'").get() as any

@@ -8,7 +8,7 @@
  */
 
 import { handleIpc } from '../../core/auth/ipc-guard'
-import { checkPermissionOrFail } from '../../core/auth'
+import { checkPermissionOrFail, isAdminUser, resolveAuthenticatedUserId } from '../../core/auth'
 import { getDatabase } from '../../db/database'
 import {
   construirLineasTicket,
@@ -86,6 +86,19 @@ export function registerPrintHandlers(): void {
       const valor = typeof data[campo] === 'boolean' ? (data[campo] ? '1' : '0') : String(data[campo])
       guardarConfig(db, clave, valor)
     }
+    // La serie y el correlativo son numeración de comprobantes: renumerar
+    // facturas ya emitidas es irreversible, así que además de `print_config`
+    // se exige rol admin (la UI pide confirmación explícita).
+    if (data.serie !== undefined || data.correlativo !== undefined) {
+      const userId = resolveAuthenticatedUserId(data)
+      if (userId == null || !isAdminUser(userId)) {
+        return {
+          success: false,
+          error: 'Solo un administrador puede cambiar la numeración de comprobantes',
+          channel: 'print:set-config',
+        }
+      }
+    }
     if (data.serie !== undefined) guardarConfig(db, CLAVES_FISCALES.serie, String(data.serie))
     if (data.correlativo !== undefined) {
       const n = Math.max(Math.trunc(Number(data.correlativo) || 0), 0)
@@ -114,6 +127,18 @@ export function registerPrintHandlers(): void {
     if (!doc) return { success: false, error: 'No hay ventas para imprimir' }
     const resultado = await imprimirDocumento(doc)
     return { ...resultado, documento: doc }
+  })
+
+  // Documento de una venta SIN imprimir: lo consume la vista A4 del renderer,
+  // que imprime con `window.print()` (mismo `DocumentoVenta` que el ticket).
+  handleIpc('print:documento-venta', async (_event, data?: any) => {
+    const fail = checkPermissionOrFail(data, 'print:documento-venta', 'print_access')
+    if (fail) return fail
+    const ventaId = Number(data?.venta_id)
+    if (!Number.isInteger(ventaId) || ventaId <= 0) return { success: false, error: 'Falta la venta' }
+    const doc = documentoDeVenta(ventaId, getDatabase())
+    if (!doc) return { success: false, error: 'Venta no encontrada' }
+    return { success: true, documento: doc }
   })
 
   // Ticket de una apuesta hípica (o su reimpresión)

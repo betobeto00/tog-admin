@@ -5,7 +5,8 @@ import { getActiveModules } from '../../services/license'
 import { ventaCreateSchema } from '../../../shared/validations'
 import { esCombo, explotar, agruparHojas } from '../inventario/combos'
 import { registrarAsientosVenta, revertirAsientosVenta } from '../administracion/asientos'
-import { siguienteNumeroControl } from '../../services/fiscal'
+import { siguienteNumeroControl, proximaFactura, guardarConfig, CLAVES_FISCALES } from '../../services/fiscal'
+import { localDateTimeStr } from '../../utils/time'
 
 /**
  * Crea una venta completa (validación, stock, combos, crédito/fiado y caja).
@@ -22,10 +23,10 @@ export function createVenta(data: any): any {
   let clienteRes: any = null
 
   if (data.cliente_id) {
-    if (!getActiveModules().includes('distribuidor')) {
-      return { success: false, error: 'El módulo Distribuidor no está activo en la licencia' }
+    if (!getActiveModules().includes('comercializador')) {
+      return { success: false, error: 'El módulo Comercializador no está activo en la licencia' }
     }
-    const cliente = db.prepare('SELECT id, nombre, limite_credito FROM clientes WHERE id = ? AND activo = 1').get(data.cliente_id) as any
+    const cliente = db.prepare('SELECT id, nombre, limite_credito, telefono, documento FROM clientes WHERE id = ? AND activo = 1').get(data.cliente_id) as any
     if (!cliente) {
       return { success: false, error: 'Cliente no encontrado' }
     }
@@ -83,11 +84,13 @@ export function createVenta(data: any): any {
   }
 
   const insertVenta = db.transaction(() => {
-    const hoy = new Date().toISOString().split('T')[0]
-    const lastVenta = db!.prepare(
-      "SELECT MAX(numero_venta) as max_num FROM ventas WHERE DATE(fecha) = ?"
-    ).get(hoy) as any
-    const numeroVenta = (lastVenta?.max_num || 0) + 1
+    const d = new Date()
+    const fechaLocal = localDateTimeStr(d)
+    // Numeración continua (no reinicia por día): continúa desde la última
+    // factura emitida o desde el número configurado en Configuración → Negocio.
+    // Se reserva dentro de la transacción para que no haya dos con el mismo.
+    const numeroVenta = proximaFactura(db!)
+    guardarConfig(db!, CLAVES_FISCALES.factura, String(numeroVenta + 1))
 
     // N° de control fiscal (SENIAT): solo las facturas lo llevan, y se reserva
     // dentro de esta transacción para que no haya dos con el mismo número.
@@ -96,8 +99,8 @@ export function createVenta(data: any): any {
 
     const result = db!.prepare(`
       INSERT INTO ventas (numero_venta, usuario_id, subtotal, impuesto, descuento, total,
-        metodo_pago, monto_pagado, cambio, notas, cliente_id, tipo_comprobante, numero_control)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        metodo_pago, monto_pagado, cambio, notas, cliente_id, tipo_comprobante, numero_control, fecha)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       numeroVenta,
       data.usuario_id,
@@ -112,6 +115,7 @@ export function createVenta(data: any): any {
       data.cliente_id || null,
       esFactura ? 'factura' : 'nota_entrega',
       numeroControl,
+      fechaLocal,
     )
 
     const ventaId = result.lastInsertRowid
@@ -174,19 +178,20 @@ export function createVenta(data: any): any {
       const saldo = Math.max(0, data.total - (data.monto_pagado || 0))
       const resultCredito = db!.prepare(`
         INSERT INTO creditos (venta_id, cliente_id, deudor_nombre, deudor_telefono, deudor_documento,
-          monto_total, saldo, estado, usuario_id, notas)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          monto_total, saldo, estado, usuario_id, notas, fecha)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         ventaId,
         data.cliente_id || null,
         clienteRes ? clienteRes.nombre : (data.deudor_nombre || 'Cliente'),
-        data.deudor_telefono || null,
-        data.deudor_documento || null,
+        clienteRes?.telefono || data.deudor_telefono || null,
+        clienteRes?.documento || data.deudor_documento || null,
         data.total,
         saldo,
         saldo <= 0.005 ? 'pagado' : 'pendiente',
         data.usuario_id,
         data.notas || null,
+        fechaLocal,
       )
       creditoId = resultCredito.lastInsertRowid as number
     }
@@ -195,9 +200,9 @@ export function createVenta(data: any): any {
     const montoCaja = esFiado ? (data.monto_pagado || 0) : data.total
     if (cajaAbierta && montoCaja > 0) {
       db!.prepare(`
-        INSERT INTO movimientos_caja (caja_id, tipo, monto, descripcion, referencia_id)
-        VALUES (?, 'venta', ?, ?, ?)
-      `).run(cajaAbierta.id, montoCaja, esFiado ? `Venta #${numeroVenta} (fiado)` : `Venta #${numeroVenta}`, ventaId)
+        INSERT INTO movimientos_caja (caja_id, tipo, monto, descripcion, referencia_id, fecha)
+        VALUES (?, 'venta', ?, ?, ?, ?)
+      `).run(cajaAbierta.id, montoCaja, esFiado ? `Venta #${numeroVenta} (fiado)` : `Venta #${numeroVenta}`, ventaId, fechaLocal)
 
       db!.prepare('UPDATE caja SET total_ventas = total_ventas + ? WHERE id = ?').run(
         montoCaja, cajaAbierta.id,
@@ -211,7 +216,7 @@ export function createVenta(data: any): any {
     // Asiento contable de la venta (best-effort, nunca rompe la venta)
     registrarAsientosVenta(
       db,
-      { id: Number(ventaId), numero_venta: numeroVenta, fecha: hoy, total: data.total, impuesto: data.impuesto, metodo_pago: data.metodo_pago, monto_pagado: data.monto_pagado },
+      { id: Number(ventaId), numero_venta: numeroVenta, fecha: fechaLocal, total: data.total, impuesto: data.impuesto, metodo_pago: data.metodo_pago, monto_pagado: data.monto_pagado },
       data.usuario_id ?? null,
     )
 
@@ -389,7 +394,7 @@ export function registerVentasHandlers(): void {
     const fail = checkPermissionOrFail(data, 'ventas:resumen-dia', 'caja_report_x')
     if (fail) return fail
     const db = getDatabase()
-    const fecha = data?.fecha || new Date().toISOString().split('T')[0]
+    const fecha = data?.fecha || (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
 
     const filas = db.prepare(`
       SELECT

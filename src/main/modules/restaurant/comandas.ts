@@ -3,6 +3,10 @@ import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { getActiveModules } from '../../services/license'
 import { createVenta } from '../ventas/ventas'
+import { leerConfig } from '../../services/fiscal'
+import { construirEscPos } from '../print/escpos'
+import { enviarEscPos } from '../../services/printer'
+import { type LineaTicket } from '../../../shared/print'
 
 function checkModuleOrFail(): { success: false; error: string } | null {
   if (!getActiveModules().includes('restaurant')) {
@@ -173,6 +177,53 @@ export function registerComandasHandlers(): void {
     const comanda = db.prepare("SELECT id FROM comandas WHERE id = ? AND estado NOT IN ('cobrada','anulada')").get(data.comanda_id) as any
     if (!comanda) return { success: false, error: 'Comanda no encontrada o ya cobrada' }
     db.prepare("UPDATE comandas SET estado = 'en_cocina' WHERE id = ?").run(data.comanda_id)
+    return { success: true }
+  })
+
+  handleIpc('comandas:print-kitchen', async (_event, data: { comanda_id: number; usuario_id: number }) => {
+    const fail = checkPermissionOrFail(data, 'comandas:print-kitchen', 'restaurant_comandas_edit')
+    if (fail) return fail
+    const moduleFail = checkModuleOrFail()
+    if (moduleFail) return moduleFail
+    const db = getDatabase()
+    const comanda = db.prepare(`
+      SELECT c.id, c.notas, m.nombre as mesa_nombre
+      FROM comandas c JOIN mesas m ON c.mesa_id = m.id
+      WHERE c.id = ?
+    `).get(data.comanda_id) as any
+    if (!comanda) return { success: false, error: 'Comanda no encontrada' }
+    const detalles = db.prepare(`
+      SELECT cd.descripcion, cd.cantidad, cd.notas
+      FROM comanda_detalles cd
+      WHERE cd.comanda_id = ? AND cd.estado != 'cancelado'
+      ORDER BY cd.id
+    `).all(data.comanda_id) as any[]
+    const cocinaPuerto = leerConfig(db, 'impresora_cocina_puerto')
+    if (!cocinaPuerto) {
+      return { success: false, error: 'No hay impresora de cocina configurada. Configurala en Configuración → Impresión.' }
+    }
+    const cocinaBaudrate = Number(leerConfig(db, 'impresora_cocina_baudrate', '9600')) || 9600
+    const bizName = leerConfig(db, 'nombre_negocio') || 'TOG Admin'
+    const lineas: LineaTicket[] = [
+      { texto: bizName, centrada: true, negrita: true },
+      { texto: '--- COMANDA ---', centrada: true, negrita: true, doble: true },
+      { texto: `${comanda.mesa_nombre} — #${comanda.id}`, centrada: true },
+      { texto: new Date().toLocaleString(), centrada: true },
+      { texto: '--------------------------------' },
+    ]
+    for (const d of detalles) {
+      const desc = d.descripcion || 'Ítem'
+      const nota = d.notas ? ` (${d.notas})` : ''
+      lineas.push({ texto: `${d.cantidad}x ${desc}${nota}` })
+    }
+    if (comanda.notas) {
+      lineas.push({ texto: '--------------------------------' })
+      lineas.push({ texto: `Nota: ${comanda.notas}` })
+    }
+    lineas.push({ texto: '--------------------------------' })
+    const bytes = construirEscPos(lineas)
+    const resultado = await enviarEscPos(bytes, { puerto: cocinaPuerto, baudRate: cocinaBaudrate })
+    if (!resultado.success) return { success: false, error: resultado.error || 'Error al imprimir en cocina' }
     return { success: true }
   })
 

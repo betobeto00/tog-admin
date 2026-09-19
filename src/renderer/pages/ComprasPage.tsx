@@ -16,6 +16,8 @@ interface Proveedor { id: number; nombre: string }
 interface CompraItem {
   producto_id: number; nombre: string; cantidad: number; costo_unitario: number; subtotal: number
 }
+interface MetodoPagoDB { id: number; clave: string; nombre: string; icono: string }
+
 interface CompraRecord {
   id: number; numero_compra: number; fecha: string; proveedor_nombre: string | null
   usuario_nombre: string; subtotal: number; impuesto: number; total: number
@@ -29,6 +31,7 @@ export default function ComprasPage() {
   const [compras, setCompras] = useState<CompraRecord[]>([])
   const [productos, setProductos] = useState<ProductoFull[]>([])
   const [proveedores, setProveedores] = useState<Proveedor[]>([])
+  const [metodosPago, setMetodosPago] = useState<MetodoPagoDB[]>([])
   const [loading, setLoading] = useState(true)
 
   // Nueva compra
@@ -51,6 +54,18 @@ export default function ComprasPage() {
   const [fechaFin, setFechaFin] = useState(() => new Date().toISOString().split('T')[0])
 
   useEffect(() => { loadData() }, [fechaInicio, fechaFin])
+
+  useEffect(() => {
+    callApi<MetodoPagoDB[]>('metodos-pago:list', { activoOnly: true })
+      .then((m) => {
+        const list = Array.isArray(m) ? m : []
+        setMetodosPago(list)
+        if (list.length > 0 && !list.find((x) => x.clave === metodoPago)) {
+          setMetodoPago(list[0].clave)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const addItem = (producto: ProductoFull) => {
     const existente = items.find((i) => i.producto_id === producto.id)
@@ -188,7 +203,9 @@ export default function ComprasPage() {
     } finally { setSaving(false) }
   }
 
-  const metodoLabel: Record<string, string> = { efectivo: '💵 ' + t('compras.cash'), transferencia: '🏦 ' + t('compras.transfer'), pago_movil: '📱 ' + t('compras.mobile') }
+  const metodoLabel: Record<string, string> = Object.fromEntries(
+    metodosPago.map((m) => [m.clave, m.nombre])
+  )
 
   return (
     <div className="space-y-4">
@@ -269,9 +286,9 @@ export default function ComprasPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('compras.paymentMethod')}</label>
               <select value={metodoPago} onChange={(e) => setMetodoPago(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                <option value="efectivo">{t('compras.cash')}</option>
-                <option value="transferencia">{t('compras.transfer')}</option>
-                <option value="pago_movil">{t('compras.mobile')}</option>
+                {metodosPago.map((m) => (
+                  <option key={m.id} value={m.clave}>{m.nombre}</option>
+                ))}
               </select>
             </div>
           </div>

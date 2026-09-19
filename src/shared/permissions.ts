@@ -248,13 +248,13 @@ export const PERMISSIONS = {
   // === DISTRIBUIDOR ===
   distribuidor_clientes_view: {
     label: { es: 'Ver Clientes', en: 'View Clients' },
-    category: { es: 'Distribuidor', en: 'Distributor' },
-    description: { es: 'Ver clientes del módulo Distribuidor', en: 'View Distributor module clients' },
+    category: { es: 'Comercializador', en: 'Comercializador' },
+    description: { es: 'Ver clientes', en: 'View clients' },
   },
   distribuidor_clientes_edit: {
     label: { es: 'Crear/Editar Clientes', en: 'Create/Edit Clients' },
-    category: { es: 'Distribuidor', en: 'Distributor' },
-    description: { es: 'Crear y editar clientes del módulo Distribuidor', en: 'Create and edit Distributor clients' },
+    category: { es: 'Comercializador', en: 'Comercializador' },
+    description: { es: 'Crear y editar clientes', en: 'Create and edit clients' },
   },
   distribuidor_pedidos_view: {
     label: { es: 'Ver Pedidos', en: 'View Orders' },
@@ -453,6 +453,7 @@ export const ROLE_DEFAULTS: Record<string, PermissionKey[]> = {
     'quotes_access',
     'quotes_create',
     'reportes_access',
+    'distribuidor_clientes_view',
     'usuarios_change_own_password',
   ],
 }

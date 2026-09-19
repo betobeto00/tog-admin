@@ -91,7 +91,7 @@ export function registerProductorHandlers(): void {
     if (!cultivo) return { success: false, error: 'Cultivo no encontrado' }
     const result = db.prepare(`
       INSERT INTO siembras (cultivo_id, descripcion, fecha_siembra, area, unidad_area, cantidad_sembrada, notas, usuario_id)
-      VALUES (?, ?, COALESCE(?, date('now')), ?, ?, ?, ?, ?)
+      VALUES (?, ?, COALESCE(?, date('now','localtime')), ?, ?, ?, ?, ?)
     `).run(
       data.cultivo_id, data.descripcion?.trim() || null, data.fecha_siembra || null,
       data.area || 0, data.unidad_area?.trim() || 'ha', data.cantidad_sembrada || 0,
@@ -119,7 +119,7 @@ export function registerProductorHandlers(): void {
       if (siembra.estado !== 'activa') throw new Error('La siembra ya fue cosechada o cancelada')
       if (!(data.cantidad_cosechada > 0)) throw new Error('La cantidad cosechada debe ser mayor a cero')
 
-      const fecha = data.fecha_cosecha || new Date().toISOString().slice(0, 10)
+      const fecha = data.fecha_cosecha || (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
       db!.prepare("UPDATE siembras SET estado = 'cosechada', fecha_cosecha = ?, cantidad_cosechada = ?, notas = COALESCE(?, notas) WHERE id = ?")
         .run(fecha, data.cantidad_cosechada, data.notas?.trim() || null, data.id)
 
@@ -170,7 +170,7 @@ export function registerProductorHandlers(): void {
     if (!siembra) return { success: false, error: 'Siembra no encontrada' }
     const result = db.prepare(`
       INSERT INTO costos_campo (siembra_id, fecha, concepto, monto, notas, usuario_id)
-      VALUES (?, COALESCE(?, date('now')), ?, ?, ?, ?)
+      VALUES (?, COALESCE(?, date('now','localtime')), ?, ?, ?, ?)
     `).run(data.siembra_id, data.fecha || null, data.concepto.trim(), data.monto, data.notas?.trim() || null, data.usuario_id ?? null)
     return { id: result.lastInsertRowid }
   })

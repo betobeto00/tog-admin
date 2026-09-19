@@ -4,6 +4,8 @@ import { Printer, RefreshCw, Save, Receipt, FileText, ShieldCheck, Loader2 } fro
 import { documentoDePrueba, type AnchoTicket } from '@shared/print'
 import { useToast } from '../components/ui/Toast'
 import { usePermissions } from '../hooks/usePermissions'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
+import { useAuthStore } from '@core/auth/store'
 import { callApi } from '../lib/api-client'
 import TicketLayout from '../components/print/TicketLayout'
 import A4Layout from '../components/print/A4Layout'
@@ -23,6 +25,7 @@ interface ConfigImpresion {
   correlativo: number
   alicuota_iva: number
   proximo_numero_control?: string
+  proxima_factura?: number
 }
 
 interface Puerto {
@@ -53,6 +56,7 @@ export default function ImpresionPage() {
   const toast = useToast()
   const { has } = usePermissions()
   const puedeConfigurar = has('print_config')
+  const esAdmin = useAuthStore((s) => s.usuario?.rol) === 'admin'
 
   const [pestana, setPestana] = useState<Pestana>('impresora')
   const [form, setForm] = useState<ConfigImpresion>(VACIO)
@@ -62,16 +66,65 @@ export default function ImpresionPage() {
   const [probando, setProbando] = useState(false)
   const [errorPuertos, setErrorPuertos] = useState('')
 
+  // Numeración (factura propia + N° de control fiscal). Solo un admin puede
+  // cambiarla y con confirmación: renumerar comprobantes ya emitidos no se
+  // deshace.
+  const [proximoControl, setProximoControl] = useState('1')
+  const [proximaFactura, setProximaFactura] = useState('1')
+  const [numeracionOriginal, setNumeracionOriginal] = useState({ serie: 'A', proximo_control: 1, proxima_factura: 1 })
+  const [guardandoNumeracion, setGuardandoNumeracion] = useState(false)
+  const [confirmNumeracion, setConfirmNumeracion] = useState(false)
+
   const cargar = async () => {
     setCargando(true)
     try {
       const cfg = await callApi<ConfigImpresion>('print:config', {})
       setForm({ ...VACIO, ...cfg, ancho_ticket: cfg.ancho_ticket === 58 ? 58 : 80 })
+      const proximo = (Number(cfg.correlativo) || 0) + 1
+      const factura = Number(cfg.proxima_factura) || 1
+      setProximoControl(String(proximo))
+      setProximaFactura(String(factura))
+      setNumeracionOriginal({ serie: (cfg.serie || 'A').toUpperCase(), proximo_control: proximo, proxima_factura: factura })
     } catch (err: any) {
       toast.error(err?.message || t('common.error'))
     } finally {
       setCargando(false)
     }
+  }
+
+  const numeroControlPreview = `${(form.serie || 'A').toUpperCase()}-${String(Number(proximoControl) || 0).padStart(8, '0')}`
+  const numeracionCambio =
+    (form.serie || 'A').toUpperCase() !== numeracionOriginal.serie ||
+    Number(proximoControl) !== numeracionOriginal.proximo_control ||
+    Number(proximaFactura) !== numeracionOriginal.proxima_factura
+
+  const guardarNumeracion = async () => {
+    setGuardandoNumeracion(true)
+    try {
+      const res = await callApi<{ success: boolean; error?: string }>('facturacion:set-numeracion', {
+        serie: form.serie,
+        proximo_numero_control: Number(proximoControl),
+        proxima_factura: Number(proximaFactura),
+      })
+      if (res?.success) {
+        toast.success(t('print.numberingSaved'))
+        await cargar()
+      } else {
+        toast.error(res?.error || t('common.error'))
+      }
+    } catch (err: any) {
+      toast.error(err?.message || t('common.error'))
+    } finally {
+      setGuardandoNumeracion(false)
+    }
+  }
+
+  const pedirGuardarNumeracion = () => {
+    if (!numeracionCambio) {
+      toast.info(t('print.numberingNoChanges'))
+      return
+    }
+    setConfirmNumeracion(true)
   }
 
   const cargarPuertos = async () => {
@@ -102,12 +155,12 @@ export default function ImpresionPage() {
           email: form.email,
         },
         {
-          numero_control: form.proximo_numero_control,
+          numero_control: numeroControlPreview,
           alicuota_iva: form.alicuota_iva || undefined,
           pie: form.pie_ticket,
         },
       ),
-    [form],
+    [form, numeroControlPreview],
   )
 
   const guardar = async () => {
@@ -124,8 +177,6 @@ export default function ImpresionPage() {
         ancho_ticket: form.ancho_ticket,
         abrir_cajon: form.abrir_cajon,
         copias: form.copias,
-        serie: form.serie,
-        correlativo: form.correlativo,
       })
       if (res?.success) {
         toast.success(t('print.saved'))
@@ -212,6 +263,12 @@ export default function ImpresionPage() {
         </button>
       </div>
 
+      <ConfirmDialog open={confirmNumeracion} onClose={() => setConfirmNumeracion(false)}
+        onConfirm={guardarNumeracion}
+        title={t('print.confirmNumberingTitle')}
+        message={t('print.confirmNumberingMessage', { factura: proximaFactura, control: numeroControlPreview })}
+        confirmText={t('print.saveNumbering')} danger />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="space-y-4">
           {pestana === 'impresora' ? (
@@ -295,6 +352,19 @@ export default function ImpresionPage() {
                 />
                 {t('print.openDrawer')}
               </label>
+
+              {/* Atajo: el RIF y la numeración viven en la otra pestaña y era
+                  fácil quedarse en "Impresora" sin verlos. */}
+              <p className="text-xs text-gray-500 border-t border-gray-100 pt-3">
+                {t('print.fiscalHint')}{' '}
+                <button
+                  type="button"
+                  onClick={() => setPestana('fiscal')}
+                  className="text-blue-600 hover:underline font-medium"
+                >
+                  {t('print.goToFiscal')}
+                </button>
+              </p>
             </section>
           ) : (
             <section className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
@@ -317,14 +387,6 @@ export default function ImpresionPage() {
                   <input value={form.direccion} onChange={(e) => setForm({ ...form, direccion: e.target.value })} disabled={!puedeConfigurar} className={inputClass} />
                 </div>
                 <div>
-                  <label className={etiqueta}>{t('print.controlSerie')}</label>
-                  <input value={form.serie} onChange={(e) => setForm({ ...form, serie: e.target.value.toUpperCase() })} disabled={!puedeConfigurar} className={inputClass} />
-                </div>
-                <div>
-                  <label className={etiqueta}>{t('print.controlNext')}</label>
-                  <input value={form.proximo_numero_control || ''} readOnly className={`${inputClass} bg-gray-50 text-gray-500`} />
-                </div>
-                <div>
                   <label className={etiqueta}>{t('print.taxRate')}</label>
                   <input
                     type="number"
@@ -343,6 +405,60 @@ export default function ImpresionPage() {
                 </div>
               </div>
               <p className="text-xs text-gray-500">{t('print.fiscalHelp')}</p>
+            </section>
+          )}
+
+          {pestana === 'fiscal' && (
+            <section className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+              <h2 className="text-sm font-semibold text-gray-800">{t('print.numberingSection')}</h2>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={etiqueta}>{t('print.controlSerie')}</label>
+                  <input
+                    value={form.serie}
+                    onChange={(e) => setForm({ ...form, serie: e.target.value.toUpperCase() })}
+                    disabled={!esAdmin}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className={etiqueta}>{t('print.controlNext')}</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={proximoControl}
+                    onChange={(e) => setProximoControl(e.target.value.replace(/\D/g, ''))}
+                    disabled={!esAdmin}
+                    className={inputClass}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">{numeroControlPreview}</p>
+                </div>
+                <div className="col-span-2">
+                  <label className={etiqueta}>{t('print.invoiceNext')}</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={proximaFactura}
+                    onChange={(e) => setProximaFactura(e.target.value.replace(/\D/g, ''))}
+                    disabled={!esAdmin}
+                    className={inputClass}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">{t('print.invoiceNextHelp')}</p>
+                </div>
+              </div>
+              <p className={`text-xs ${esAdmin ? 'text-gray-500' : 'text-amber-600'}`}>
+                {esAdmin ? t('print.numberingHelp') : t('print.numberingAdminOnly')}
+              </p>
+              <div className="flex justify-end">
+                <button
+                  onClick={pedirGuardarNumeracion}
+                  disabled={!esAdmin || guardandoNumeracion}
+                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:bg-purple-300 flex items-center gap-2"
+                >
+                  {guardandoNumeracion ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {t('print.saveNumbering')}
+                </button>
+              </div>
             </section>
           )}
         </div>

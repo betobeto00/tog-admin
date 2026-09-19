@@ -6,7 +6,8 @@ import {
   Clock, AlertTriangle, CheckCircle, History, Calculator, Printer, Package
 } from 'lucide-react'
 import Modal from '../components/ui/Modal'
-import { formatDateTime } from '../lib/utils'
+import { formatDateTime, escapeHtml } from '../lib/utils'
+import { abrirDocumento } from '../lib/print'
 import { formatMoney, getRate } from '../services/currency'
 import { callApi } from '../lib/api-client'
 
@@ -140,40 +141,40 @@ export default function CajaPage() {
 
   const imprimirCierre = () => {
     if (!caja) return
-    const html = `<!DOCTYPE html><html><head><style>
-      body{font-family:monospace;font-size:12px;width:280px;margin:0 auto;padding:10px}
-      h2{text-align:center;margin:5px 0;font-size:14px}
-      table{width:100%;border-collapse:collapse;margin:8px 0}
-      td{padding:2px 0}
-      .total{font-weight:bold;font-size:13px;border-top:1px dashed #000;padding-top:5px;margin-top:5px}
-      .center{text-align:center}.right{text-align:right}
-      hr{border:none;border-top:1px dashed #000;margin:8px 0}
-    </style></head><body>
-      <h2>TOG Admin - ${t('caja.receiptTitle')}</h2>
-      <div class="center">${formatDateTime(new Date().toISOString())}</div>
-      <hr>
-      <div>${t('caja.receiptCashier')} <strong>${caja.usuario_nombre}</strong></div>
-      <div>${t('caja.receiptOpening')} ${formatDateTime(caja.fecha_apertura)}</div>
-      <hr>
-      <table>
-        <tr><td>${t('caja.receiptInitialFund')}</td><td class="right">${formatMoney(caja.fondo_inicial)}</td></tr>
-        <tr><td>${t('caja.receiptSales')}</td><td class="right">${formatMoney(caja.total_ventas)}</td></tr>
-        <tr><td>${t('caja.receiptEntries')}</td><td class="right">${formatMoney(caja.total_entradas)}</td></tr>
-        <tr><td>${t('caja.receiptWithdrawals')}</td><td class="right">${formatMoney(caja.total_salidas)}</td></tr>
-        <tr><td class="total">${t('caja.receiptExpectedTotal')}</td><td class="right total">${formatMoney(totalEsperado)}</td></tr>
-      </table>
-      <hr>
-      <div class="total">${t('caja.receiptPhysicalCount')} ${formatMoney(totalEsperado)}</div>
-      <div class="total">${t('caja.receiptDifference')} $0.00</div>
-      <hr>
-      <div class="center" style="margin-top:15px;font-size:10px;color:#666">${t('caja.receiptDoc')}</div>
-    </body></html>`
-    const win = window.open('', '_blank', 'width=320,height=600')
-    if (win) {
-      win.document.write(html)
-      win.document.close()
-      win.print()
-    }
+    abrirDocumento({
+      titulo: `TOG Admin - ${t('caja.receiptTitle')}`,
+      ancho: 320,
+      alto: 600,
+      estilos: `
+        body{font-family:monospace;font-size:12px;width:280px;margin:0 auto;padding:10px}
+        h2{text-align:center;margin:5px 0;font-size:14px}
+        table{width:100%;border-collapse:collapse;margin:8px 0}
+        td{padding:2px 0}
+        .total{font-weight:bold;font-size:13px;border-top:1px dashed #000;padding-top:5px;margin-top:5px}
+        .center{text-align:center}.right{text-align:right}
+        hr{border:none;border-top:1px dashed #000;margin:8px 0}
+      `,
+      cuerpo: `
+        <h2>TOG Admin - ${t('caja.receiptTitle')}</h2>
+        <div class="center">${formatDateTime(new Date().toISOString())}</div>
+        <hr>
+        <div>${t('caja.receiptCashier')} <strong>${escapeHtml(caja.usuario_nombre)}</strong></div>
+        <div>${t('caja.receiptOpening')} ${formatDateTime(caja.fecha_apertura)}</div>
+        <hr>
+        <table>
+          <tr><td>${t('caja.receiptInitialFund')}</td><td class="right">${formatMoney(caja.fondo_inicial)}</td></tr>
+          <tr><td>${t('caja.receiptSales')}</td><td class="right">${formatMoney(caja.total_ventas)}</td></tr>
+          <tr><td>${t('caja.receiptEntries')}</td><td class="right">${formatMoney(caja.total_entradas)}</td></tr>
+          <tr><td>${t('caja.receiptWithdrawals')}</td><td class="right">${formatMoney(caja.total_salidas)}</td></tr>
+          <tr><td class="total">${t('caja.receiptExpectedTotal')}</td><td class="right total">${formatMoney(totalEsperado)}</td></tr>
+        </table>
+        <hr>
+        <div class="total">${t('caja.receiptPhysicalCount')} ${formatMoney(totalEsperado)}</div>
+        <div class="total">${t('caja.receiptDifference')} $0.00</div>
+        <hr>
+        <div class="center" style="margin-top:15px;font-size:10px;color:#666">${t('caja.receiptDoc')}</div>
+      `,
+    })
   }
 
   if (loading) {
@@ -265,7 +266,7 @@ export default function CajaPage() {
                 className="flex-1 py-3 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2 border border-yellow-200">
                 <Calculator className="w-5 h-5" /> {t('caja.xReportShort')}
               </button>
-              <button onClick={() => setTotalReal(String(Math.round(totalEsperado)))}
+              <button onClick={() => { setTotalReal(String(Math.round(totalEsperado))); setCierreOpen(true) }}
                 className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
                 <Calculator className="w-5 h-5" /> {t('caja.autoFill')}
               </button>

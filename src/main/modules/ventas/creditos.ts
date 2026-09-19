@@ -2,6 +2,7 @@ import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { creditoAbonoSchema } from '../../../shared/validations'
+import { localDateTimeStr } from '../../utils/time'
 
 export function registerCreditosHandlers(): void {
   handleIpc('creditos:list', async (_event, filters?: any) => {
@@ -84,9 +85,9 @@ export function registerCreditosHandlers(): void {
       }
 
       db!.prepare(`
-        INSERT INTO credito_abonos (credito_id, monto, usuario_id, notas)
-        VALUES (?, ?, ?, ?)
-      `).run(data.credito_id, data.monto, data.usuario_id, data.notas || null)
+        INSERT INTO credito_abonos (credito_id, monto, usuario_id, notas, fecha)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(data.credito_id, data.monto, data.usuario_id, data.notas || null, localDateTimeStr())
 
       const nuevoSaldo = credito.saldo - data.monto
       const estado = nuevoSaldo <= 0.005 ? 'pagado' : 'pendiente'
@@ -100,9 +101,9 @@ export function registerCreditosHandlers(): void {
       const cajaAbierta = db!.prepare("SELECT id FROM caja WHERE estado = 'abierta' LIMIT 1").get() as any
       if (cajaAbierta) {
         db!.prepare(`
-          INSERT INTO movimientos_caja (caja_id, tipo, monto, descripcion, referencia_id)
-          VALUES (?, 'entrada', ?, ?, ?)
-        `).run(cajaAbierta.id, data.monto, `Abono crédito #${credito.id} — ${credito.deudor_display}`, data.credito_id)
+          INSERT INTO movimientos_caja (caja_id, tipo, monto, descripcion, referencia_id, fecha)
+          VALUES (?, 'entrada', ?, ?, ?, ?)
+        `).run(cajaAbierta.id, data.monto, `Abono crédito #${credito.id} — ${credito.deudor_display}`, data.credito_id, localDateTimeStr())
         db!.prepare('UPDATE caja SET total_entradas = total_entradas + ? WHERE id = ?').run(
           data.monto, cajaAbierta.id,
         )

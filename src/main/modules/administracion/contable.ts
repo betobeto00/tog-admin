@@ -2,6 +2,7 @@ import { handleIpc } from '../../core/auth/ipc-guard'
 import { getDatabase } from '../../db/database'
 import { checkPermissionOrFail } from '../../core/auth'
 import { getActiveModules } from '../../services/license'
+import { aCsv } from '../../../shared/csv'
 
 function checkModuleOrFail(): { success: false; error: string } | null {
   if (!getActiveModules().includes('administracion')) {
@@ -15,21 +16,25 @@ interface Periodo {
   hasta: string
 }
 
+function localDateStr(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function resolverPeriodo(data: { desde?: string; hasta?: string }): Periodo {
   const hoy = new Date()
   const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
-  const desde = data?.desde || primerDia.toISOString().slice(0, 10)
-  const hasta = data?.hasta || hoy.toISOString().slice(0, 10)
+  const desde = data?.desde || localDateStr(primerDia)
+  const hasta = data?.hasta || localDateStr(hoy)
   return { desde, hasta: `${hasta} 23:59:59` }
 }
 
-const toCSV = (headers: string[], rows: (string | number | null)[][]): string => {
-  const esc = (v: string | number | null) => {
-    const s = v === null || v === undefined ? '' : String(v)
-    return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
-  }
-  return [headers.map(esc).join(';'), ...rows.map((r) => r.map(esc).join(';'))].join('\n')
-}
+// Separador `;` (Excel en español) y escapado a prueba de CSV injection:
+// los nombres de cliente/producto vienen de la DB y los abre una planilla.
+const toCSV = (headers: string[], rows: (string | number | null)[][]): string =>
+  aCsv([headers, ...rows], ';')
 
 export function registerContableHandlers(): void {
   handleIpc('contable:libro-ventas', async (_event, data: { desde?: string; hasta?: string; usuario_id: number }) => {

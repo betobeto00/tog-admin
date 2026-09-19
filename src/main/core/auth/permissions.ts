@@ -50,6 +50,18 @@ export function checkPermission(userId: number, permission: PermissionKey): bool
   return permissions.includes(permission)
 }
 
+/**
+ * ¿La sesión pertenece a un administrador?
+ *
+ * Se usa para cambios irreversibles que afectan a todos los comprobantes
+ * (numeración de facturas y N° de control fiscal): ni siquiera un usuario al
+ * que le regalen `print_config` debería poder renumerar la facturación.
+ */
+export function isAdminUser(userId: number): boolean {
+  const usuario = getDatabase().prepare('SELECT rol FROM usuarios WHERE id = ?').get(userId) as any
+  return usuario?.rol === 'admin'
+}
+
 export function extractSessionToken(data: any): string | null {
   if (data && typeof data.session_token === 'string' && data.session_token) return data.session_token
   return null
